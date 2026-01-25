@@ -95,9 +95,38 @@ class VideoCard extends StatelessWidget {
                   ),
                 ),
               ),
+            // Subtitle Badge
+            if (_hasSubtitles(video))
+              Positioned(
+                top: 5,
+                left: 5,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    "SUB",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
+  }
+
+  bool _hasSubtitles(Video video) {
+    final title = video.title.toLowerCase();
+    final categories = video.categories?.map((e) => e.toLowerCase()).toList() ?? [];
+    return title.contains("中文字幕") || 
+           title.contains("中文") || 
+           categories.contains("subtitled");
   }
 }

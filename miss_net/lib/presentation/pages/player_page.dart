@@ -303,6 +303,8 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                     if (widget.video.duration != null) _infoBadge(Icons.timer, widget.video.duration!),
                     const SizedBox(width: 15),
                     if (widget.video.releaseDate != null) _infoBadge(Icons.calendar_today, widget.video.releaseDate!),
+                    const SizedBox(width: 15),
+                    if (_hasSubtitles(widget.video)) _infoBadge(Icons.subtitles, "Subtitled"),
                   ],
                 ),
                 if (widget.video.categories != null && widget.video.categories!.isNotEmpty) ...[
@@ -356,6 +358,14 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         Text(text, style: const TextStyle(color: Colors.white70, fontSize: 13)),
       ],
     );
+  }
+
+  bool _hasSubtitles(Video video) {
+    final title = video.title.toLowerCase();
+    final categories = video.categories?.map((e) => e.toLowerCase()).toList() ?? [];
+    return title.contains("中文字幕") || 
+           title.contains("中文") || 
+           categories.contains("subtitled");
   }
 
   Widget _tagChip(String label, Color color) {
