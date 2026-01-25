@@ -36,6 +36,7 @@ ios/.symlinks/
 
 # Scraper data
 user_data*/
+user_data/
 
 # Build artifacts
 *.apk

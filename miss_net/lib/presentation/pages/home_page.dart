@@ -6,6 +6,7 @@ import '../pages/player_page.dart';
 import '../widgets/video_card.dart';
 import '../../domain/entities/video.dart';
 import '../../domain/entities/home_section.dart';
+import 'category/category_detail_page.dart';
 
 import '../../injection_container.dart';
 import '../blocs/search/search_bloc.dart';
@@ -149,9 +150,25 @@ class _HomePageState extends State<HomePage> {
       children: [
         Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Text(
-            section.title,
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CategoryDetailPage(title: section.title, category: section.category),
+                ),
+              );
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  section.title,
+                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+              ],
+            ),
           ),
         ),
         SizedBox(

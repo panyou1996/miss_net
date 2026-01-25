@@ -57,7 +57,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       repository.getRecentVideos(limit: 15, category: 'new'),
       repository.getRecentVideos(limit: 10, category: 'monthly_hot'),
       repository.getRecentVideos(limit: 10, category: 'weekly_hot'),
-      repository.getRecentVideos(limit: 10, category: 'Subtitled'),
+      repository.getRecentVideos(limit: 10, category: 'uncensored'),
     ]);
 
     final List<HomeSection> sections = [];
@@ -75,8 +75,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     );
 
     // Process others
-    final titles = ["Monthly Hot", "Weekly Hot", "Subtitled"];
-    final categories = ["monthly_hot", "weekly_hot", "Subtitled"];
+    final titles = ["Monthly Hot", "Weekly Hot", "Uncensored"];
+    final categories = ["monthly_hot", "weekly_hot", "uncensored"];
 
     for (int i = 1; i < results.length; i++) {
       results[i].fold(
