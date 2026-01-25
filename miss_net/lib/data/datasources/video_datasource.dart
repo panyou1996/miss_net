@@ -13,23 +13,19 @@ class SupabaseVideoDataSourceImpl implements VideoDataSource {
 
   @override
   Future<List<VideoModel>> getRecentVideos({int limit = 20, int offset = 0, String? category}) async {
-    var query = supabase
-        .from('videos')
-        .select()
-        .order('created_at', ascending: false)
-        .range(offset, offset + limit - 1);
+    // 1. Start with the filter builder
+    var query = supabase.from('videos').select();
 
+    // 2. Apply filters BEFORE ordering/ranging
     if (category != null && category != 'new') {
-      // 'new' is treated as "all/recent" or specifically 'new' tag? 
-      // Let's assume 'new' means no filter (show everything sorted by date), 
-      // OR we can filter by 'new' tag if the scraper adds it.
-      // Given the scraper adds 'new', 'uncensored', etc., we should filter.
-      // BUT for the "Home" tab, we might want everything.
-      // Let's implement strict filtering if category is provided.
       query = query.contains('tags', [category]);
     }
 
-    final response = await query;
+    // 3. Apply Order and Range (Pagination)
+    // Note: order() changes the return type to PostgrestTransformBuilder, so we chain it at the end.
+    final response = await query
+        .order('created_at', ascending: false)
+        .range(offset, offset + limit - 1);
 
     return (response as List).map((e) => VideoModel.fromJson(e)).toList();
   }
