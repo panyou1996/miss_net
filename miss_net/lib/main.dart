@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'injection_container.dart' as di;
 import 'presentation/blocs/home/home_bloc.dart';
-import 'presentation/pages/home_page.dart';
+import 'presentation/pages/main/main_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
           scaffoldBackgroundColor: Colors.black,
         ),
-        home: const HomePage(),
+        home: const MainScreen(),
       ),
     );
   }

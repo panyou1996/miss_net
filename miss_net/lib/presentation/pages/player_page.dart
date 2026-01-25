@@ -2,6 +2,8 @@ import 'package:chewie/chewie.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui'; // For ImageFilter
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/services/video_resolver.dart';
@@ -97,14 +99,18 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         deviceOrientationsAfterFullScreen: [DeviceOrientation.portraitUp],
       );
 
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = "Failed to load video: $e";
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = "Failed to load video: $e";
+        });
+      }
     }
   }
 
@@ -120,7 +126,6 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   @override
   void didChangeMetrics() {
     super.didChangeMetrics();
-    // This can be used to detect PiP mode changes on some versions of Flutter
     final isPip = MediaQuery.of(context).size.width < 400 && MediaQuery.of(context).size.height < 400;
     if (isPip != _isPipMode) {
       setState(() {
@@ -147,19 +152,44 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          if (defaultTargetPlatform == TargetPlatform.android && !_isLoading && _errorMessage == null)
-            IconButton(
-              icon: const Icon(Icons.picture_in_picture_alt, color: Colors.white),
-              onPressed: _enterPipMode,
+      body: Stack(
+        children: [
+          // 1. Background Image with Blur
+          if (widget.video.coverUrl != null)
+            Positioned.fill(
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: CachedNetworkImage(
+                  imageUrl: widget.video.coverUrl!,
+                  fit: BoxFit.cover,
+                  color: Colors.black.withOpacity(0.6),
+                  colorBlendMode: BlendMode.darken,
+                ),
+              ),
             ),
+          
+          // 2. Dark Overlay for readability
+          Positioned.fill(
+            child: Container(color: Colors.black.withOpacity(0.4)),
+          ),
+
+          // 3. Content
+          SafeArea(
+            child: Column(
+              children: [
+                _buildAppBar(),
+                Expanded(
+                  child: kIsWeb 
+                    ? _buildWebPlaceholder()
+                    : _isLoading
+                      ? _buildLoading()
+                      : _errorMessage != null
+                          ? _buildError()
+                          : _buildFullDetailView(),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -170,14 +200,25 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
           color: Colors.white,
         ),
       ),
-      body: SafeArea(
-        child: kIsWeb 
-          ? _buildWebPlaceholder()
-          : _isLoading
-            ? _buildLoading()
-            : _errorMessage != null
-                ? _buildError()
-                : _buildFullDetailView(),
+    );
+  }
+
+  Widget _buildAppBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          if (defaultTargetPlatform == TargetPlatform.android && !_isLoading && _errorMessage == null)
+            IconButton(
+              icon: const Icon(Icons.picture_in_picture_alt, color: Colors.white),
+              onPressed: _enterPipMode,
+            ),
+        ],
       ),
     );
   }
@@ -188,14 +229,64 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       : const Center(child: CircularProgressIndicator());
   }
 
+  Widget _buildLoading() {
+    return Column(
+      children: [
+        Hero(
+          tag: widget.video.id,
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: _buildCoverImage(),
+          ),
+        ),
+        const Expanded(
+          child: Center(child: CircularProgressIndicator(color: Colors.red)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildError() {
+    return Column(
+      children: [
+        Hero(
+          tag: widget.video.id,
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: _buildCoverImage(),
+          ),
+        ),
+        Expanded(
+          child: Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red))),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCoverImage() {
+    if (widget.video.coverUrl != null) {
+      return CachedNetworkImage(
+        imageUrl: widget.video.coverUrl!,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(color: Colors.grey[900]),
+        errorWidget: (context, url, error) => Container(color: Colors.grey[800]),
+      );
+    }
+    return Container(color: Colors.grey[900]);
+  }
+
   Widget _buildFullDetailView() {
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AspectRatio(
-            aspectRatio: _videoPlayerController!.value.aspectRatio,
-            child: Chewie(controller: _chewieController!),
+          Hero(
+            tag: widget.video.id,
+            child: AspectRatio(
+              aspectRatio: _videoPlayerController!.value.aspectRatio,
+              child: Chewie(controller: _chewieController!),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -204,9 +295,9 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
               children: [
                 Text(
                   widget.video.title,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     if (widget.video.duration != null) _infoBadge(Icons.timer, widget.video.duration!),
@@ -215,24 +306,24 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                   ],
                 ),
                 if (widget.video.categories != null && widget.video.categories!.isNotEmpty) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: widget.video.categories!.map((cat) => _tagChip(cat, Colors.red)).toList(),
+                    children: widget.video.categories!.map((cat) => _tagChip(cat, Colors.red.withOpacity(0.8))).toList(),
                   ),
                 ],
                 if (widget.video.actors != null && widget.video.actors!.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  const Text("Actors", style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 24),
+                  const Text("Actors", style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: widget.video.actors!.map((actor) => _tagChip(actor, Colors.blueGrey[800]!)).toList(),
+                    children: widget.video.actors!.map((actor) => _tagChip(actor, Colors.white.withOpacity(0.1))).toList(),
                   ),
                 ],
-                const SizedBox(height: 100),
+                const SizedBox(height: 120),
               ],
             ),
           ),
@@ -257,29 +348,31 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildLoading() {
-    return const Center(child: CircularProgressIndicator(color: Colors.red));
-  }
-
-  Widget _buildError() {
-    return Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)));
-  }
-
   Widget _infoBadge(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: Colors.grey),
-        const SizedBox(width: 4),
-        Text(text, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        Icon(icon, size: 16, color: Colors.white70),
+        const SizedBox(width: 6),
+        Text(text, style: const TextStyle(color: Colors.white70, fontSize: 13)),
       ],
     );
   }
 
   Widget _tagChip(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(15)),
-      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
+        ),
+      ),
     );
   }
 }

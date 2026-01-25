@@ -14,8 +14,7 @@ class SupabaseVideoDataSourceImpl implements VideoDataSource {
 
   @override
   Future<List<VideoModel>> getRecentVideos({int limit = 20, int offset = 0, String? category}) async {
-    // ... implementation remains similar but ensures it uses the new columns if needed
-    var queryBuilder = supabase.from('videos').select();
+    var queryBuilder = supabase.from('videos').select().eq('is_active', true);
 
     if (category != null && category != 'new') {
       queryBuilder = queryBuilder.or('tags.cs.{"$category"},categories.cs.{"$category"}');

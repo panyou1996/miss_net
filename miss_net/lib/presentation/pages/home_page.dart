@@ -1,8 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/home/home_bloc.dart';
 import '../pages/player_page.dart';
 import '../widgets/video_card.dart';
+import '../../domain/entities/video.dart';
+import '../../domain/entities/home_section.dart';
 
 import '../../injection_container.dart';
 import '../blocs/search/search_bloc.dart';
@@ -16,145 +19,16 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final ScrollController _scrollController = ScrollController();
-  final List<String> _categories = [
-    'new',
-    'monthly_hot',
-    'weekly_hot',
-    'uncensored',
-    'School',
-    'Office',
-    'VR',
-    'Mature',
-    'Subtitled',
-    'favorites'
-  ];
-  final Map<String, String> _categoryLabels = {
-    'new': 'Recent Updates',
-    'monthly_hot': 'Monthly Hot',
-    'weekly_hot': 'Weekly Hot',
-    'uncensored': 'Uncensored',
-    'School': 'School',
-    'Office': 'Office',
-    'VR': 'VR',
-    'Mature': 'Mature',
-    'Subtitled': 'Subtitled',
-    'favorites': 'My Favorites',
-  };
-  bool _showBackToTop = false;
-
   @override
   void initState() {
     super.initState();
     context.read<HomeBloc>().add(LoadRecentVideos());
-    _scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (!_scrollController.hasClients) return; // Guard clause
-
-    if (_isBottom) {
-      context.read<HomeBloc>().add(LoadMoreVideos());
-    }
-    
-    // Show/Hide Back to Top Button
-    if (_scrollController.offset > 500 && !_showBackToTop) {
-      setState(() => _showBackToTop = true);
-    } else if (_scrollController.offset <= 500 && _showBackToTop) {
-      setState(() => _showBackToTop = false);
-    }
-  }
-
-  bool get _isBottom {
-    if (!_scrollController.hasClients) return false;
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final currentScroll = _scrollController.offset;
-    return currentScroll >= (maxScroll * 0.9);
-  }
-
-  void _scrollToTop() {
-    if (!_scrollController.hasClients) return; // Guard clause
-    
-    _scrollController.animateTo(
-      0,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text("MissNet", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.black,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
-            onPressed: () {
-              final searchBloc = sl<SearchBloc>();
-              showSearch(
-                context: context,
-                delegate: VideoSearchDelegate(searchBloc),
-              ).then((_) => searchBloc.close());
-            },
-          )
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50.0),
-          child: Container(
-            height: 50,
-            alignment: Alignment.centerLeft,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              scrollDirection: Axis.horizontal,
-              itemCount: _categories.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final category = _categories[index];
-                return BlocBuilder<HomeBloc, HomeState>(
-                  buildWhen: (previous, current) => 
-                    current is HomeLoaded && previous is HomeLoaded 
-                    ? previous.selectedCategory != current.selectedCategory 
-                    : true,
-                  builder: (context, state) {
-                    final isSelected = state is HomeLoaded && state.selectedCategory == category;
-                    return ChoiceChip(
-                      label: Text(_categoryLabels[category] ?? category),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        if (selected) {
-                          context.read<HomeBloc>().add(ChangeCategory(category));
-                          _scrollToTop();
-                        }
-                      },
-                      selectedColor: Colors.red,
-                      backgroundColor: Colors.grey[900],
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : Colors.grey[400],
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        side: BorderSide.none,
-                      ),
-                      showCheckmark: false,
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ),
-      ),
       body: BlocBuilder<HomeBloc, HomeState>(
         builder: (context, state) {
           if (state is HomeLoading) {
@@ -162,64 +36,146 @@ class _HomePageState extends State<HomePage> {
           } else if (state is HomeError) {
             return Center(child: Text(state.message, style: const TextStyle(color: Colors.white)));
           } else if (state is HomeLoaded) {
-            if (state.videos.isEmpty) {
-               return const Center(
-                 child: Text("No videos found in this category.", style: TextStyle(color: Colors.white54))
-               );
-            }
             return RefreshIndicator(
-              color: Colors.red,
-              backgroundColor: Colors.grey[900],
               onRefresh: () async {
-                context.read<HomeBloc>().add(ChangeCategory(state.selectedCategory));
+                context.read<HomeBloc>().add(LoadRecentVideos());
               },
-              child: GridView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(10),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 1.5,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
-                itemCount: state.hasReachedMax 
-                    ? state.videos.length 
-                    : state.videos.length + 1, // Add 1 for spinner
-                itemBuilder: (context, index) {
-                  if (index >= state.videos.length) {
-                    return const Center(
-                      child: SizedBox(
-                        width: 24, 
-                        height: 24, 
-                        child: CircularProgressIndicator(color: Colors.red, strokeWidth: 2)
+              child: CustomScrollView(
+                slivers: [
+                  // 1. Transparent AppBar
+                  SliverAppBar(
+                    expandedHeight: 0,
+                    floating: true,
+                    backgroundColor: Colors.black.withOpacity(0.5),
+                    title: const Text("MissNet", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                    actions: [
+                      IconButton(
+                        icon: const Icon(Icons.search, color: Colors.white),
+                        onPressed: () {
+                          final searchBloc = sl<SearchBloc>();
+                          showSearch(context: context, delegate: VideoSearchDelegate(searchBloc))
+                              .then((_) => searchBloc.close());
+                        },
                       )
-                    );
-                  }
-                  final video = state.videos[index];
-                  return VideoCard(
-                    video: video,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => PlayerPage(video: video)),
-                      );
-                    },
-                  );
-                },
+                    ],
+                  ),
+
+                  // 2. Hero Banner
+                  if (state.featuredVideo != null)
+                    SliverToBoxAdapter(
+                      child: _buildHeroBanner(state.featuredVideo!),
+                    ),
+
+                  // 3. Horizontal Sections
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final section = state.sections[index];
+                        return _buildSection(section);
+                      },
+                      childCount: state.sections.length,
+                    ),
+                  ),
+                  
+                  const SliverToBoxAdapter(child: SizedBox(height: 50)),
+                ],
               ),
             );
           }
           return const SizedBox.shrink();
         },
       ),
-      floatingActionButton: _showBackToTop
-          ? FloatingActionButton(
-              onPressed: _scrollToTop,
-              backgroundColor: Colors.red,
-              mini: true,
-              child: const Icon(Icons.arrow_upward, color: Colors.white),
-            )
-          : null,
+    );
+  }
+
+  Widget _buildHeroBanner(Video video) {
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video))),
+      child: Stack(
+        children: [
+          Container(
+            height: 400,
+            width: double.infinity,
+            foregroundDecoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Colors.black,
+                  Colors.black.withOpacity(0.5),
+                  Colors.transparent,
+                ],
+                stops: const [0.0, 0.3, 0.6],
+              ),
+            ),
+            child: video.coverUrl != null
+                ? CachedNetworkImage(imageUrl: video.coverUrl!, fit: BoxFit.cover)
+                : Container(color: Colors.grey[900]),
+          ),
+          Positioned(
+            bottom: 40,
+            left: 20,
+            right: 20,
+            child: Column(
+              children: [
+                Text(
+                  video.title,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 15),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video))),
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text("Play Now"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSection(HomeSection section) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            section.title,
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
+        SizedBox(
+          height: 160,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            itemCount: section.videos.length,
+            itemBuilder: (context, index) {
+              final video = section.videos[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: SizedBox(
+                  width: 200,
+                  child: VideoCard(
+                    video: video,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video))),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

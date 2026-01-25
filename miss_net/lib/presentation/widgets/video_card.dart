@@ -27,20 +27,23 @@ class VideoCard extends StatelessWidget {
         child: Stack(
           children: [
             Positioned.fill(
-              child: video.coverUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: _getProxyUrl(video.coverUrl!),
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: Colors.grey[900],
-                        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: Colors.grey[800],
-                        child: const Icon(Icons.broken_image, color: Colors.white54),
-                      ),
-                    )
-                  : Image.memory(kTransparentImage),
+              child: Hero(
+                tag: video.id,
+                child: video.coverUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: _getProxyUrl(video.coverUrl!),
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: Colors.grey[900],
+                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: Colors.grey[800],
+                          child: const Icon(Icons.broken_image, color: Colors.white54),
+                        ),
+                      )
+                    : Image.memory(kTransparentImage),
+              ),
             ),
             // Gradient Overlay for Title
             Positioned(
