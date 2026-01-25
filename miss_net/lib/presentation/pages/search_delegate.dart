@@ -100,6 +100,42 @@ class VideoSearchDelegate extends SearchDelegate {
 
   @override
   Widget buildSuggestions(BuildContext context) {
-    return Container(color: Colors.black);
+    if (query.isEmpty) {
+      return Container(color: Colors.black);
+    }
+
+    searchBloc.add(FetchSuggestions(query));
+
+    return BlocBuilder<SearchBloc, SearchState>(
+      bloc: searchBloc,
+      builder: (context, state) {
+        if (state is SearchSuggestionsLoaded) {
+          final suggestions = state.suggestions;
+          if (suggestions.isEmpty) return Container(color: Colors.black);
+
+          return Container(
+            color: Colors.black,
+            child: ListView.builder(
+              itemCount: suggestions.length,
+              itemBuilder: (context, index) {
+                final suggestion = suggestions[index];
+                return ListTile(
+                  leading: const Icon(Icons.search, color: Colors.red),
+                  title: Text(
+                    suggestion,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  onTap: () {
+                    this.query = suggestion;
+                    showResults(context);
+                  },
+                );
+              },
+            ),
+          );
+        }
+        return Container(color: Colors.black);
+      },
+    );
   }
 }

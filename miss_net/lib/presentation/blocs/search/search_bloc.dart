@@ -18,6 +18,13 @@ class SearchQueryChanged extends SearchEvent {
   List<Object> get props => [query];
 }
 
+class FetchSuggestions extends SearchEvent {
+  final String query;
+  const FetchSuggestions(this.query);
+  @override
+  List<Object> get props => [query];
+}
+
 // States
 abstract class SearchState extends Equatable {
   const SearchState();
@@ -32,6 +39,12 @@ class SearchLoaded extends SearchState {
   const SearchLoaded(this.videos);
   @override
   List<Object> get props => [videos];
+}
+class SearchSuggestionsLoaded extends SearchState {
+  final List<String> suggestions;
+  const SearchSuggestionsLoaded(this.suggestions);
+  @override
+  List<Object> get props => [suggestions];
 }
 class SearchError extends SearchState {
   final String message;
@@ -60,6 +73,23 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       },
       transformer: (events, mapper) {
         return events.debounceTime(const Duration(milliseconds: 500)).asyncExpand(mapper);
+      },
+    );
+
+    on<FetchSuggestions>(
+      (event, emit) async {
+        if (event.query.isEmpty) {
+          emit(SearchInitial());
+          return;
+        }
+        final result = await repository.getSearchSuggestions(event.query);
+        result.fold(
+          (failure) => {}, // Ignore errors for suggestions to not disrupt user typing
+          (suggestions) => emit(SearchSuggestionsLoaded(suggestions)),
+        );
+      },
+      transformer: (events, mapper) {
+        return events.debounceTime(const Duration(milliseconds: 300)).asyncExpand(mapper);
       },
     );
   }

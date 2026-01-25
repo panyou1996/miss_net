@@ -35,6 +35,16 @@ class VideoRepositoryImpl implements VideoRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, List<String>>> getSearchSuggestions(String query) async {
+    try {
+      final suggestions = await remoteDataSource.getSearchSuggestions(query);
+      return Right(suggestions);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
   // --- Favorites ---
 
   @override
@@ -57,6 +67,10 @@ class VideoRepositoryImpl implements VideoRepository {
         coverUrl: video.coverUrl,
         sourceUrl: video.sourceUrl,
         createdAt: video.createdAt,
+        duration: video.duration,
+        releaseDate: video.releaseDate,
+        actors: video.actors,
+        categories: video.categories,
       );
       await localDataSource.saveFavorite(model);
       return const Right(null);
