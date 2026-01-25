@@ -71,7 +71,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   HomeBloc({required this.repository}) : super(HomeInitial()) {
     on<LoadRecentVideos>(_onLoadRecentVideos);
     on<LoadMoreVideos>(_onLoadMoreVideos, transformer: _throttleDroppable(const Duration(milliseconds: 100)));
-    on<ChangeCategory>(_onChangeCategory);
   }
 
   EventTransformer<E> _throttleDroppable<E>(Duration duration) {
@@ -83,19 +82,10 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   Future<void> _onLoadRecentVideos(LoadRecentVideos event, Emitter<HomeState> emit) async {
     emit(HomeLoading());
     // Default to 'new' or no category logic
-    final result = await repository.getRecentVideos(offset: 0, limit: 20, category: 'new'); 
+    final result = await repository.getRecentVideos(offset: 0, limit: 20); 
     result.fold(
       (failure) => emit(HomeError(failure.message)),
-      (videos) => emit(HomeLoaded(videos: videos, hasReachedMax: videos.length < 20, selectedCategory: 'new')),
-    );
-  }
-
-  Future<void> _onChangeCategory(ChangeCategory event, Emitter<HomeState> emit) async {
-    emit(HomeLoading()); // Show loading when switching
-    final result = await repository.getRecentVideos(offset: 0, limit: 20, category: event.category);
-    result.fold(
-      (failure) => emit(HomeError(failure.message)),
-      (videos) => emit(HomeLoaded(videos: videos, hasReachedMax: videos.length < 20, selectedCategory: event.category)),
+      (videos) => emit(HomeLoaded(videos: videos, hasReachedMax: videos.length < 20)),
     );
   }
 
@@ -107,8 +97,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final currentVideoCount = currentState.videos.length;
       final result = await repository.getRecentVideos(
         offset: currentVideoCount, 
-        limit: 20, 
-        category: currentState.selectedCategory
+        limit: 20,
       );
 
       result.fold(

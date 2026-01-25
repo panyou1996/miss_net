@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/services/video_resolver.dart';
 import '../../domain/entities/video.dart';
+import '../../domain/repositories/video_repository.dart';
 import '../../injection_container.dart';
 
 class PlayerPage extends StatefulWidget {
