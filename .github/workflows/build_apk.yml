@@ -1,0 +1,39 @@
+name: Build Android APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+
+    - name: Get dependencies
+      run: |
+        cd miss_net
+        flutter pub get
+
+    - name: Build APK
+      run: |
+        cd miss_net
+        flutter build apk --release --split-per-abi
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-apk
+        path: miss_net/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
