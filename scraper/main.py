@@ -42,28 +42,38 @@ def map_categories(title, tags):
 
 async def get_video_details(page, url):
     """
-    Scrapes detailed metadata with high stealth.
+    Improved extraction with more selectors.
     """
     try:
-        await asyncio.sleep(random.uniform(1.0, 2.5))
+        await asyncio.sleep(random.uniform(1.0, 2.0))
         await page.goto(url, timeout=60000, wait_until="load")
         await asyncio.sleep(random.uniform(2.5, 4.5))
         
         details = await page.evaluate('''() => {
-            const data = { duration: null, release_date: null, actors: [], tags: [] };
-            const infoItems = document.querySelectorAll('.space-y-2 div, .mt-4 div');
-            infoItems.forEach(item => {
-                const text = item.innerText;
-                if (text.includes('时长:')) data.duration = text.replace('时长:', '').trim();
-                if (text.includes('发布日期:')) data.release_date = text.replace('发布日期:', '').trim();
-            });
+            const data = { duration: "Unknown", release_date: "Unknown", actors: [], tags: [] };
+            
+            // Try to find duration and release date in all text nodes if specific selectors fail
+            const allDivs = Array.from(document.querySelectorAll('div'));
+            for (const div of allDivs) {
+                const text = div.innerText;
+                if (!text) continue;
+                if (text.startsWith('时长:')) data.duration = text.replace('时长:', '').trim();
+                if (text.startsWith('发布日期:')) data.release_date = text.replace('发布日期:', '').trim();
+            }
+            
+            // Fallback for duration (sometimes inside a span or specific class)
+            if (data.duration === "Unknown") {
+                const durationEl = document.querySelector('span.text-secondary') || document.querySelector('.i-bi-clock + span');
+                if (durationEl) data.duration = durationEl.innerText.trim();
+            }
+
             data.actors = Array.from(document.querySelectorAll('a[href*="/actors/"]')).map(a => a.innerText.trim()).filter(n => n.length > 0);
             data.tags = Array.from(document.querySelectorAll('a[href*="/tags/"]')).map(a => a.innerText.trim()).filter(n => n.length > 0);
             return data;
         }''')
         return details
     except Exception as e:
-        print(f"  Error fetching details for {url}: {e}")
+        print(f"  Error fetching details: {e}")
         return None
 
 async def sync_video(v, supabase, mode_label):
@@ -72,9 +82,7 @@ async def sync_video(v, supabase, mode_label):
             supabase.table("videos").upsert(v, on_conflict="external_id").execute()
             print(f"  [{mode_label}] Synced: {v['title'][:30]}...")
         except Exception as e:
-            print(f"  DB Error for {v['title'][:20]}: {e}")
-    else:
-        print(f"  [Dry Run] {v['title'][:30]}")
+            print(f"  DB Error: {e}")
 
 async def process_page_batch(videos, source_tag, detail_pages, supabase, semaphore):
     if not videos: return
@@ -92,9 +100,14 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
     for v in videos:
         ext_id = v['external_id']
         existing = metadata_map.get(ext_id)
-        if existing and existing.get('duration') and existing.get('actors'):
-            v['categories'] = map_categories(v['title'], [])
-            tasks.append(sync_video(v, supabase, "Incremental"))
+        
+        # KEY FIX: If duration exists AND is not empty/null, we skip.
+        # If it doesn't exist, we scrape.
+        has_metadata = existing and existing.get('duration') and existing.get('duration') != ""
+        
+        if has_metadata:
+            # v['categories'] = map_categories(v['title'], []) # Optional: re-map if needed
+            print(f"  [Skip] {v['title'][:30]}... (Already has metadata)")
         else:
             async def scrape_and_sync(vid=v):
                 async with semaphore:
@@ -109,7 +122,9 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
                     finally:
                         detail_pages.append(page)
             tasks.append(scrape_and_sync())
-    await asyncio.gather(*tasks)
+            
+    if tasks:
+        await asyncio.gather(*tasks)
 
 async def scrape_videos():
     supabase: Client = None
@@ -129,7 +144,7 @@ async def scrape_videos():
             context = await p.chromium.launch_persistent_context(
                 user_data_dir=USER_DATA_DIR,
                 headless=HEADLESS,
-                channel="chrome", # 核心：恢复真实 Chrome 渠道
+                channel="chrome",
                 user_agent=USER_AGENT,
                 args=args,
                 ignore_default_args=["--enable-automation"], 
@@ -167,36 +182,53 @@ async def scrape_videos():
                     await asyncio.sleep(random.uniform(4, 8))
                     
                     if "Just a moment" in await list_page.title():
-                        print(f"[{tag.upper()}] Cloudflare detected. Waiting 20s for manual/auto solve...")
-                        await asyncio.sleep(20)
-                        if "Just a moment" in await list_page.title():
-                            print("Still blocked. Skipping source.")
-                            break
+                        print(f"[{tag.upper()}] Cloudflare detected. Waiting...")
+                        await asyncio.sleep(15)
+                        continue
 
                     videos = await list_page.evaluate('''() => {
-                        const results = [];
-                        const images = document.querySelectorAll('img');
-                        images.forEach(img => {
-                            let link = img.closest('a');
-                            if (link && link.href.includes('/')) {
-                                let title = img.alt || "No Title";
-                                let cover = img.src;
-                                results.push({
-                                    external_id: link.href.split('/').pop(),
-                                    title: title.trim(),
-                                    cover_url: cover,
-                                    source_url: link.href
-                                });
+                        const resultsMap = new Map();
+                        const items = document.querySelectorAll('div.grid > div, div.thumbnail, .group');
+                        
+                        items.forEach(item => {
+                            const img = item.querySelector('img');
+                            const link = item.querySelector('a');
+                            if (img && link) {
+                                const href = link.href;
+                                const isVideoUrl = /\/[a-z0-9]+-[a-z0-9]+(\/)?$/i.test(href) || href.includes('/dm');
+                                
+                                if (isVideoUrl) {
+                                    // Robustly extract ID: remove trailing slash, then take last part
+                                    const pathParts = href.replace(/\/$/, "").split('/');
+                                    const external_id = pathParts.pop();
+                                    if (external_id && !resultsMap.has(external_id)) {
+                                        let title = img.alt || "";
+                                        if (title.length < 5) {
+                                            const titleEl = item.querySelector('h1, h2, h3, .text-secondary');
+                                            if (titleEl) title = titleEl.innerText;
+                                        }
+                                        if (title.length > 5) {
+                                            let cover = img.src;
+                                            if (cover.includes('cover-t.jpg')) cover = cover.replace('cover-t.jpg', 'cover-n.jpg');
+                                            resultsMap.set(external_id, {
+                                                external_id: external_id,
+                                                title: title.trim(),
+                                                cover_url: cover,
+                                                source_url: href
+                                            });
+                                        }
+                                    }
+                                }
                             }
                         });
-                        return results;
+                        return Array.from(resultsMap.values());
                     }''')
 
                     if not videos:
                         print(f"[{tag.upper()}] No videos found.")
                         break
 
-                    print(f"[{tag.upper()}] Page {page_num}: Found {len(videos)} videos. Processing...")
+                    print(f"[{tag.upper()}] Page {page_num}: Found {len(videos)} items. Syncing...")
                     await process_page_batch(videos, tag, detail_pages, supabase, semaphore)
                     await asyncio.sleep(random.uniform(3, 6))
                 except Exception as e:
