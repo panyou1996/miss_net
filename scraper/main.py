@@ -13,18 +13,31 @@ load_dotenv()
 CATEGORY_MAP = {
     "School": ["校园", "学生", "制服", "女教师", "学校", "女学生", "School", "Student"],
     "Office": ["OL", "职场", "公司", "秘书", "同事", "Office", "Business"],
-    "VR": ["VR", "360"],
-    "Uncensored": ["无码", "流出", "Uncensored", "Leak"],
-    "Mature": ["熟女", "人妻", "妈妈", "姨", "Mature", "Milf"],
+    "Mature": ["熟女", "人妻", "妈妈", "姨", "Mature", "Milf", "Housewife"],
     "Subtitled": ["中文字幕", "中文", "Subtitles", "Chinese"],
+    "Exclusive": ["独家", "Exclusive"],
+    "Nympho": ["痴女", "Nympho"],
+    "Voyeur": ["偷拍", "盗撮", "Voyeur"],
+    "Sister": ["姐姐", "姐", "Big Sister"],
+    "Story": ["剧情", "Drama", "Story"],
 }
 
-# Target URLs for Production
+# Target URLs for Production (Expanded)
 SOURCES = [
     {"url": "https://missav.ws/new", "tag": "new"},
     {"url": "https://missav.ws/dm263/monthly-hot?sort=monthly_views", "tag": "monthly_hot"},
     {"url": "https://missav.ws/dm169/weekly-hot?sort=weekly_views", "tag": "weekly_hot"},
     {"url": "https://missav.ws/dm628/uncensored-leak", "tag": "uncensored"},
+    # Added Category Specific Sources
+    {"url": "https://missav.ws/chinese-subtitle", "tag": "Subtitled"},
+    {"url": "https://missav.ws/genres/Married%20Woman", "tag": "Mature"},
+    {"url": "https://missav.ws/genres/Student", "tag": "School"},
+    {"url": "https://missav.ws/genres/Office%20Lady", "tag": "Office"},
+    {"url": "https://missav.ws/genres/Exclusive", "tag": "Exclusive"},
+    {"url": "https://missav.ws/genres/Nympho", "tag": "Nympho"},
+    {"url": "https://missav.ws/genres/Voyeur", "tag": "Voyeur"},
+    {"url": "https://missav.ws/genres/Big%20Sister", "tag": "Sister"},
+    {"url": "https://missav.ws/genres/Drama", "tag": "Story"},
 ]
 
 # Supabase Setup

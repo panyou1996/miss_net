@@ -7,12 +7,16 @@ class ExplorePage extends StatelessWidget {
   final List<Map<String, String>> categories = const [
     {'title': 'School', 'category': 'School', 'icon': '🏫'},
     {'title': 'Office', 'category': 'Office', 'icon': '💼'},
-    {'title': 'VR', 'category': 'VR', 'icon': '👓'},
     {'title': 'Mature', 'category': 'Mature', 'icon': '🍷'},
+    {'title': 'Exclusive', 'category': 'Exclusive', 'icon': '💎'},
+    {'title': 'Nympho', 'category': 'Nympho', 'icon': '🤤'},
+    {'title': 'Voyeur', 'category': 'Voyeur', 'icon': '📷'},
+    {'title': 'Sister', 'category': 'Sister', 'icon': '👩‍❤️‍👩'},
+    {'title': 'Story', 'category': 'Story', 'icon': '📖'},
     {'title': 'Subtitled', 'category': 'Subtitled', 'icon': '🔤'},
     {'title': 'Uncensored', 'category': 'uncensored', 'icon': '🔥'},
     {'title': 'New', 'category': 'new', 'icon': '🆕'},
-    {'title': 'Monthly Hot', 'category': 'monthly_hot', 'icon': '📈'},
+    {'title': 'Hot', 'category': 'monthly_hot', 'icon': '📈'},
   ];
 
   @override
