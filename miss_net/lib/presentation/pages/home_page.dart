@@ -18,10 +18,32 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     context.read<HomeBloc>().add(LoadRecentVideos());
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_isBottom) {
+      context.read<HomeBloc>().add(LoadMoreVideos());
+    }
+  }
+
+  bool get _isBottom {
+    if (!_scrollController.hasClients) return false;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    return currentScroll >= (maxScroll * 0.9);
   }
 
   @override
@@ -57,15 +79,27 @@ class _HomePageState extends State<HomePage> {
                 context.read<HomeBloc>().add(LoadRecentVideos());
               },
               child: GridView.builder(
+                controller: _scrollController,
                 padding: const EdgeInsets.all(10),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.7,
+                  childAspectRatio: 1.5,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
                 ),
-                itemCount: state.videos.length,
+                itemCount: state.hasReachedMax 
+                    ? state.videos.length 
+                    : state.videos.length + 1, // Add 1 for spinner
                 itemBuilder: (context, index) {
+                  if (index >= state.videos.length) {
+                    return const Center(
+                      child: SizedBox(
+                        width: 24, 
+                        height: 24, 
+                        child: CircularProgressIndicator(color: Colors.red, strokeWidth: 2)
+                      )
+                    );
+                  }
                   final video = state.videos[index];
                   return VideoCard(
                     video: video,

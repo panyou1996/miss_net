@@ -70,7 +70,7 @@ class VideoSearchDelegate extends SearchDelegate {
             padding: const EdgeInsets.all(10),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.7,
+              childAspectRatio: 1.5,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
             ),

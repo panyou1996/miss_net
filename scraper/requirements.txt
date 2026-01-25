@@ -4,3 +4,4 @@ python-dotenv
 pytest
 playwright-stealth
 beautifulsoup4
+socksio

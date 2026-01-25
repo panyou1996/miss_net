@@ -10,10 +10,8 @@ class VideoRepositoryImpl implements VideoRepository {
   VideoRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<Either<Failure, List<Video>>> getRecentVideos({int page = 1}) async {
+  Future<Either<Failure, List<Video>>> getRecentVideos({int limit = 20, int offset = 0}) async {
     try {
-      final limit = 20;
-      final offset = (page - 1) * limit;
       final videos = await remoteDataSource.getRecentVideos(limit: limit, offset: offset);
       return Right(videos);
     } catch (e) {
