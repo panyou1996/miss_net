@@ -18,7 +18,8 @@ class SupabaseVideoDataSourceImpl implements VideoDataSource {
 
     // 2. Apply filters BEFORE ordering/ranging
     if (category != null && category != 'new') {
-      query = query.contains('tags', [category]);
+      // Use or filter to check both tags and categories
+      query = query.or('tags.cs.{"$category"},categories.cs.{"$category"}');
     }
 
     // 3. Apply Order and Range (Pagination)

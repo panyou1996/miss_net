@@ -71,6 +71,27 @@ class VideoCard extends StatelessWidget {
                 ),
               ),
             ),
+            // Duration Badge
+            if (video.duration != null && video.duration!.isNotEmpty)
+              Positioned(
+                bottom: 30,
+                right: 5,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    video.duration!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

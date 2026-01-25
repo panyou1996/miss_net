@@ -17,12 +17,28 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ScrollController _scrollController = ScrollController();
-  final List<String> _categories = ['new', 'monthly_hot', 'weekly_hot', 'uncensored', 'favorites'];
+  final List<String> _categories = [
+    'new',
+    'monthly_hot',
+    'weekly_hot',
+    'uncensored',
+    'School',
+    'Office',
+    'VR',
+    'Mature',
+    'Subtitled',
+    'favorites'
+  ];
   final Map<String, String> _categoryLabels = {
     'new': 'Recent Updates',
     'monthly_hot': 'Monthly Hot',
     'weekly_hot': 'Weekly Hot',
     'uncensored': 'Uncensored',
+    'School': 'School',
+    'Office': 'Office',
+    'VR': 'VR',
+    'Mature': 'Mature',
+    'Subtitled': 'Subtitled',
     'favorites': 'My Favorites',
   };
   bool _showBackToTop = false;
