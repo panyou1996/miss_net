@@ -33,3 +33,11 @@ ios/.symlinks/
 .idea/
 .vscode/
 *.iml
+
+# Scraper data
+user_data/
+
+# Build artifacts
+*.apk
+build/
+miss_net/build/

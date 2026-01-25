@@ -70,6 +70,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   HomeBloc({required this.repository}) : super(HomeInitial()) {
     on<LoadRecentVideos>(_onLoadRecentVideos);
+    on<ChangeCategory>(_onChangeCategory);
     on<LoadMoreVideos>(_onLoadMoreVideos, transformer: _throttleDroppable(const Duration(milliseconds: 100)));
   }
 
@@ -81,12 +82,46 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   Future<void> _onLoadRecentVideos(LoadRecentVideos event, Emitter<HomeState> emit) async {
     emit(HomeLoading());
-    // Default to 'new' or no category logic
-    final result = await repository.getRecentVideos(offset: 0, limit: 20); 
+    // Initial load always starts with 'new'
+    const category = 'new';
+    final result = await repository.getRecentVideos(offset: 0, limit: 20, category: category); 
     result.fold(
       (failure) => emit(HomeError(failure.message)),
-      (videos) => emit(HomeLoaded(videos: videos, hasReachedMax: videos.length < 20)),
+      (videos) => emit(HomeLoaded(
+        videos: videos, 
+        hasReachedMax: videos.length < 20,
+        selectedCategory: category,
+      )),
     );
+  }
+
+  Future<void> _onChangeCategory(ChangeCategory event, Emitter<HomeState> emit) async {
+    emit(HomeLoading());
+    if (event.category == 'favorites') {
+      final result = await repository.getFavorites();
+      result.fold(
+        (failure) => emit(HomeError(failure.message)),
+        (videos) => emit(HomeLoaded(
+          videos: videos,
+          hasReachedMax: true, // Favorites are all loaded at once usually
+          selectedCategory: event.category,
+        )),
+      );
+    } else {
+      final result = await repository.getRecentVideos(
+        offset: 0, 
+        limit: 20, 
+        category: event.category
+      );
+      result.fold(
+        (failure) => emit(HomeError(failure.message)),
+        (videos) => emit(HomeLoaded(
+          videos: videos,
+          hasReachedMax: videos.length < 20,
+          selectedCategory: event.category,
+        )),
+      );
+    }
   }
 
   Future<void> _onLoadMoreVideos(LoadMoreVideos event, Emitter<HomeState> emit) async {
@@ -94,10 +129,14 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final currentState = state as HomeLoaded;
       if (currentState.hasReachedMax) return;
 
+      // Don't load more for favorites if we treat it as single-page list for now
+      if (currentState.selectedCategory == 'favorites') return;
+
       final currentVideoCount = currentState.videos.length;
       final result = await repository.getRecentVideos(
         offset: currentVideoCount, 
         limit: 20,
+        category: currentState.selectedCategory,
       );
 
       result.fold(

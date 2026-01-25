@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../blocs/home/home_bloc.dart';
 import '../pages/player_page.dart';
 import '../widgets/video_card.dart';
@@ -19,12 +17,13 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ScrollController _scrollController = ScrollController();
-  final List<String> _categories = ['new', 'monthly_hot', 'weekly_hot', 'uncensored'];
+  final List<String> _categories = ['new', 'monthly_hot', 'weekly_hot', 'uncensored', 'favorites'];
   final Map<String, String> _categoryLabels = {
     'new': 'Recent Updates',
     'monthly_hot': 'Monthly Hot',
     'weekly_hot': 'Weekly Hot',
     'uncensored': 'Uncensored',
+    'favorites': 'My Favorites',
   };
   bool _showBackToTop = false;
 

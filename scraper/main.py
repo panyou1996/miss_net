@@ -83,7 +83,7 @@ async def scrape_videos():
             print(f"\n--- Scraping Category: {tag} ---")
 
             # Scrape Pages 1 to 2
-            for page_num in range(1, 3):
+            for page_num in range(1, 30):
                 # Construct URL with pagination
                 separator = "&" if "?" in base_url else "?"
                 current_url = f"{base_url}{separator}page={page_num}"
