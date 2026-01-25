@@ -3,6 +3,7 @@ from playwright_stealth import Stealth
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
+import asyncio
 
 # Load environment variables from .env file if present
 load_dotenv()
