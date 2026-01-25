@@ -58,10 +58,16 @@ async def scrape_videos():
                             }
 
                             if (title) {
+                                // Convert thumbnail URL to High-Res URL (cover-t.jpg -> cover-n.jpg)
+                                let cover = img.src;
+                                if (cover.includes('cover-t.jpg')) {
+                                    cover = cover.replace('cover-t.jpg', 'cover-n.jpg');
+                                }
+
                                 results.push({
                                     external_id: link.href.split('/').pop(),
                                     title: title.trim(),
-                                    cover_url: img.src,
+                                    cover_url: cover,
                                     source_url: link.href
                                 });
                             }
