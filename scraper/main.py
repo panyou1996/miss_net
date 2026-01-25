@@ -50,6 +50,7 @@ async def get_video_details(page, url):
     """
     try:
         print(f"  Fetching details from: {url}")
+        await asyncio.sleep(random.uniform(0.5, 2))
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
         await asyncio.sleep(random.uniform(2, 4))
         
@@ -78,8 +79,50 @@ async def get_video_details(page, url):
         }''')
         return details
     except Exception as e:
-        print(f"  Error fetching details: {e}")
+        print(f"  Error fetching details for {url}: {e}")
         return None
+
+async def process_video(v, source_tag, detail_pages, supabase, semaphore):
+    """
+    Processes a single video: checks if it exists, scrapes details if needed, and upserts to DB.
+    """
+    external_id = v['external_id']
+    
+    should_deep_scrape = True
+    if supabase:
+        try:
+            res = supabase.table("videos").select("duration, actors").eq("external_id", external_id).execute()
+            if res.data and len(res.data) > 0:
+                record = res.data[0]
+                if record.get('duration') and record.get('actors'):
+                    should_deep_scrape = False
+                    print(f"  Skip: {v['title'][:20]} (Metadata exists)")
+        except Exception as e:
+            print(f"  Check Error for {external_id}: {e}")
+
+    if should_deep_scrape:
+        async with semaphore:
+            page = detail_pages.pop()
+            try:
+                details = await get_video_details(page, v['source_url'])
+                if details:
+                    v.update(details)
+                    v['categories'] = map_categories(v['title'], v.get('tags', []))
+                    v['tags'] = list(set([source_tag] + v.get('tags', [])))
+            finally:
+                detail_pages.append(page)
+    else:
+        v['categories'] = map_categories(v['title'], [])
+
+    if supabase:
+        try:
+            supabase.table("videos").upsert(v, on_conflict="external_id").execute()
+            status = "Deep Scraped" if should_deep_scrape else "Incremental"
+            print(f"  [{status}] Synced: {v['title'][:30]}...")
+        except Exception as e:
+            print(f"  DB Error for {v['title'][:20]}: {e}")
+    else:
+        print(f"  [Dry Run] {v['title'][:30]}")
 
 async def scrape_videos():
     supabase: Client = None
@@ -90,6 +133,9 @@ async def scrape_videos():
 
     HEADLESS = os.environ.get("HEADLESS", "true").lower() == "true"
     USER_DATA_DIR = os.path.join(os.getcwd(), "user_data")
+    
+    CONCURRENT_PAGES = 3
+    semaphore = asyncio.Semaphore(CONCURRENT_PAGES)
 
     async with async_playwright() as p:
         args = [
@@ -115,10 +161,14 @@ async def scrape_videos():
             return
 
         stealth = Stealth()
-        page = context.pages[0] if context.pages else await context.new_page()
-        await stealth.apply_stealth_async(page)
-        detail_page = await context.new_page()
-        await stealth.apply_stealth_async(detail_page)
+        list_page = context.pages[0] if context.pages else await context.new_page()
+        await stealth.apply_stealth_async(list_page)
+        
+        detail_pages = []
+        for _ in range(CONCURRENT_PAGES):
+            dp = await context.new_page()
+            await stealth.apply_stealth_async(dp)
+            detail_pages.append(dp)
 
         for source in SOURCES:
             base_url = source["url"]
@@ -130,14 +180,14 @@ async def scrape_videos():
                 print(f"Navigating to {current_url}...")
                 
                 try:
-                    await page.goto(current_url, timeout=60000, wait_until="domcontentloaded")
+                    await list_page.goto(current_url, timeout=60000, wait_until="domcontentloaded")
                     await asyncio.sleep(random.uniform(3, 6))
                     
-                    if "Just a moment" in await page.title():
+                    if "Just a moment" in await list_page.title():
                         print("BLOCKED by Cloudflare.")
                         break
 
-                    videos = await page.evaluate('''() => {
+                    videos = await list_page.evaluate('''() => {
                         const results = [];
                         const images = document.querySelectorAll('img');
                         images.forEach(img => {
@@ -159,32 +209,14 @@ async def scrape_videos():
                         return results;
                     }''')
 
-                    print(f"Found {len(videos)} videos.")
+                    print(f"Found {len(videos)} videos on page {page_num}.")
                     
-                    for i, v in enumerate(videos):
-                        # Optimization: Deep scrape only if we don't have tags yet (incremental update)
-                        # For now, we limit deep scrape to first 5 videos per page to balance speed and data
-                        if i < 5:
-                            details = await get_video_details(detail_page, v['source_url'])
-                            if details:
-                                v.update(details)
-                                v['categories'] = map_categories(v['title'], v.get('tags', []))
-                                v['tags'] = list(set([tag] + v.get('tags', [])))
-                        else:
-                            # Basic mapping for others
-                            v['categories'] = map_categories(v['title'], [])
-                        
-                        if supabase:
-                            try:
-                                supabase.table("videos").upsert(v, on_conflict="external_id").execute()
-                                print(f"  Synced: {v['title'][:30]}... | Cat: {v.get('categories')}")
-                            except Exception as e:
-                                print(f"  DB Error: {e}")
-                        
-                        await asyncio.sleep(random.uniform(1, 2))
+                    tasks = [process_video(v, tag, detail_pages, supabase, semaphore) for v in videos]
+                    await asyncio.gather(*tasks)
+                    await asyncio.sleep(random.uniform(2, 5))
 
                 except Exception as e:
-                    print(f"Error: {e}")
+                    print(f"Error on list page {page_num}: {e}")
 
         await context.close()
 
