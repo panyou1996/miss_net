@@ -15,6 +15,13 @@ class LoadRecentVideos extends HomeEvent {}
 
 class LoadMoreVideos extends HomeEvent {}
 
+class ChangeCategory extends HomeEvent {
+  final String category;
+  const ChangeCategory(this.category);
+  @override
+  List<Object> get props => [category];
+}
+
 // States
 abstract class HomeState extends Equatable {
   const HomeState();
@@ -27,24 +34,28 @@ class HomeLoading extends HomeState {}
 class HomeLoaded extends HomeState {
   final List<Video> videos;
   final bool hasReachedMax;
+  final String selectedCategory;
 
   const HomeLoaded({
     required this.videos, 
-    this.hasReachedMax = false
+    this.hasReachedMax = false,
+    this.selectedCategory = 'new',
   });
 
   HomeLoaded copyWith({
     List<Video>? videos,
     bool? hasReachedMax,
+    String? selectedCategory,
   }) {
     return HomeLoaded(
       videos: videos ?? this.videos,
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,
+      selectedCategory: selectedCategory ?? this.selectedCategory,
     );
   }
 
   @override
-  List<Object> get props => [videos, hasReachedMax];
+  List<Object> get props => [videos, hasReachedMax, selectedCategory];
 }
 class HomeError extends HomeState {
   final String message;
@@ -60,6 +71,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   HomeBloc({required this.repository}) : super(HomeInitial()) {
     on<LoadRecentVideos>(_onLoadRecentVideos);
     on<LoadMoreVideos>(_onLoadMoreVideos, transformer: _throttleDroppable(const Duration(milliseconds: 100)));
+    on<ChangeCategory>(_onChangeCategory);
   }
 
   EventTransformer<E> _throttleDroppable<E>(Duration duration) {
@@ -70,10 +82,20 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   Future<void> _onLoadRecentVideos(LoadRecentVideos event, Emitter<HomeState> emit) async {
     emit(HomeLoading());
-    final result = await repository.getRecentVideos(offset: 0, limit: 20);
+    // Default to 'new' or no category logic
+    final result = await repository.getRecentVideos(offset: 0, limit: 20, category: 'new'); 
     result.fold(
       (failure) => emit(HomeError(failure.message)),
-      (videos) => emit(HomeLoaded(videos: videos, hasReachedMax: videos.length < 20)),
+      (videos) => emit(HomeLoaded(videos: videos, hasReachedMax: videos.length < 20, selectedCategory: 'new')),
+    );
+  }
+
+  Future<void> _onChangeCategory(ChangeCategory event, Emitter<HomeState> emit) async {
+    emit(HomeLoading()); // Show loading when switching
+    final result = await repository.getRecentVideos(offset: 0, limit: 20, category: event.category);
+    result.fold(
+      (failure) => emit(HomeError(failure.message)),
+      (videos) => emit(HomeLoaded(videos: videos, hasReachedMax: videos.length < 20, selectedCategory: event.category)),
     );
   }
 
@@ -83,7 +105,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       if (currentState.hasReachedMax) return;
 
       final currentVideoCount = currentState.videos.length;
-      final result = await repository.getRecentVideos(offset: currentVideoCount, limit: 20);
+      final result = await repository.getRecentVideos(
+        offset: currentVideoCount, 
+        limit: 20, 
+        category: currentState.selectedCategory
+      );
 
       result.fold(
         (failure) => emit(HomeError(failure.message)),

@@ -47,6 +47,15 @@ class _PlayerPageState extends State<PlayerPage> {
         autoPlay: true,
         looping: false,
         aspectRatio: _videoPlayerController!.value.aspectRatio,
+        allowFullScreen: true,
+        allowMuting: true,
+        showControls: true,
+        materialProgressColors: ChewieProgressColors(
+          playedColor: Colors.red,
+          handleColor: Colors.red,
+          backgroundColor: Colors.grey.withOpacity(0.5),
+          bufferedColor: Colors.grey,
+        ),
         errorBuilder: (context, errorMessage) {
           return Center(
             child: Text(

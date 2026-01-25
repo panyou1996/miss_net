@@ -192,6 +192,10 @@ async def scrape_videos():
                                             cover = cover.replace('cover-t.jpg', 'cover-n.jpg');
                                         }
 
+                                        // Add the current category tag
+                                        // We pass the python variable 'tag' into the JS context via formatting or args
+                                        // But here we are inside a string literal for evaluate.
+                                        // Easier approach: Return basic data, add tag in Python.
                                         results.push({
                                             external_id: link.href.split('/').pop(),
                                             title: title.trim(),
@@ -208,10 +212,14 @@ async def scrape_videos():
                     print(f"[{tag.upper()}] Page {page_num}: Scraped {len(videos)} videos.")
                     
                     if supabase and videos:
-                        # Add tag to the video data if your schema supports it (optional, just upserting for now)
-                        # We are keeping it simple matching the schema
+                        # Add tag to the video data
+                        videos_with_tags = []
+                        for v in videos:
+                            v['tags'] = [tag] # Overwrite or append? Overwrite is safer for 'source' categorization
+                            videos_with_tags.append(v)
+
                         try:
-                            data = supabase.table("videos").upsert(videos, on_conflict="external_id").execute()
+                            data = supabase.table("videos").upsert(videos_with_tags, on_conflict="external_id").execute()
                             print("Success: Data synced.")
                         except Exception as db_err:
                             print(f"Database Error: {db_err}")
