@@ -30,13 +30,7 @@ SOURCES = [
 # Supabase Setup
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-
-async def block_aggressively(route):
-    bad_resource_types = ["image", "font", "media", "manifest", "other"]
-    if route.request.resource_type in bad_resource_types:
-        await route.abort()
-    else:
-        await route.continue_()
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 def map_categories(title, tags):
     refined = []
@@ -47,10 +41,14 @@ def map_categories(title, tags):
     return refined
 
 async def get_video_details(page, url):
+    """
+    Scrapes detailed metadata with high stealth.
+    """
     try:
         await asyncio.sleep(random.uniform(1.0, 2.5))
-        await page.goto(url, timeout=60000, wait_until="domcontentloaded")
-        await asyncio.sleep(random.uniform(2.0, 4.0))
+        await page.goto(url, timeout=60000, wait_until="load")
+        await asyncio.sleep(random.uniform(2.5, 4.5))
+        
         details = await page.evaluate('''() => {
             const data = { duration: null, release_date: null, actors: [], tags: [] };
             const infoItems = document.querySelectorAll('.space-y-2 div, .mt-4 div');
@@ -125,29 +123,35 @@ async def scrape_videos():
     semaphore = asyncio.Semaphore(CONCURRENT_DETAIL_PAGES)
 
     async with async_playwright() as p:
-        args = ["--disable-blink-features=AutomationControlled", "--no-sandbox", "--disable-gpu"]
+        args = ["--disable-blink-features=AutomationControlled", "--no-sandbox"]
+        
         try:
             context = await p.chromium.launch_persistent_context(
                 user_data_dir=USER_DATA_DIR,
                 headless=HEADLESS,
+                channel="chrome", # 核心：恢复真实 Chrome 渠道
+                user_agent=USER_AGENT,
                 args=args,
                 ignore_default_args=["--enable-automation"], 
                 viewport={"width": 1280, "height": 720}
             )
-        except Exception as e:
-            print(f"Launch failed: {e}")
-            return
+        except Exception:
+            context = await p.chromium.launch_persistent_context(
+                user_data_dir=USER_DATA_DIR,
+                headless=HEADLESS,
+                user_agent=USER_AGENT,
+                args=args,
+                viewport={"width": 1280, "height": 720}
+            )
 
         stealth = Stealth()
         list_page = await context.new_page()
         await stealth.apply_stealth_async(list_page)
-        await list_page.route("**/*", block_aggressively)
 
         detail_pages = []
         for _ in range(CONCURRENT_DETAIL_PAGES):
             dp = await context.new_page()
             await stealth.apply_stealth_async(dp)
-            await dp.route("**/*", block_aggressively)
             detail_pages.append(dp)
 
         for source in SOURCES:
@@ -159,13 +163,15 @@ async def scrape_videos():
                 current_url = f"{base_url}?page={page_num}"
                 print(f"[{tag.upper()}] Navigating to page {page_num}...")
                 try:
-                    await list_page.goto(current_url, timeout=60000, wait_until="domcontentloaded")
-                    await asyncio.sleep(random.uniform(4, 7))
+                    await list_page.goto(current_url, timeout=60000, wait_until="load")
+                    await asyncio.sleep(random.uniform(4, 8))
                     
                     if "Just a moment" in await list_page.title():
-                        print(f"[{tag.upper()}] BLOCKED by Cloudflare. Waiting 15s...")
-                        await asyncio.sleep(15)
-                        continue
+                        print(f"[{tag.upper()}] Cloudflare detected. Waiting 20s for manual/auto solve...")
+                        await asyncio.sleep(20)
+                        if "Just a moment" in await list_page.title():
+                            print("Still blocked. Skipping source.")
+                            break
 
                     videos = await list_page.evaluate('''() => {
                         const results = [];
@@ -190,7 +196,7 @@ async def scrape_videos():
                         print(f"[{tag.upper()}] No videos found.")
                         break
 
-                    print(f"[{tag.upper()}] Page {page_num}: Processing {len(videos)} videos...")
+                    print(f"[{tag.upper()}] Page {page_num}: Found {len(videos)} videos. Processing...")
                     await process_page_batch(videos, tag, detail_pages, supabase, semaphore)
                     await asyncio.sleep(random.uniform(3, 6))
                 except Exception as e:
