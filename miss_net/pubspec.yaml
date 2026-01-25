@@ -47,6 +47,7 @@ dependencies:
   dartz: ^0.10.1
   transparent_image: ^2.0.1
   rxdart: ^0.28.0
+  shared_preferences: ^2.5.4
 
 dev_dependencies:
   flutter_test:

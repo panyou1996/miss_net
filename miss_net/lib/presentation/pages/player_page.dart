@@ -20,14 +20,17 @@ class PlayerPage extends StatefulWidget {
 
 class _PlayerPageState extends State<PlayerPage> {
   final VideoResolver _resolver = sl<VideoResolver>();
+  final VideoRepository _repository = sl<VideoRepository>();
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   bool _isLoading = true;
   String? _errorMessage;
+  bool _isFavorite = false;
 
   @override
   void initState() {
     super.initState();
+    _checkFavoriteStatus();
     if (!kIsWeb) {
       _initializePlayer();
     } else {
@@ -35,6 +38,24 @@ class _PlayerPageState extends State<PlayerPage> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _checkFavoriteStatus() async {
+    final isFav = await _repository.isFavorite(widget.video.id);
+    if (mounted) {
+      setState(() {
+        _isFavorite = isFav;
+      });
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (_isFavorite) {
+      await _repository.removeFavorite(widget.video.id);
+    } else {
+      await _repository.saveFavorite(widget.video);
+    }
+    await _checkFavoriteStatus();
   }
 
   Future<void> _initializePlayer() async {
@@ -100,6 +121,14 @@ class _PlayerPageState extends State<PlayerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      floatingActionButton: FloatingActionButton(
+        onPressed: _toggleFavorite,
+        backgroundColor: Colors.red,
+        child: Icon(
+          _isFavorite ? Icons.favorite : Icons.favorite_border,
+          color: Colors.white,
+        ),
+      ),
       body: SafeArea(
         child: kIsWeb 
           ? Center(

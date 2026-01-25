@@ -1,6 +1,8 @@
 import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/services/video_resolver.dart';
+import 'data/datasources/local_video_datasource.dart';
 import 'data/datasources/video_datasource.dart';
 import 'data/repositories/video_repository_impl.dart';
 import 'domain/repositories/video_repository.dart';
@@ -16,16 +18,24 @@ Future<void> init() async {
 
   // Repositories
   sl.registerLazySingleton<VideoRepository>(
-    () => VideoRepositoryImpl(remoteDataSource: sl()),
+    () => VideoRepositoryImpl(
+      remoteDataSource: sl(),
+      localDataSource: sl(),
+    ),
   );
 
   // Data Sources
   sl.registerLazySingleton<VideoDataSource>(
     () => SupabaseVideoDataSourceImpl(sl()),
   );
+  sl.registerLazySingleton<LocalVideoDataSource>(
+    () => LocalVideoDataSourceImpl(sl()),
+  );
 
   // External
-  // Supabase client is initialized in main.dart, but we register the instance here
+  final sharedPreferences = await SharedPreferences.getInstance();
+  sl.registerLazySingleton(() => sharedPreferences);
+  
   sl.registerLazySingleton(() => Supabase.instance.client);
   
   // Services
