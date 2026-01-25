@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/services/video_resolver.dart';
 import '../../domain/entities/video.dart';
@@ -101,21 +102,29 @@ class _PlayerPageState extends State<PlayerPage> {
       backgroundColor: Colors.black,
       body: SafeArea(
         child: kIsWeb 
-          ? InAppWebView(
-              initialUrlRequest: URLRequest(url: WebUri(widget.video.sourceUrl)),
-              initialSettings: InAppWebViewSettings(
-                mediaPlaybackRequiresUserGesture: false,
-                iframeAllowFullscreen: true,
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "This video cannot be played embedded due to site restrictions.",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      launchUrl(Uri.parse(widget.video.sourceUrl));
+                    }, 
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text("Watch on Source Site"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
               ),
-              onLoadStop: (controller, url) async {
-                // Inject CSS to hide everything except the player
-                await controller.injectCSSCode(source: """
-                  header, footer, .navbar, .sidebar, .ads, .comments, .related-videos { display: none !important; }
-                  body { background-color: black !important; overflow: hidden !important; }
-                  video { width: 100vw !important; height: 100vh !important; object-fit: contain !important; }
-                  .player-container { width: 100% !important; height: 100% !important; }
-                """);
-              },
             )
           : _isLoading
             ? const Center(

@@ -42,6 +42,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onScroll() {
+    if (!_scrollController.hasClients) return; // Guard clause
+
     if (_isBottom) {
       context.read<HomeBloc>().add(LoadMoreVideos());
     }
@@ -62,6 +64,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _scrollToTop() {
+    if (!_scrollController.hasClients) return; // Guard clause
+    
     _scrollController.animateTo(
       0,
       duration: const Duration(milliseconds: 500),
