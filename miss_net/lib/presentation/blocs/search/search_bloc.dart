@@ -1,0 +1,66 @@
+import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:rxdart/rxdart.dart';
+import '../../../domain/entities/video.dart';
+import '../../../domain/repositories/video_repository.dart';
+
+// Events
+abstract class SearchEvent extends Equatable {
+  const SearchEvent();
+  @override
+  List<Object> get props => [];
+}
+
+class SearchQueryChanged extends SearchEvent {
+  final String query;
+  const SearchQueryChanged(this.query);
+  @override
+  List<Object> get props => [query];
+}
+
+// States
+abstract class SearchState extends Equatable {
+  const SearchState();
+  @override
+  List<Object> get props => [];
+}
+
+class SearchInitial extends SearchState {}
+class SearchLoading extends SearchState {}
+class SearchLoaded extends SearchState {
+  final List<Video> videos;
+  const SearchLoaded(this.videos);
+  @override
+  List<Object> get props => [videos];
+}
+class SearchError extends SearchState {
+  final String message;
+  const SearchError(this.message);
+  @override
+  List<Object> get props => [message];
+}
+
+// Bloc
+class SearchBloc extends Bloc<SearchEvent, SearchState> {
+  final VideoRepository repository;
+
+  SearchBloc({required this.repository}) : super(SearchInitial()) {
+    on<SearchQueryChanged>(
+      (event, emit) async {
+        if (event.query.isEmpty) {
+          emit(SearchInitial());
+          return;
+        }
+        emit(SearchLoading());
+        final result = await repository.searchVideos(event.query);
+        result.fold(
+          (failure) => emit(SearchError(failure.message)),
+          (videos) => emit(SearchLoaded(videos)),
+        );
+      },
+      transformer: (events, mapper) {
+        return events.debounceTime(const Duration(milliseconds: 500)).asyncExpand(mapper);
+      },
+    );
+  }
+}
