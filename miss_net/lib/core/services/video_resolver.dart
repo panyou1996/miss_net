@@ -75,12 +75,15 @@ class VideoResolver {
 
       // 2. Look for the packed JS function
       // Pattern: eval(function(p,a,c,k,e,d)...
-      final regExp = RegExp(r"eval\(function\(p,a,c,k,e,d\).*?\.split\('\|'\)\)\)");
+      // We use dotAll: true to match across newlines
+      final regExp = RegExp(r"eval\(function\(p,a,c,k,e,d\).*?\.split\('\|'\)\)\)", dotAll: true);
       final match = regExp.firstMatch(html);
 
       if (match != null) {
         final packed = match.group(0)!;
+        print("Found packed JS: ${packed.substring(0, 50)}...");
         final unpacked = _unpack(packed);
+        print("Unpacked JS: ${unpacked.substring(0, 100)}...");
         
         // 3. Extract .m3u8 from unpacked code
         // Look for: source='https://...' or https://...m3u8
@@ -88,8 +91,10 @@ class VideoResolver {
         final m3u8Match = m3u8Regex.firstMatch(unpacked);
 
         if (m3u8Match != null) {
+          final m3u8Url = m3u8Match.group(0)!;
+          print("Found m3u8: $m3u8Url");
           return VideoStreamInfo(
-            streamUrl: m3u8Match.group(0)!, 
+            streamUrl: m3u8Url, 
             headers: {} // Usually direct m3u8 links don't need headers if extracted this way
           );
         }
@@ -106,14 +111,18 @@ class VideoResolver {
   String _unpack(String packed) {
     try {
       // 1. Extract arguments: p, a, c, k, e, d
-      // This is a simplified regex for the specific format seen
-      final argsRegex = RegExp(r"\}\('(.*)',(\d+),(\d+),'(.*)'\.split\('\|'\),0,\{\}\)\)");
+      // Robust regex to find the payload and keywords
+      // return p}('payload',36,count,'keywords'.split('|')
+      final argsRegex = RegExp(r"\}\('(.*)',(\d+),(\d+),'(.*)'\.split\('\|'\)");
       final match = argsRegex.firstMatch(packed);
       
-      if (match == null) return "";
+      if (match == null) {
+        print("Unpack failed: Regex did not match arguments");
+        return "";
+      }
 
       String payload = match.group(1)!;
-      // int radix = int.parse(match.group(2)!); // Not strictly needed for basic substitution
+      // int radix = int.parse(match.group(2)!);
       // int count = int.parse(match.group(3)!);
       List<String> keywords = match.group(4)!.split('|');
 
