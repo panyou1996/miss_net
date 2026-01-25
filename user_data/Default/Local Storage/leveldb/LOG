@@ -1,2 +1,3 @@
-2026/01/25-13:09:52.659 1335c Creating DB /home/panyou/Projects/MissNet/user_data/Default/Local Storage/leveldb since it was missing.
-2026/01/25-13:09:52.670 1335c Reusing MANIFEST /home/panyou/Projects/MissNet/user_data/Default/Local Storage/leveldb/MANIFEST-000001
+2026/01/25-13:21:34.098 14b16 Reusing MANIFEST /home/panyou/Projects/MissNet/user_data/Default/Local Storage/leveldb/MANIFEST-000001
+2026/01/25-13:21:34.101 14b16 Recovering log #3
+2026/01/25-13:21:34.101 14b16 Reusing old log /home/panyou/Projects/MissNet/user_data/Default/Local Storage/leveldb/000003.log 

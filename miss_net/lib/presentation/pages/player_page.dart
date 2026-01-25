@@ -1,6 +1,8 @@
 import 'package:chewie/chewie.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/services/video_resolver.dart';
 import '../../domain/entities/video.dart';
@@ -25,7 +27,13 @@ class _PlayerPageState extends State<PlayerPage> {
   @override
   void initState() {
     super.initState();
-    _initializePlayer();
+    if (!kIsWeb) {
+      _initializePlayer();
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _initializePlayer() async {
@@ -92,7 +100,24 @@ class _PlayerPageState extends State<PlayerPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: _isLoading
+        child: kIsWeb 
+          ? InAppWebView(
+              initialUrlRequest: URLRequest(url: WebUri(widget.video.sourceUrl)),
+              initialSettings: InAppWebViewSettings(
+                mediaPlaybackRequiresUserGesture: false,
+                iframeAllowFullscreen: true,
+              ),
+              onLoadStop: (controller, url) async {
+                // Inject CSS to hide everything except the player
+                await controller.injectCSSCode(source: """
+                  header, footer, .navbar, .sidebar, .ads, .comments, .related-videos { display: none !important; }
+                  body { background-color: black !important; overflow: hidden !important; }
+                  video { width: 100vw !important; height: 100vh !important; object-fit: contain !important; }
+                  .player-container { width: 100% !important; height: 100% !important; }
+                """);
+              },
+            )
+          : _isLoading
             ? const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

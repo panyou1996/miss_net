@@ -1,2 +1,3 @@
-2026/01/25-13:10:00.704 13333 Creating DB /home/panyou/Projects/MissNet/user_data/Default/File System/Origins since it was missing.
-2026/01/25-13:10:00.710 13333 Reusing MANIFEST /home/panyou/Projects/MissNet/user_data/Default/File System/Origins/MANIFEST-000001
+2026/01/25-13:21:37.709 14aed Reusing MANIFEST /home/panyou/Projects/MissNet/user_data/Default/File System/Origins/MANIFEST-000001
+2026/01/25-13:21:37.709 14aed Recovering log #3
+2026/01/25-13:21:37.709 14aed Reusing old log /home/panyou/Projects/MissNet/user_data/Default/File System/Origins/000003.log 

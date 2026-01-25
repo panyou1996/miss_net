@@ -180,15 +180,10 @@ class _HomePageState extends State<HomePage> {
                   return VideoCard(
                     video: video,
                     onTap: () {
-                      if (kIsWeb) {
-                         // On Web, open source URL
-                         launchUrl(Uri.parse(video.sourceUrl));
-                      } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => PlayerPage(video: video)),
-                        );
-                      }
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => PlayerPage(video: video)),
+                      );
                     },
                   );
                 },
