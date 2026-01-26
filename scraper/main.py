@@ -52,6 +52,10 @@ SOURCES = [
     {"url": "https://missav.ws/dm483/genres/%E5%81%B7%E6%8B%8D", "tag": "Voyeur"},
     {"url": "https://missav.ws/dm94/genres/%E5%8A%87%E6%83%85", "tag": "Story"},
     {"url": "https://missav.ws/dm784/genres/%E5%A7%90%E5%A7%90", "tag": "Sister"},
+    {"url": "https://missav.ws/dm253/genres/%E5%B1%81%E8%82%A1%E5%81%8F%E5%A5%BD", "tag": "Sister"},
+    {"url": "https://missav.ws/dm546/genres/%E4%B8%BB%E8%A7%80%E8%A6%96%E8%A7%92", "tag": "POV"},
+    {"url": "https://missav.ws/dm45/genres/%E6%B7%AB%E8%AA%9E", "tag": "Subtitled"},
+    {"url": "https://missav.ws/dm467/genres/%E7%B5%B2%E8%A5%AA", "tag": "Exclusive"}
 ]
 
 # Supabase Setup
@@ -126,6 +130,40 @@ async def get_video_details(page, url):
         print(f"  Detail Fetch Error: {e}")
         return None
 
+async def get_51cg_details(page, url):
+    try:
+        await asyncio.sleep(random.uniform(1.0, 2.0))
+        await page.goto(url, timeout=60000, wait_until="domcontentloaded")
+        await asyncio.sleep(random.uniform(2.0, 4.0))
+
+        details = await page.evaluate(r'''() => {
+            const data = { tags: [], actors: [], title: null };
+            
+            // Extract title from detail page
+            const titleEl = document.querySelector('h1.post-title');
+            if (titleEl) data.title = titleEl.innerText.trim();
+
+            // Extract tags
+            const tagLinks = document.querySelectorAll('.tags .keywords a');
+            tagLinks.forEach(a => data.tags.push(a.innerText.trim()));
+
+            // Extract date
+            const dateEl = document.querySelector('.post-meta time');
+            if (dateEl) {
+                data.release_date = dateEl.innerText.trim();
+            } else {
+                const metaDate = document.querySelector('meta[itemprop="datePublished"]');
+                if (metaDate) data.release_date = metaDate.content;
+            }
+
+            return data;
+        }''')
+        
+        return details
+    except Exception as e:
+        print(f"  51CG Detail Fetch Error: {e}")
+        return None
+
 async def sync_video(v, supabase, mode_label):
     if supabase:
         try:
@@ -178,6 +216,112 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
     if tasks:
         await asyncio.gather(*tasks)
 
+async def process_51cg_batch(videos, detail_pages, supabase, semaphore):
+    if not videos: return
+    # No duplicate check for now, or simplistic one
+    tasks = []
+    for v in videos:
+        async def scrape_and_sync(vid=v):
+            async with semaphore:
+                page = detail_pages.pop()
+                try:
+                    details = await get_51cg_details(page, vid['source_url'])
+                    if details:
+                        # If list page title is empty/placeholder, use detail page title
+                        if (not vid.get('title') or len(vid['title']) < 2) and details.get('title'):
+                            vid['title'] = details['title']
+                        vid.update({k: v for k, v in details.items() if k != 'title' or vid.get('title') == details.get('title')})
+                    
+                    # Force category
+                    vid['categories'] = ["51吃瓜"]
+                    # Add tags from title/details
+                    vid['tags'] = list(set(["51cg"] + vid.get('tags', [])))
+                    await sync_video(vid, supabase, "51CG Scraped")
+                finally:
+                    detail_pages.append(page)
+        tasks.append(scrape_and_sync())
+    
+    if tasks:
+        await asyncio.gather(*tasks)
+
+async def scrape_51cg(context, supabase, semaphore):
+    print("\n>>> Starting Source: 51CG <<<")
+    base_url = "https://51cg1.com/"
+    
+    # Create detail pages pool for 51cg as well
+    detail_pages = []
+    # Reuse the same context, just create new pages if needed or pass from main
+    # Here we create temporary pages for this function's scope
+    for _ in range(1): # 2 concurrent detail pages
+        dp = await context.new_page()
+        # stealth is already applied to context? No, applied to page.
+        # We need stealth instance here or assume context works. 
+        # Ideally we pass detail_pages from main, but to keep logic separate:
+        detail_pages.append(dp)
+
+    list_page = await context.new_page()
+    
+    try:
+        for page_num in range(1, 6): # Scrape first 5 pages for example
+            url = base_url if page_num == 1 else f"{base_url}page/{page_num}/"
+            print(f"[51CG] Page {page_num}...")
+            
+            await list_page.goto(url, timeout=60000, wait_until="domcontentloaded")
+            await asyncio.sleep(random.uniform(3, 5))
+
+            videos = await list_page.evaluate(r'''() => {
+                const items = document.querySelectorAll('#index article');
+                const results = [];
+                items.forEach(item => {
+                    const link = item.querySelector('a');
+                    const titleEl = item.querySelector('.post-card-title');
+                    
+                    if (link && titleEl) {
+                        const href = link.href;
+                        // Extract ID from URL /archives/12345/
+                        const idMatch = href.match(/archives\/(\d+)/);
+                        const id = idMatch ? idMatch[1] : null;
+                        
+                        // Extract Image from script
+                        let cover = "";
+                        const script = item.querySelector('script');
+                        if (script) {
+                            const match = script.innerText.match(/loadBannerDirect\('([^']+)'/);
+                            if (match) cover = match[1];
+                        }
+
+                        if (id) {
+                            // Clean title: remove "热搜 HOT" wrap if it exists in the text
+                            let t = titleEl.innerText.replace(/热搜\s*HOT/i, '').trim();
+                            
+                            results.push({
+                                external_id: "51cg_" + id, // Prefix to avoid collision
+                                title: t,
+                                cover_url: cover,
+                                source_url: href,
+                                duration: "0", // Default for news/images
+                                actors: []
+                            });
+                        }
+                    }
+                });
+                return results;
+            }''')
+
+            if not videos:
+                print("[51CG] No videos found on this page.")
+                break
+
+            await process_51cg_batch(videos, detail_pages, supabase, semaphore)
+            await asyncio.sleep(random.uniform(2, 5))
+
+    except Exception as e:
+        print(f"[51CG] Error: {e}")
+    finally:
+        await list_page.close()
+        for dp in detail_pages:
+            await dp.close()
+
 async def scrape_videos():
     supabase: Client = None
     if SUPABASE_URL and SUPABASE_KEY:
@@ -202,6 +346,7 @@ async def scrape_videos():
             )
 
         stealth = Stealth()
+        # Create pages for main scraping
         list_page = await context.new_page()
         await stealth.apply_stealth_async(list_page)
 
@@ -210,6 +355,9 @@ async def scrape_videos():
             dp = await context.new_page()
             await stealth.apply_stealth_async(dp)
             detail_pages.append(dp)
+
+        # Run 51CG Scraper first or after? Let's run it first to test.
+        await scrape_51cg(context, supabase, semaphore)
 
         for source in SOURCES:
             base_url = source["url"]
