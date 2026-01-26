@@ -93,6 +93,45 @@ class VideoRepositoryImpl implements VideoRepository {
   Future<bool> isFavorite(String id) async {
     return await localDataSource.isFavorite(id);
   }
+
+  // --- History ---
+
+  @override
+  Future<Either<Failure, List<Video>>> getHistory() async {
+    try {
+      final videos = await localDataSource.getHistory();
+      return Right(videos);
+    } catch (e) {
+      return const Left(CacheFailure("History Cache Error"));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> saveToHistory(Video video, int positionMs) async {
+    try {
+      final model = VideoModel(
+        id: video.id,
+        externalId: video.externalId,
+        title: video.title,
+        coverUrl: video.coverUrl,
+        sourceUrl: video.sourceUrl,
+        createdAt: video.createdAt,
+        duration: video.duration,
+        actors: video.actors,
+        categories: video.categories,
+        releaseDate: video.releaseDate,
+      );
+      await localDataSource.saveToHistory(model, positionMs);
+      return const Right(null);
+    } catch (e) {
+      return const Left(CacheFailure("History Save Error"));
+    }
+  }
+
+  @override
+  Future<int> getProgress(String id) async {
+    return await localDataSource.getProgress(id);
+  }
 }
 
 class CacheFailure extends Failure {

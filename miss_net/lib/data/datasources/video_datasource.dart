@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/video_model.dart';
 
@@ -9,8 +10,23 @@ abstract class VideoDataSource {
 
 class SupabaseVideoDataSourceImpl implements VideoDataSource {
   final SupabaseClient supabase;
+  String _baseUrl = 'https://missav.ws';
 
-  SupabaseVideoDataSourceImpl(this.supabase);
+  SupabaseVideoDataSourceImpl(this.supabase) {
+    _loadConfig();
+  }
+
+  Future<void> _loadConfig() async {
+    try {
+      final res = await supabase.from('app_config').select('value').eq('key', 'base_url').single();
+      if (res['value'] != null) {
+        _baseUrl = res['value'] as String;
+        debugPrint("Config: Base URL updated to $_baseUrl");
+      }
+    } catch (e) {
+      debugPrint("Config Error: Using fallback URL");
+    }
+  }
 
   @override
   Future<List<VideoModel>> getRecentVideos({int limit = 20, int offset = 0, String? category, String? actor}) async {

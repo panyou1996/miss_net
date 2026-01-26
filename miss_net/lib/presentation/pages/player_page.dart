@@ -1,18 +1,19 @@
+import 'dart:async';
 import 'package:chewie/chewie.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:ui'; // For ImageFilter
+import 'dart:ui'; 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../core/utils/image_proxy.dart';
 import 'package:video_player/video_player.dart';
-import 'category/category_detail_page.dart';
-import 'player/widgets/video_gesture_wrapper.dart';
 import '../../core/services/video_resolver.dart';
 import '../../domain/entities/video.dart';
 import '../../domain/repositories/video_repository.dart';
 import '../../injection_container.dart';
+import '../../core/utils/image_proxy.dart';
+import 'category/category_detail_page.dart';
+import 'player/widgets/video_gesture_wrapper.dart';
 
 class PlayerPage extends StatefulWidget {
   final Video video;
@@ -32,32 +33,24 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   String? _errorMessage;
   bool _isFavorite = false;
   bool _isPipMode = false;
+  Timer? _progressTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    
-    // 1. Enter Immersive Mode (Hide status bar and navigation bar)
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    
     _checkFavoriteStatus();
     if (!kIsWeb) {
       _initializePlayer();
     } else {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _checkFavoriteStatus() async {
     final isFav = await _repository.isFavorite(widget.video.id);
-    if (mounted) {
-      setState(() {
-        _isFavorite = isFav;
-      });
-    }
+    if (mounted) setState(() => _isFavorite = isFav);
   }
 
   Future<void> _toggleFavorite() async {
@@ -67,6 +60,20 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       await _repository.saveFavorite(widget.video);
     }
     await _checkFavoriteStatus();
+  }
+
+  Future<void> _saveProgress() async {
+    if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) {
+      final position = _videoPlayerController!.value.position.inMilliseconds;
+      await _repository.saveToHistory(widget.video, position);
+    }
+  }
+
+  void _startProgressTimer() {
+    _progressTimer?.cancel();
+    _progressTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      _saveProgress();
+    });
   }
 
   Future<void> _initializePlayer() async {
@@ -79,6 +86,12 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       );
 
       await _videoPlayerController!.initialize();
+
+      // Load progress
+      final savedPos = await _repository.getProgress(widget.video.id);
+      if (savedPos > 0) {
+        await _videoPlayerController!.seekTo(Duration(milliseconds: savedPos));
+      }
 
       _chewieController = ChewieController(
         videoPlayerController: _videoPlayerController!,
@@ -95,42 +108,26 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
           bufferedColor: Colors.grey,
         ),
         errorBuilder: (context, errorMessage) {
-          return Center(
-            child: Text(
-              errorMessage,
-              style: const TextStyle(color: Colors.white),
-            ),
-          );
+          return Center(child: Text(errorMessage, style: const TextStyle(color: Colors.white)));
         },
         allowedScreenSleep: false,
         deviceOrientationsAfterFullScreen: [DeviceOrientation.portraitUp],
       );
 
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      _startProgressTimer();
+
+      if (mounted) setState(() => _isLoading = false);
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = "Failed to load video: $e";
-        });
-      }
+      if (mounted) setState(() { _isLoading = false; _errorMessage = "Failed to load video: $e"; });
     }
   }
 
   @override
   void dispose() {
+    _progressTimer?.cancel();
+    _saveProgress(); // Final save
     WidgetsBinding.instance.removeObserver(this);
-    
-    // 2. Restore System UI on leave
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual, 
-      overlays: SystemUiOverlay.values
-    );
-    
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
     _videoPlayerController?.dispose();
     _chewieController?.dispose();
     _resolver.dispose();
@@ -138,14 +135,17 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _saveProgress();
+    }
+  }
+
+  @override
   void didChangeMetrics() {
     super.didChangeMetrics();
     final isPip = MediaQuery.of(context).size.width < 400 && MediaQuery.of(context).size.height < 400;
-    if (isPip != _isPipMode) {
-      setState(() {
-        _isPipMode = isPip;
-      });
-    }
+    if (isPip != _isPipMode) setState(() => _isPipMode = isPip);
   }
 
   Future<void> _enterPipMode() async {
@@ -160,15 +160,12 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    if (_isPipMode) {
-      return _buildPlayerOnly();
-    }
+    if (_isPipMode) return _buildPlayerOnly();
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. Background Image with Blur
           if (widget.video.coverUrl != null)
             Positioned.fill(
               child: ImageFiltered(
@@ -181,13 +178,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                 ),
               ),
             ),
-          
-          // 2. Dark Overlay for readability
-          Positioned.fill(
-            child: Container(color: Colors.black.withOpacity(0.4)),
-          ),
-
-          // 3. Content
+          Positioned.fill(child: Container(color: Colors.black.withOpacity(0.4))),
           SafeArea(
             child: Column(
               children: [
@@ -209,10 +200,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       floatingActionButton: FloatingActionButton(
         onPressed: _toggleFavorite,
         backgroundColor: Colors.red,
-        child: Icon(
-          _isFavorite ? Icons.favorite : Icons.favorite_border,
-          color: Colors.white,
-        ),
+        child: Icon(_isFavorite ? Icons.favorite : Icons.favorite_border, color: Colors.white),
       ),
     );
   }
@@ -223,24 +211,16 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
+          IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.of(context).pop()),
           if (defaultTargetPlatform == TargetPlatform.android && !_isLoading && _errorMessage == null)
-            IconButton(
-              icon: const Icon(Icons.picture_in_picture_alt, color: Colors.white),
-              onPressed: _enterPipMode,
-            ),
+            IconButton(icon: const Icon(Icons.picture_in_picture_alt, color: Colors.white), onPressed: _enterPipMode),
         ],
       ),
     );
   }
 
   Widget _buildPlayerOnly() {
-    return _chewieController != null 
-      ? Chewie(controller: _chewieController!) 
-      : const Center(child: CircularProgressIndicator());
+    return _chewieController != null ? Chewie(controller: _chewieController!) : const Center(child: CircularProgressIndicator());
   }
 
   Widget _buildLoading() {
@@ -249,14 +229,9 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         Hero(
           tag: widget.video.id,
           createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
-          child: AspectRatio(
-            aspectRatio: 16 / 9,
-            child: _buildCoverImage(),
-          ),
+          child: AspectRatio(aspectRatio: 16 / 9, child: _buildCoverImage()),
         ),
-        const Expanded(
-          child: Center(child: CircularProgressIndicator(color: Colors.red)),
-        ),
+        const Expanded(child: Center(child: CircularProgressIndicator(color: Colors.red))),
       ],
     );
   }
@@ -267,14 +242,9 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         Hero(
           tag: widget.video.id,
           createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
-          child: AspectRatio(
-            aspectRatio: 16 / 9,
-            child: _buildCoverImage(),
-          ),
+          child: AspectRatio(aspectRatio: 16 / 9, child: _buildCoverImage()),
         ),
-        Expanded(
-          child: Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red))),
-        ),
+        Expanded(child: Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))),
       ],
     );
   }
@@ -313,10 +283,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  widget.video.title,
-                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                ),
+                Text(widget.video.title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -329,11 +296,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                 ),
                 if (widget.video.categories != null && widget.video.categories!.isNotEmpty) ...[
                   const SizedBox(height: 20),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: widget.video.categories!.map((cat) => _tagChip(cat, Colors.red.withOpacity(0.8))).toList(),
-                  ),
+                  Wrap(spacing: 8, runSpacing: 8, children: widget.video.categories!.map((cat) => _tagChip(cat, Colors.red.withOpacity(0.8))).toList()),
                 ],
                 if (widget.video.actors != null && widget.video.actors!.isNotEmpty) ...[
                   const SizedBox(height: 24),
@@ -345,12 +308,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                     children: widget.video.actors!.map((actor) {
                       return InkWell(
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CategoryDetailPage(title: actor, actor: actor),
-                            ),
-                          );
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryDetailPage(title: actor, actor: actor)));
                         },
                         child: _tagChip(actor, Colors.white.withOpacity(0.1)),
                       );
@@ -373,31 +331,20 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         children: [
           const Text("Embedded playback not supported on Web.", style: TextStyle(color: Colors.white)),
           const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () => launchUrl(Uri.parse(widget.video.sourceUrl)),
-            child: const Text("Watch on Source"),
-          ),
+          ElevatedButton(onPressed: () => launchUrl(Uri.parse(widget.video.sourceUrl)), child: const Text("Watch on Source")),
         ],
       ),
     );
   }
 
   Widget _infoBadge(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.white70),
-        const SizedBox(width: 6),
-        Text(text, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-      ],
-    );
+    return Row(children: [Icon(icon, size: 16, color: Colors.white70), const SizedBox(width: 6), Text(text, style: const TextStyle(color: Colors.white70, fontSize: 13))]);
   }
 
   bool _hasSubtitles(Video video) {
     final title = video.title.toLowerCase();
     final categories = video.categories?.map((e) => e.toLowerCase()).toList() ?? [];
-    return title.contains("中文字幕") || 
-           title.contains("中文") || 
-           categories.contains("subtitled");
+    return title.contains("中文字幕") || title.contains("中文") || categories.contains("subtitled");
   }
 
   Widget _tagChip(String label, Color color) {
@@ -407,11 +354,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
-          ),
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white.withOpacity(0.1))),
           child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
         ),
       ),

@@ -10,23 +10,54 @@ class VideoStreamInfo {
   VideoStreamInfo({required this.streamUrl, required this.headers});
 }
 
+class _CacheEntry {
+  final VideoStreamInfo info;
+  final DateTime expiry;
+
+  _CacheEntry(this.info, this.expiry);
+
+  bool get isExpired => DateTime.now().isAfter(expiry);
+}
+
 class VideoResolver {
   HeadlessInAppWebView? _headlessWebView;
   Completer<VideoStreamInfo>? _completer;
 
+  // Cache: sourceUrl -> Entry
+  static final Map<String, _CacheEntry> _cache = {};
+
   Future<VideoStreamInfo> resolveStreamUrl(String sourceUrl) async {
-    if (kIsWeb) {
-      return _resolveWeb(sourceUrl);
-    } else {
-      return _resolveMobile(sourceUrl);
+    // Check Cache first
+    if (_cache.containsKey(sourceUrl)) {
+      final entry = _cache[sourceUrl]!;
+      if (!entry.isExpired) {
+        debugPrint("Resolver: Cache Hit for $sourceUrl");
+        return entry.info;
+      } else {
+        _cache.remove(sourceUrl);
+      }
     }
+
+    VideoStreamInfo info;
+    if (kIsWeb) {
+      info = await _resolveWeb(sourceUrl);
+    } else {
+      info = await _resolveMobile(sourceUrl);
+    }
+
+    // Save to cache (valid for 15 minutes)
+    _cache[sourceUrl] = _CacheEntry(
+      info, 
+      DateTime.now().add(const Duration(minutes: 15))
+    );
+    
+    return info;
   }
 
   // --- Mobile Implementation (Headless WebView) ---
   Future<VideoStreamInfo> _resolveMobile(String sourceUrl) async {
     _completer = Completer<VideoStreamInfo>();
     
-    // Dispose previous instance
     if (_headlessWebView != null) {
       await _headlessWebView?.dispose();
     }
@@ -54,107 +85,57 @@ class VideoResolver {
 
     await _headlessWebView?.run();
     
-    return _completer!.future.timeout(const Duration(seconds: 15), onTimeout: () {
-      _headlessWebView?.dispose();
+    try {
+      return await _completer!.future.timeout(const Duration(seconds: 15));
+    } catch (e) {
+      await _headlessWebView?.dispose();
+      _headlessWebView = null;
       throw TimeoutException("Failed to resolve stream URL via Headless WebView");
-    });
+    }
   }
 
-  // --- Web Implementation (Static Parse + Proxy) ---
+  // --- Web Implementation ---
   Future<VideoStreamInfo> _resolveWeb(String sourceUrl) async {
     try {
-      // 1. Fetch HTML via CORS Proxy
       final proxyUrl = "https://api.allorigins.win/raw?url=${Uri.encodeComponent(sourceUrl)}";
       final response = await http.get(Uri.parse(proxyUrl));
-      
-      if (response.statusCode != 200) {
-        throw Exception("Failed to fetch page source");
-      }
+      if (response.statusCode != 200) throw Exception("Failed to fetch page source");
 
       final html = response.body;
-
-      // 2. Look for the packed JS function
-      // Pattern: eval(function(p,a,c,k,e,d)...
-      // We use dotAll: true to match across newlines
       final regExp = RegExp(r"eval\(function\(p,a,c,k,e,d\).*?\.split\('\|'\)\)\)", dotAll: true);
       final match = regExp.firstMatch(html);
 
       if (match != null) {
-        final packed = match.group(0)!;
-        print("Found packed JS: ${packed.substring(0, 50)}...");
-        final unpacked = _unpack(packed);
-        print("Unpacked JS: ${unpacked.substring(0, 100)}...");
-        
-        // 3. Extract .m3u8 from unpacked code
-        // Look for: source='https://...' or https://...m3u8
+        final unpacked = _unpack(match.group(0)!);
         final m3u8Regex = RegExp(r"https?://[^']+\.m3u8");
         final m3u8Match = m3u8Regex.firstMatch(unpacked);
 
         if (m3u8Match != null) {
-          final m3u8Url = m3u8Match.group(0)!;
-          print("Found m3u8: $m3u8Url");
-          return VideoStreamInfo(
-            streamUrl: m3u8Url, 
-            headers: {} // Usually direct m3u8 links don't need headers if extracted this way
-          );
+          return VideoStreamInfo(streamUrl: m3u8Match.group(0)!, headers: {});
         }
       }
-      
       throw Exception("No m3u8 found in unpacked code");
-
     } catch (e) {
       throw Exception("Web Resolution Failed: $e");
     }
   }
 
-  // A basic Dean Edwards unpacker port for Dart
   String _unpack(String packed) {
     try {
-      // 1. Extract arguments: p, a, c, k, e, d
-      // Robust regex to find the payload and keywords
-      // return p}('payload',36,count,'keywords'.split('|')
       final argsRegex = RegExp(r"\}\('(.*)',(\d+),(\d+),'(.*)'\.split\('\|'\)");
       final match = argsRegex.firstMatch(packed);
-      
-      if (match == null) {
-        print("Unpack failed: Regex did not match arguments");
-        return "";
-      }
+      if (match == null) return "";
 
       String payload = match.group(1)!;
-      // int radix = int.parse(match.group(2)!);
-      // int count = int.parse(match.group(3)!);
       List<String> keywords = match.group(4)!.split('|');
 
-      // 2. Decode logic: Replace base-N words with keywords
-      // The logic in the packed code is: e=function(c){return c.toString(36)}; ... k[c]||c.toString(a)
-      // Since 'e' usually encodes to base36, we can just map the tokens.
-      
-      // Simple Substitution:
-      // Loop through keywords. If keyword exists, replace the Base36 key in payload.
-      // Note: We must replace longer keys first to avoid partial matches? 
-      // Actually the packer usually uses boundaries \b.
-      
-      String replace(String p, List<String> k) {
-        // We need to replicate: p.replace(new RegExp('\\b'+e(c)+'\\b','g'),k[c])
-        // e(c) converts index to Base36.
-        
-        for (int i = 0; i < k.length; i++) {
-          if (k[i].isEmpty) continue; // Skip empty keywords (means map to self, usually handled by '||c')
-          
-          String key = i.toRadixString(36); // The 'e(c)' part
-          
-          // Replace \bKEY\b with VALUE
-          // We use a custom replace to avoid messing up overlapping words
-          p = p.replaceAllMapped(RegExp(r'\b' + key + r'\b'), (match) => k[i]);
-        }
-        return p;
+      for (int i = 0; i < keywords.length; i++) {
+        if (keywords[i].isEmpty) continue;
+        String key = i.toRadixString(36);
+        payload = payload.replaceAllMapped(RegExp(r'\b' + key + r'\b'), (match) => keywords[i]);
       }
-
-      return replace(payload, keywords);
-
+      return payload;
     } catch (e) {
-      print("Unpack error: $e");
       return "";
     }
   }

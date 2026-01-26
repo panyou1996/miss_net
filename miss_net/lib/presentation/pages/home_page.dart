@@ -82,6 +82,12 @@ class _HomePageState extends State<HomePage> {
                       child: _buildHeroBanner(state.featuredVideo!),
                     ),
 
+                  // 2.5 Continue Watching
+                  if (state.continueWatching.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: _buildContinueWatching(state.continueWatching),
+                    ),
+
                   // 3. Horizontal Sections
                   SliverList(
                     delegate: SliverChildBuilderDelegate(
@@ -198,6 +204,42 @@ class _HomePageState extends State<HomePage> {
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: SizedBox(
                   width: 200,
+                  child: VideoCard(
+                    video: video,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video))),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContinueWatching(List<Video> videos) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Text(
+            "Continue Watching",
+            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
+        SizedBox(
+          height: 140, // Slightly smaller for history
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            itemCount: videos.length,
+            itemBuilder: (context, index) {
+              final video = videos[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: SizedBox(
+                  width: 180,
                   child: VideoCard(
                     video: video,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video))),

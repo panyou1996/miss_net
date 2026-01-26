@@ -98,10 +98,46 @@ class VideoSearchDelegate extends SearchDelegate {
     );
   }
 
+  Widget _hotTag(BuildContext context, String label) {
+    return ActionChip(
+      label: Text(label),
+      backgroundColor: Colors.grey[900],
+      labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      onPressed: () {
+        query = label;
+        showResults(context);
+      },
+    );
+  }
+
   @override
   Widget buildSuggestions(BuildContext context) {
     if (query.isEmpty) {
-      return Container(color: Colors.black);
+      return Container(
+        color: Colors.black,
+        child: ListView(
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text("Popular Categories", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 10,
+                children: [
+                  _hotTag(context, "School"),
+                  _hotTag(context, "Office"),
+                  _hotTag(context, "Mature"),
+                  _hotTag(context, "Exclusive"),
+                  _hotTag(context, "Nympho"),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     searchBloc.add(FetchSuggestions(query));

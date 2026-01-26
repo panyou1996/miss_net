@@ -12,4 +12,9 @@ abstract class VideoRepository {
   Future<Either<Failure, void>> saveFavorite(Video video);
   Future<Either<Failure, void>> removeFavorite(String id);
   Future<bool> isFavorite(String id);
+
+  // History
+  Future<Either<Failure, List<Video>>> getHistory();
+  Future<Either<Failure, void>> saveToHistory(Video video, int positionMs);
+  Future<int> getProgress(String id);
 }
