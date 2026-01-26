@@ -15,8 +15,12 @@ class ExplorePage extends StatelessWidget {
     {'title': 'Story', 'category': 'Story', 'icon': '📖'},
     {'title': 'Subtitled', 'category': 'Subtitled', 'icon': '🔤'},
     {'title': 'Uncensored', 'category': 'uncensored', 'icon': '🔥'},
-    {'title': 'New', 'category': 'new', 'icon': '🆕'},
-    {'title': 'Hot', 'category': 'monthly_hot', 'icon': '📈'},
+    {'title': 'Amateur', 'category': 'Amateur', 'icon': '👧'},
+    {'title': 'Big Tits', 'category': 'BigTits', 'icon': '🍈'},
+    {'title': 'Creampie', 'category': 'Creampie', 'icon': '💦'},
+    {'title': 'Beautiful', 'category': 'Beautiful', 'icon': '✨'},
+    {'title': 'Oral', 'category': 'Oral', 'icon': '👅'},
+    {'title': 'Group', 'category': 'Group', 'icon': '👨‍👩‍👧‍👦'},
   ];
 
   @override

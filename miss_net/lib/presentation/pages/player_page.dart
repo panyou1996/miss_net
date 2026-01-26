@@ -5,7 +5,10 @@ import 'package:flutter/services.dart';
 import 'dart:ui'; // For ImageFilter
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/utils/image_proxy.dart';
 import 'package:video_player/video_player.dart';
+import 'category/category_detail_page.dart';
+import 'player/widgets/video_gesture_wrapper.dart';
 import '../../core/services/video_resolver.dart';
 import '../../domain/entities/video.dart';
 import '../../domain/repositories/video_repository.dart';
@@ -34,6 +37,10 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    // 1. Enter Immersive Mode (Hide status bar and navigation bar)
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    
     _checkFavoriteStatus();
     if (!kIsWeb) {
       _initializePlayer();
@@ -117,6 +124,13 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    
+    // 2. Restore System UI on leave
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual, 
+      overlays: SystemUiOverlay.values
+    );
+    
     _videoPlayerController?.dispose();
     _chewieController?.dispose();
     _resolver.dispose();
@@ -160,7 +174,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
               child: ImageFiltered(
                 imageFilter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                 child: CachedNetworkImage(
-                  imageUrl: widget.video.coverUrl!,
+                  imageUrl: ImageProxy.getUrl(widget.video.coverUrl!),
                   fit: BoxFit.cover,
                   color: Colors.black.withOpacity(0.6),
                   colorBlendMode: BlendMode.darken,
@@ -234,6 +248,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       children: [
         Hero(
           tag: widget.video.id,
+          createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
           child: AspectRatio(
             aspectRatio: 16 / 9,
             child: _buildCoverImage(),
@@ -251,6 +266,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       children: [
         Hero(
           tag: widget.video.id,
+          createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
           child: AspectRatio(
             aspectRatio: 16 / 9,
             child: _buildCoverImage(),
@@ -266,7 +282,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   Widget _buildCoverImage() {
     if (widget.video.coverUrl != null) {
       return CachedNetworkImage(
-        imageUrl: widget.video.coverUrl!,
+        imageUrl: ImageProxy.getUrl(widget.video.coverUrl!),
         fit: BoxFit.cover,
         placeholder: (context, url) => Container(color: Colors.grey[900]),
         errorWidget: (context, url, error) => Container(color: Colors.grey[800]),
@@ -283,9 +299,13 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         children: [
           Hero(
             tag: widget.video.id,
+            createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
             child: AspectRatio(
               aspectRatio: _videoPlayerController!.value.aspectRatio,
-              child: Chewie(controller: _chewieController!),
+              child: VideoGestureWrapper(
+                controller: _videoPlayerController!,
+                child: Chewie(controller: _chewieController!),
+              ),
             ),
           ),
           Padding(
@@ -322,7 +342,19 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: widget.video.actors!.map((actor) => _tagChip(actor, Colors.white.withOpacity(0.1))).toList(),
+                    children: widget.video.actors!.map((actor) {
+                      return InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CategoryDetailPage(title: actor, actor: actor),
+                            ),
+                          );
+                        },
+                        child: _tagChip(actor, Colors.white.withOpacity(0.1)),
+                      );
+                    }).toList(),
                   ),
                 ],
                 const SizedBox(height: 120),

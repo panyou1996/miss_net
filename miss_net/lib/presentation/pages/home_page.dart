@@ -4,8 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/home/home_bloc.dart';
 import '../pages/player_page.dart';
 import '../widgets/video_card.dart';
+import '../widgets/video_skeleton.dart';
 import '../../domain/entities/video.dart';
 import '../../domain/entities/home_section.dart';
+import '../../core/utils/image_proxy.dart';
 import 'category/category_detail_page.dart';
 
 import '../../injection_container.dart';
@@ -33,7 +35,20 @@ class _HomePageState extends State<HomePage> {
       body: BlocBuilder<HomeBloc, HomeState>(
         builder: (context, state) {
           if (state is HomeLoading) {
-            return const Center(child: CircularProgressIndicator(color: Colors.red));
+            return CustomScrollView(
+              slivers: [
+                const SliverAppBar(
+                  backgroundColor: Colors.black,
+                  title: Text("MissNet", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                ),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => const SectionSkeleton(title: ""),
+                    childCount: 3,
+                  ),
+                ),
+              ],
+            );
           } else if (state is HomeError) {
             return Center(child: Text(state.message, style: const TextStyle(color: Colors.white)));
           } else if (state is HomeLoaded) {
@@ -110,7 +125,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             child: video.coverUrl != null
-                ? CachedNetworkImage(imageUrl: video.coverUrl!, fit: BoxFit.cover)
+                ? CachedNetworkImage(imageUrl: ImageProxy.getUrl(video.coverUrl!), fit: BoxFit.cover)
                 : Container(color: Colors.grey[900]),
           ),
           Positioned(

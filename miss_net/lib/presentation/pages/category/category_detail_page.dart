@@ -3,13 +3,20 @@ import '../../../domain/entities/video.dart';
 import '../../../domain/repositories/video_repository.dart';
 import '../../../injection_container.dart';
 import '../../widgets/video_card.dart';
+import '../../widgets/video_skeleton.dart';
 import '../player_page.dart';
 
 class CategoryDetailPage extends StatefulWidget {
   final String title;
-  final String category;
+  final String? category;
+  final String? actor;
 
-  const CategoryDetailPage({super.key, required this.title, required this.category});
+  const CategoryDetailPage({
+    super.key, 
+    required this.title, 
+    this.category,
+    this.actor,
+  }) : assert(category != null || actor != null);
 
   @override
   State<CategoryDetailPage> createState() => _CategoryDetailPageState();
@@ -59,7 +66,12 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
       _error = null;
     });
 
-    final result = await _repository.getRecentVideos(limit: _limit, offset: 0, category: widget.category);
+    final result = await _repository.getRecentVideos(
+      limit: _limit, 
+      offset: 0, 
+      category: widget.category,
+      actor: widget.actor,
+    );
     
     if (mounted) {
       result.fold(
@@ -81,7 +93,8 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
     final result = await _repository.getRecentVideos(
       limit: _limit, 
       offset: _videos.length, 
-      category: widget.category
+      category: widget.category,
+      actor: widget.actor,
     );
 
     if (mounted) {
@@ -110,7 +123,17 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.red))
+          ? GridView.builder(
+              padding: const EdgeInsets.all(10),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 1.5,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemCount: 8,
+              itemBuilder: (context, index) => const VideoCardSkeleton(),
+            )
           : _error != null
               ? Center(child: Text(_error!, style: const TextStyle(color: Colors.white)))
               : _videos.isEmpty
@@ -127,7 +150,7 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
                         ),
-                        itemCount: _hasReachedMax ? _videos.length : _videos.length + 2, // +2 for bottom space/loader
+                        itemCount: _hasReachedMax ? _videos.length : _videos.length + 2,
                         itemBuilder: (context, index) {
                           if (index >= _videos.length) {
                             if (_hasReachedMax) return const SizedBox.shrink();

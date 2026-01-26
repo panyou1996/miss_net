@@ -2,7 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/video_model.dart';
 
 abstract class VideoDataSource {
-  Future<List<VideoModel>> getRecentVideos({int limit = 20, int offset = 0, String? category});
+  Future<List<VideoModel>> getRecentVideos({int limit = 20, int offset = 0, String? category, String? actor});
   Future<List<VideoModel>> searchVideos(String query);
   Future<List<String>> getSearchSuggestions(String query);
 }
@@ -13,11 +13,15 @@ class SupabaseVideoDataSourceImpl implements VideoDataSource {
   SupabaseVideoDataSourceImpl(this.supabase);
 
   @override
-  Future<List<VideoModel>> getRecentVideos({int limit = 20, int offset = 0, String? category}) async {
+  Future<List<VideoModel>> getRecentVideos({int limit = 20, int offset = 0, String? category, String? actor}) async {
     var queryBuilder = supabase.from('videos').select().eq('is_active', true);
 
     if (category != null && category != 'new') {
       queryBuilder = queryBuilder.or('tags.cs.{"$category"},categories.cs.{"$category"}');
+    }
+    
+    if (actor != null) {
+      queryBuilder = queryBuilder.contains('actors', [actor]);
     }
 
     final response = await queryBuilder
