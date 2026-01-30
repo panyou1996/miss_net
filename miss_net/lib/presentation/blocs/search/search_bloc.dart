@@ -56,14 +56,23 @@ class SearchError extends SearchState {
 // Bloc
 class SearchBloc extends Bloc<SearchEvent, SearchState> {
   final VideoRepository repository;
+  String? _lastQuery;
 
   SearchBloc({required this.repository}) : super(SearchInitial()) {
     on<SearchQueryChanged>(
       (event, emit) async {
         if (event.query.isEmpty) {
+          _lastQuery = null;
           emit(SearchInitial());
           return;
         }
+
+        // Fix: Avoid reloading if query is same and we have results
+        if (event.query == _lastQuery && state is SearchLoaded) {
+          return;
+        }
+
+        _lastQuery = event.query;
         emit(SearchLoading());
         final result = await repository.searchVideos(event.query);
         result.fold(

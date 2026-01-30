@@ -94,7 +94,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     }
 
     // Process History (Index 4)
-    results[4].fold((f) => null, (videos) => history = videos as List<Video>);
+    results[4].fold((f) => null, (videos) => history = videos);
 
     if (sections.isEmpty) {
       emit(const HomeError("Failed to load content"));

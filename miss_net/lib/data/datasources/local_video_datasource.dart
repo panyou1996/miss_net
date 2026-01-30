@@ -19,15 +19,15 @@ class LocalVideoDataSourceImpl implements LocalVideoDataSource {
 
   LocalVideoDataSourceImpl(this.sharedPreferences);
 
-  static const String CACHED_FAVORITES = 'CACHED_FAVORITES';
-  static const String CACHED_HISTORY = 'CACHED_HISTORY';
-  static const String PROGRESS_PREFIX = 'PROGRESS_';
+  static const String _cachedFavorites = 'CACHED_FAVORITES';
+  static const String _cachedHistory = 'CACHED_HISTORY';
+  static const String _progressPrefix = 'PROGRESS_';
 
   // --- Favorites ---
 
   @override
   Future<List<VideoModel>> getFavorites() async {
-    final jsonString = sharedPreferences.getString(CACHED_FAVORITES);
+    final jsonString = sharedPreferences.getString(_cachedFavorites);
     if (jsonString != null) {
       try {
         List<dynamic> jsonList = json.decode(jsonString);
@@ -63,14 +63,14 @@ class LocalVideoDataSourceImpl implements LocalVideoDataSource {
 
   Future<void> _saveFavorites(List<VideoModel> videos) async {
     final String jsonString = json.encode(videos.map((v) => v.toJson()).toList());
-    await sharedPreferences.setString(CACHED_FAVORITES, jsonString);
+    await sharedPreferences.setString(_cachedFavorites, jsonString);
   }
 
   // --- History ---
 
   @override
   Future<List<VideoModel>> getHistory() async {
-    final jsonString = sharedPreferences.getString(CACHED_HISTORY);
+    final jsonString = sharedPreferences.getString(_cachedHistory);
     if (jsonString != null) {
       try {
         List<dynamic> jsonList = json.decode(jsonString);
@@ -92,12 +92,12 @@ class LocalVideoDataSourceImpl implements LocalVideoDataSource {
       currentHistory = currentHistory.sublist(0, 20);
     }
 
-    await sharedPreferences.setString(CACHED_HISTORY, json.encode(currentHistory.map((v) => v.toJson()).toList()));
-    await sharedPreferences.setInt('$PROGRESS_PREFIX${video.id}', positionMs);
+    await sharedPreferences.setString(_cachedHistory, json.encode(currentHistory.map((v) => v.toJson()).toList()));
+    await sharedPreferences.setInt('$_progressPrefix${video.id}', positionMs);
   }
 
   @override
   Future<int> getProgress(String id) async {
-    return sharedPreferences.getInt('$PROGRESS_PREFIX$id') ?? 0;
+    return sharedPreferences.getInt('$_progressPrefix$id') ?? 0;
   }
 }

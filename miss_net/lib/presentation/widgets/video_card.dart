@@ -8,59 +8,72 @@ import 'video_skeleton.dart';
 class VideoCard extends StatelessWidget {
   final Video video;
   final VoidCallback onTap;
+  final String? heroTag;
 
-  const VideoCard({super.key, required this.video, required this.onTap});
+  const VideoCard({
+    super.key, 
+    required this.video, 
+    required this.onTap,
+    this.heroTag,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(12.0), // Softer corners
         child: Stack(
           children: [
             Positioned.fill(
               child: Hero(
-                tag: video.id,
+                tag: heroTag ?? video.id,
                 child: video.coverUrl != null
                     ? CachedNetworkImage(
                         imageUrl: ImageProxy.getUrl(video.coverUrl!),
+                        httpHeaders: const {'Referer': 'https://missav.ws/'},
+                        memCacheHeight: 400,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => const VideoCardSkeleton(),
                         errorWidget: (context, url, error) => Container(
-                          color: Colors.grey[800],
-                          child: const Icon(Icons.broken_image, color: Colors.white54),
+                          color: Colors.grey[900],
+                          child: const Icon(Icons.broken_image, color: Colors.white12),
                         ),
                       )
                     : Image.memory(kTransparentImage),
               ),
             ),
-            // Gradient Overlay for Title
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
+            // Improved Gradient Overlay
+            Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Colors.black.withOpacity(0.8),
+                      Colors.black.withValues(alpha: 0.95), // Darker at bottom
+                      Colors.black.withValues(alpha: 0.5),
                       Colors.transparent,
                     ],
+                    stops: const [0.0, 0.3, 0.6], // Smoother transition
                   ),
                 ),
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  video.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+              ),
+            ),
+            // Title
+            Positioned(
+              bottom: 8,
+              left: 8,
+              right: 8,
+              child: Text(
+                video.title,
+                maxLines: 2, // Allow 2 lines for better readability
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  height: 1.2,
                 ),
               ),
             ),
@@ -72,7 +85,7 @@ class VideoCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
+                    color: Colors.black.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(

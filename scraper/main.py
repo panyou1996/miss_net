@@ -75,7 +75,13 @@ async def get_video_details(page, url):
     try:
         await asyncio.sleep(random.uniform(1.0, 2.0))
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
-        await asyncio.sleep(random.uniform(4.0, 6.0))
+        
+        # Optimize: Wait for metadata selector instead of hard sleep
+        try:
+            await page.wait_for_selector('div.text-secondary', timeout=5000)
+        except:
+            pass 
+        await asyncio.sleep(random.uniform(0.5, 1.5))
         
         title = await page.title()
         if "Just a moment" in title:
@@ -117,6 +123,11 @@ async def get_video_details(page, url):
             return data;
         }''')
         
+        # Debug missing duration
+        if details and not details.get('duration'):
+            # Try to find it in the text content of the page for debugging
+            print(f"  [Debug] Missing Duration for {url}. Page Title: {title}")
+        
         # Python-side fallback using safe regex
         if not details or not details.get('duration'):
             content = await page.content()
@@ -134,7 +145,12 @@ async def get_51cg_details(page, url):
     try:
         await asyncio.sleep(random.uniform(1.0, 2.0))
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
-        await asyncio.sleep(random.uniform(2.0, 4.0))
+        
+        try:
+            await page.wait_for_selector('h1.post-title', timeout=5000)
+        except:
+            pass
+        await asyncio.sleep(random.uniform(0.5, 1.5))
 
         details = await page.evaluate(r'''() => {
             const data = { tags: [], actors: [], title: null };
@@ -244,30 +260,24 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore):
     if tasks:
         await asyncio.gather(*tasks)
 
-async def scrape_51cg(context, supabase, semaphore):
+async def scrape_51cg(context, supabase, semaphore, detail_pages):
     print("\n>>> Starting Source: 51CG <<<")
     base_url = "https://51cg1.com/"
     
-    # Create detail pages pool for 51cg as well
-    detail_pages = []
-    # Reuse the same context, just create new pages if needed or pass from main
-    # Here we create temporary pages for this function's scope
-    for _ in range(1): # 2 concurrent detail pages
-        dp = await context.new_page()
-        # stealth is already applied to context? No, applied to page.
-        # We need stealth instance here or assume context works. 
-        # Ideally we pass detail_pages from main, but to keep logic separate:
-        detail_pages.append(dp)
-
     list_page = await context.new_page()
     
     try:
-        for page_num in range(1, 6): # Scrape first 5 pages for example
+        for page_num in range(1, 1): # Scrape first 5 pages for example
             url = base_url if page_num == 1 else f"{base_url}page/{page_num}/"
             print(f"[51CG] Page {page_num}...")
             
             await list_page.goto(url, timeout=60000, wait_until="domcontentloaded")
-            await asyncio.sleep(random.uniform(3, 5))
+            
+            try:
+                await list_page.wait_for_selector('#index article', timeout=10000)
+            except:
+                pass
+            await asyncio.sleep(random.uniform(1.0, 2.0))
 
             videos = await list_page.evaluate(r'''() => {
                 const items = document.querySelectorAll('#index article');
@@ -319,8 +329,6 @@ async def scrape_51cg(context, supabase, semaphore):
         print(f"[51CG] Error: {e}")
     finally:
         await list_page.close()
-        for dp in detail_pages:
-            await dp.close()
 
 async def scrape_videos():
     supabase: Client = None
@@ -357,7 +365,7 @@ async def scrape_videos():
             detail_pages.append(dp)
 
         # Run 51CG Scraper first or after? Let's run it first to test.
-        await scrape_51cg(context, supabase, semaphore)
+        # await scrape_51cg(context, supabase, semaphore, detail_pages)
 
         for source in SOURCES:
             base_url = source["url"]
@@ -369,7 +377,12 @@ async def scrape_videos():
                 print(f"[{tag.upper()}] Page {page_num}...")
                 try:
                     await list_page.goto(current_url, timeout=60000, wait_until="load")
-                    await asyncio.sleep(random.uniform(5, 10))
+                    
+                    try:
+                        await list_page.wait_for_selector('div.grid > div, div.thumbnail, .group', timeout=10000)
+                    except:
+                        pass
+                    await asyncio.sleep(random.uniform(1.0, 2.0))
                     
                     if "Just a moment" in await list_page.title():
                         print(f"[{tag.upper()}] Blocked. Skipping.")

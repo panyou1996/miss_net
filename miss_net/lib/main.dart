@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'injection_container.dart' as di;
 import 'presentation/blocs/home/home_bloc.dart';
@@ -34,9 +35,20 @@ class MyApp extends StatelessWidget {
         title: 'MissNet',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFFE50914), // Netflix Red
+            brightness: Brightness.dark,
+            primary: const Color(0xFFE50914),
+            surface: const Color(0xFF121212),
+          ),
           useMaterial3: true,
-          scaffoldBackgroundColor: Colors.black,
+          scaffoldBackgroundColor: const Color(0xFF000000), // Pure Black for OLED
+          textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+          ),
         ),
         home: const MainScreen(),
       ),

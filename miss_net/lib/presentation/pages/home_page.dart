@@ -62,7 +62,7 @@ class _HomePageState extends State<HomePage> {
                   SliverAppBar(
                     expandedHeight: 0,
                     floating: true,
-                    backgroundColor: Colors.black.withOpacity(0.5),
+                    backgroundColor: Colors.black.withValues(alpha: 0.5),
                     title: const Text("MissNet", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                     actions: [
                       IconButton(
@@ -111,8 +111,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildHeroBanner(Video video) {
+    final heroTag = "${video.id}_banner";
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video))),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video, heroTag: heroTag))),
       child: Stack(
         children: [
           Container(
@@ -124,15 +125,18 @@ class _HomePageState extends State<HomePage> {
                 end: Alignment.topCenter,
                 colors: [
                   Colors.black,
-                  Colors.black.withOpacity(0.5),
+                  Colors.black.withValues(alpha: 0.5),
                   Colors.transparent,
                 ],
                 stops: const [0.0, 0.3, 0.6],
               ),
             ),
-            child: video.coverUrl != null
-                ? CachedNetworkImage(imageUrl: ImageProxy.getUrl(video.coverUrl!), fit: BoxFit.cover)
-                : Container(color: Colors.grey[900]),
+            child: Hero(
+              tag: heroTag,
+              child: video.coverUrl != null
+                  ? CachedNetworkImage(imageUrl: ImageProxy.getUrl(video.coverUrl!), fit: BoxFit.cover)
+                  : Container(color: Colors.grey[900]),
+            ),
           ),
           Positioned(
             bottom: 40,
@@ -148,7 +152,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 15),
                 ElevatedButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video))),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video, heroTag: heroTag))),
                   icon: const Icon(Icons.play_arrow),
                   label: const Text("Play Now"),
                   style: ElevatedButton.styleFrom(
@@ -200,13 +204,15 @@ class _HomePageState extends State<HomePage> {
             itemCount: section.videos.length,
             itemBuilder: (context, index) {
               final video = section.videos[index];
+              final hTag = "${video.id}_${section.title}_$index";
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: SizedBox(
                   width: 200,
                   child: VideoCard(
                     video: video,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video))),
+                    heroTag: hTag,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video, heroTag: hTag))),
                   ),
                 ),
               );
@@ -236,13 +242,15 @@ class _HomePageState extends State<HomePage> {
             itemCount: videos.length,
             itemBuilder: (context, index) {
               final video = videos[index];
+              final hTag = "${video.id}_cw_$index";
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: SizedBox(
                   width: 180,
                   child: VideoCard(
                     video: video,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video))),
+                    heroTag: hTag,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video, heroTag: hTag))),
                   ),
                 ),
               );

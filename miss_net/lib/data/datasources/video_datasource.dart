@@ -6,6 +6,9 @@ abstract class VideoDataSource {
   Future<List<VideoModel>> getRecentVideos({int limit = 20, int offset = 0, String? category, String? actor});
   Future<List<VideoModel>> searchVideos(String query);
   Future<List<String>> getSearchSuggestions(String query);
+  Future<List<VideoModel>> getRelatedVideos(VideoModel video);
+  Future<List<String>> getPopularActors();
+  Future<List<String>> getPopularTags();
 }
 
 class SupabaseVideoDataSourceImpl implements VideoDataSource {
@@ -44,23 +47,23 @@ class SupabaseVideoDataSourceImpl implements VideoDataSource {
         .order('created_at', ascending: false)
         .range(offset, offset + limit - 1);
 
-    return (response as List).map((e) => VideoModel.fromJson(e)).toList();
+    return _mapVideos(response as List);
   }
 
   @override
   Future<List<VideoModel>> searchVideos(String query) async {
-    // Multi-dimensional search: Title, Actors, or Categories
-    // We use .or with ilike for title and contains for arrays if query matches exactly, 
-    // but for partial array match we use the text casting trick if supported or just ilike on the whole row.
+    // Optimized Full Text Search on 'title'
+    // Ensure you have enabled the text search index in Supabase for the 'title' column.
+    // e.g. create index on videos using gin(to_tsvector('english', title));
     
     final response = await supabase
         .from('videos')
         .select()
-        .or('title.ilike.%$query%,actors.cs.{"$query"},categories.cs.{"$query"}')
+        .textSearch('title', "'$query'")
         .order('created_at', ascending: false)
         .limit(50);
 
-    return (response as List).map((e) => VideoModel.fromJson(e)).toList();
+    return _mapVideos(response as List);
   }
 
   @override
@@ -100,5 +103,78 @@ class SupabaseVideoDataSourceImpl implements VideoDataSource {
     }
 
     return suggestions.take(10).toList();
+  }
+
+  @override
+  Future<List<VideoModel>> getRelatedVideos(VideoModel video) async {
+    List<dynamic> data = [];
+
+    // Priority 1: Same Actors (Strongest signal)
+    if (video.actors != null && video.actors!.isNotEmpty) {
+      try {
+        final res = await supabase
+            .from('videos')
+            .select()
+            .overlaps('actors', video.actors!)
+            .neq('id', video.id)
+            .limit(12);
+        data.addAll(res as List);
+      } catch (e) {
+        debugPrint("Related Videos (Actors) Error: $e");
+      }
+    }
+
+    // Priority 2: Same Categories (Fill if needed)
+    if (data.length < 6 && video.categories != null && video.categories!.isNotEmpty) {
+      try {
+        final res = await supabase
+            .from('videos')
+            .select()
+            .overlaps('categories', video.categories!)
+            .neq('id', video.id)
+            .limit(12);
+        data.addAll(res as List);
+      } catch (e) {
+         debugPrint("Related Videos (Cats) Error: $e");
+      }
+    }
+
+    // Deduplicate by ID
+    final uniqueMap = {for (var item in data) item['id']: item};
+    return _mapVideos(uniqueMap.values.toList());
+  }
+
+  @override
+  Future<List<String>> getPopularActors() async {
+    try {
+      final res = await supabase.rpc('get_popular_actors', params: {'limit_count': 20});
+      return (res as List).map((e) => e['actor'] as String).toList();
+    } catch (e) {
+      debugPrint("RPC Error Actors: $e");
+      return [];
+    }
+  }
+
+  @override
+  Future<List<String>> getPopularTags() async {
+    try {
+      final res = await supabase.rpc('get_popular_tags', params: {'limit_count': 30});
+      return (res as List).map((e) => e['tag'] as String).toList();
+    } catch (e) {
+      debugPrint("RPC Error Tags: $e");
+      return [];
+    }
+  }
+
+  List<VideoModel> _mapVideos(List<dynamic> data) {
+    final List<VideoModel> videos = [];
+    for (var item in data) {
+      try {
+        videos.add(VideoModel.fromJson(item));
+      } catch (e) {
+        debugPrint("Error parsing video: $e. Data: $item");
+      }
+    }
+    return videos;
   }
 }

@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../blocs/search/search_bloc.dart';
 import '../pages/player_page.dart';
 import '../widgets/video_card.dart';
+import '../../core/utils/responsive_grid.dart';
 
 class VideoSearchDelegate extends SearchDelegate {
   final SearchBloc searchBloc;
@@ -68,8 +69,8 @@ class VideoSearchDelegate extends SearchDelegate {
           }
           return GridView.builder(
             padding: const EdgeInsets.all(10),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: ResponsiveGrid.getCrossAxisCount(context),
               childAspectRatio: 1.5,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
@@ -162,7 +163,7 @@ class VideoSearchDelegate extends SearchDelegate {
                     style: const TextStyle(color: Colors.white),
                   ),
                   onTap: () {
-                    this.query = suggestion;
+                    query = suggestion;
                     showResults(context);
                   },
                 );

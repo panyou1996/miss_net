@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../domain/entities/video.dart';
 import '../../../domain/repositories/video_repository.dart';
 import '../../../injection_container.dart';
 import '../../widgets/video_card.dart';
 import '../player_page.dart';
+import '../../../core/utils/responsive_grid.dart';
 
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
@@ -16,17 +18,21 @@ class _FavoritesPageState extends State<FavoritesPage> {
   final VideoRepository _repository = sl<VideoRepository>();
   List<Video> _videos = [];
   bool _isLoading = true;
+  StreamSubscription? _subscription;
 
   @override
   void initState() {
     super.initState();
     _loadFavorites();
+    _subscription = _repository.favoritesStream.listen((_) {
+      _loadFavorites();
+    });
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadFavorites();
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadFavorites() async {
@@ -65,8 +71,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
                 )
               : GridView.builder(
                   padding: const EdgeInsets.all(10),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: ResponsiveGrid.getCrossAxisCount(context),
                     childAspectRatio: 1.5,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,

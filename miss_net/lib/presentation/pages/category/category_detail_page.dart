@@ -5,6 +5,7 @@ import '../../../injection_container.dart';
 import '../../widgets/video_card.dart';
 import '../../widgets/video_skeleton.dart';
 import '../player_page.dart';
+import '../../../core/utils/responsive_grid.dart';
 
 class CategoryDetailPage extends StatefulWidget {
   final String title;
@@ -30,6 +31,7 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
   bool _isLoading = true;
   bool _isFetchingMore = false;
   bool _hasReachedMax = false;
+  bool _hasPaginationError = false;
   String? _error;
   
   static const int _limit = 20;
@@ -48,7 +50,7 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
   }
 
   void _onScroll() {
-    if (_isBottom && !_isFetchingMore && !_hasReachedMax) {
+    if (_isBottom && !_isFetchingMore && !_hasReachedMax && !_hasPaginationError) {
       _fetchMoreVideos();
     }
   }
@@ -88,6 +90,7 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
   Future<void> _fetchMoreVideos() async {
     setState(() {
       _isFetchingMore = true;
+      _hasPaginationError = false;
     });
 
     final result = await _repository.getRecentVideos(
@@ -99,7 +102,10 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
 
     if (mounted) {
       result.fold(
-        (failure) => setState(() { _isFetchingMore = false; }),
+        (failure) => setState(() { 
+          _isFetchingMore = false; 
+          _hasPaginationError = true;
+        }),
         (newVideos) => setState(() {
           if (newVideos.isEmpty) {
             _hasReachedMax = true;
@@ -125,13 +131,12 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
       body: _isLoading
           ? GridView.builder(
               padding: const EdgeInsets.all(10),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 1.5,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: 8,
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: ResponsiveGrid.getCrossAxisCount(context),
+                              childAspectRatio: 1.5,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                            ),              itemCount: 8,
               itemBuilder: (context, index) => const VideoCardSkeleton(),
             )
           : _error != null
@@ -144,16 +149,25 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
                       child: GridView.builder(
                         controller: _scrollController,
                         padding: const EdgeInsets.all(10),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 1.5,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                        ),
-                        itemCount: _hasReachedMax ? _videos.length : _videos.length + 2,
+                                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: ResponsiveGrid.getCrossAxisCount(context),
+                                        childAspectRatio: 1.5,
+                                        crossAxisSpacing: 10,
+                                        mainAxisSpacing: 10,
+                                      ),                        itemCount: _hasReachedMax ? _videos.length : _videos.length + 2,
                         itemBuilder: (context, index) {
                           if (index >= _videos.length) {
                             if (_hasReachedMax) return const SizedBox.shrink();
+                            
+                            if (_hasPaginationError) {
+                              return Center(
+                                child: IconButton(
+                                  icon: const Icon(Icons.refresh, color: Colors.white),
+                                  onPressed: _fetchMoreVideos,
+                                ),
+                              );
+                            }
+
                             return const Center(
                               child: Padding(
                                 padding: EdgeInsets.all(8.0),

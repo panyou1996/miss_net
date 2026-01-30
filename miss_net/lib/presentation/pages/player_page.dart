@@ -14,11 +14,13 @@ import '../../injection_container.dart';
 import '../../core/utils/image_proxy.dart';
 import 'category/category_detail_page.dart';
 import 'player/widgets/video_gesture_wrapper.dart';
+import '../widgets/video_card.dart';
 
 class PlayerPage extends StatefulWidget {
   final Video video;
+  final String? heroTag;
 
-  const PlayerPage({super.key, required this.video});
+  const PlayerPage({super.key, required this.video, this.heroTag});
 
   @override
   State<PlayerPage> createState() => _PlayerPageState();
@@ -34,6 +36,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   bool _isFavorite = false;
   bool _isPipMode = false;
   Timer? _progressTimer;
+  List<Video> _relatedVideos = [];
 
   @override
   void initState() {
@@ -41,11 +44,22 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _checkFavoriteStatus();
+    _loadRelatedVideos();
     if (!kIsWeb) {
       _initializePlayer();
     } else {
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _loadRelatedVideos() async {
+    final result = await _repository.getRelatedVideos(widget.video);
+    result.fold(
+      (l) => null,
+      (videos) {
+        if (mounted) setState(() => _relatedVideos = videos);
+      },
+    );
   }
 
   Future<void> _checkFavoriteStatus() async {
@@ -104,7 +118,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         materialProgressColors: ChewieProgressColors(
           playedColor: Colors.red,
           handleColor: Colors.red,
-          backgroundColor: Colors.grey.withOpacity(0.5),
+          backgroundColor: Colors.grey.withValues(alpha: 0.5),
           bufferedColor: Colors.grey,
         ),
         errorBuilder: (context, errorMessage) {
@@ -173,12 +187,12 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                 child: CachedNetworkImage(
                   imageUrl: ImageProxy.getUrl(widget.video.coverUrl!),
                   fit: BoxFit.cover,
-                  color: Colors.black.withOpacity(0.6),
+                  color: Colors.black.withValues(alpha: 0.6),
                   colorBlendMode: BlendMode.darken,
                 ),
               ),
             ),
-          Positioned.fill(child: Container(color: Colors.black.withOpacity(0.4))),
+          Positioned.fill(child: Container(color: Colors.black.withValues(alpha: 0.4))),
           SafeArea(
             child: Column(
               children: [
@@ -227,7 +241,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     return Column(
       children: [
         Hero(
-          tag: widget.video.id,
+          tag: widget.heroTag ?? widget.video.id,
           createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
           child: AspectRatio(aspectRatio: 16 / 9, child: _buildCoverImage()),
         ),
@@ -240,7 +254,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     return Column(
       children: [
         Hero(
-          tag: widget.video.id,
+          tag: widget.heroTag ?? widget.video.id,
           createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
           child: AspectRatio(aspectRatio: 16 / 9, child: _buildCoverImage()),
         ),
@@ -268,7 +282,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Hero(
-            tag: widget.video.id,
+            tag: widget.heroTag ?? widget.video.id,
             createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
             child: AspectRatio(
               aspectRatio: _videoPlayerController!.value.aspectRatio,
@@ -296,7 +310,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                 ),
                 if (widget.video.categories != null && widget.video.categories!.isNotEmpty) ...[
                   const SizedBox(height: 20),
-                  Wrap(spacing: 8, runSpacing: 8, children: widget.video.categories!.map((cat) => _tagChip(cat, Colors.red.withOpacity(0.8))).toList()),
+                  Wrap(spacing: 8, runSpacing: 8, children: widget.video.categories!.map((cat) => _tagChip(cat, Colors.red.withValues(alpha: 0.8))).toList()),
                 ],
                 if (widget.video.actors != null && widget.video.actors!.isNotEmpty) ...[
                   const SizedBox(height: 24),
@@ -310,9 +324,37 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                         onTap: () {
                           Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryDetailPage(title: actor, actor: actor)));
                         },
-                        child: _tagChip(actor, Colors.white.withOpacity(0.1)),
+                        child: _tagChip(actor, Colors.white.withValues(alpha: 0.1)),
                       );
                     }).toList(),
+                  ),
+                ],
+                if (_relatedVideos.isNotEmpty) ...[
+                  const SizedBox(height: 30),
+                  const Text("You May Also Like", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 140,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _relatedVideos.length,
+                      itemBuilder: (context, index) {
+                         final rv = _relatedVideos[index];
+                         return Padding(
+                           padding: const EdgeInsets.only(right: 12),
+                           child: SizedBox(
+                             width: 200, 
+                             child: VideoCard(
+                               video: rv, 
+                               onTap: () => Navigator.push(
+                                 context, 
+                                 MaterialPageRoute(builder: (_) => PlayerPage(video: rv))
+                               ),
+                             ),
+                           ),
+                         );
+                      }
+                    ),
                   ),
                 ],
                 const SizedBox(height: 120),
@@ -354,7 +396,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white.withOpacity(0.1))),
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white.withValues(alpha: 0.1))),
           child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
         ),
       ),

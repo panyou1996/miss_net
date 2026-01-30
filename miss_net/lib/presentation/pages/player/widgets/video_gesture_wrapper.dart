@@ -49,9 +49,9 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> {
         if (details.globalPosition.dx < width / 2) {
           // Left side: Brightness
           try {
-            _brightness ??= await ScreenBrightness().current;
+            _brightness ??= await ScreenBrightness().application;
             _brightness = (_brightness! + delta).clamp(0.0, 1.0);
-            await ScreenBrightness().setScreenBrightness(_brightness!);
+            await ScreenBrightness().setApplicationScreenBrightness(_brightness!);
             _showFeedback("${(_brightness! * 100).toInt()}%", Icons.brightness_medium);
           } catch (e) {
             debugPrint("Brightness error: $e");
@@ -97,7 +97,7 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
+                  color: Colors.black.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Column(
