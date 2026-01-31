@@ -153,7 +153,7 @@ async def get_51cg_details(page, url):
         await asyncio.sleep(random.uniform(0.5, 1.5))
 
         details = await page.evaluate(r'''() => {
-            const data = { tags: [], actors: [], title: null, release_date: null };
+            const data = { tags: [], actors: [], title: null, release_date: null, videos: [] };
             
             const titleEl = document.querySelector('h1.post-title');
             if (titleEl) data.title = titleEl.innerText.trim();
@@ -169,8 +169,50 @@ async def get_51cg_details(page, url):
                 if (metaDate) data.release_date = metaDate.content;
             }
 
+            // Extract DPlayer videos
+            const dplayers = document.querySelectorAll('.dplayer');
+            dplayers.forEach((dp, index) => {
+                const configStr = dp.getAttribute('data-config');
+                if (configStr) {
+                    try {
+                        const config = JSON.parse(configStr);
+                        if (config.video && config.video.url) {
+                            let subTitle = "";
+                            // Attempt to find subtitle in previous element (e.g. <p>NO1:...</p>)
+                            // Structure might be <p>Title</p><p><div class="dplayer"></div></p> or <p>Title</p><div class="dplayer"></div>
+                            let container = dp.parentElement;
+                            let prev = dp.previousElementSibling;
+                            
+                            // If dplayer is inside a p tag, look at previous p tag
+                            if (container.tagName === 'P') {
+                                prev = container.previousElementSibling;
+                            }
+                            
+                            if (prev && (prev.tagName === 'P' || prev.tagName === 'DIV')) {
+                                subTitle = prev.innerText.trim();
+                            }
+                            
+                            data.videos.push({
+                                url: config.video.url,
+                                title_suffix: subTitle
+                            });
+                        }
+                    } catch(e) {}
+                }
+            });
+
             return data;
         }''')
+        
+        # Fallback for single m3u8 in content if no DPlayer found
+        if not details['videos']:
+            content = await page.content()
+            m3u8_match = re.search(r'["\']([^"\']+\.m3u8[^"\']*)["\']', content)
+            if m3u8_match:
+                 details['videos'].append({
+                     'url': m3u8_match.group(1),
+                     'title_suffix': ''
+                 })
         
         return details
     except Exception as e:
@@ -229,7 +271,7 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
     if tasks:
         await asyncio.gather(*tasks)
 
-async def process_51cg_batch(videos, detail_pages, supabase, semaphore):
+async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_tag="51cg"):
     if not videos: return
     # No duplicate check for now, or simplistic one
     tasks = []
@@ -254,11 +296,32 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore):
                         # Merge with list-page categories
                         final_cats = list(set(vid.get('categories', []) + refined_cats + ["51吃瓜"]))
                         
-                        vid.update({k: v for k, v in details.items() if k not in ['title', 'tags']})
+                        vid.update({k: v for k, v in details.items() if k not in ['title', 'tags', 'videos']})
                         vid['categories'] = final_cats
-                        vid['tags'] = vid_tags
-                    
-                    await sync_video(vid, supabase, "51CG Scraped")
+                        vid['tags'] = vid_tags + [source_tag]
+
+                        # Handle multiple videos
+                        videos_to_sync = []
+                        if details.get('videos'):
+                            for i, video_info in enumerate(details['videos']):
+                                new_vid = vid.copy()
+                                new_vid['source_url'] = video_info['url']
+                                if video_info['title_suffix']:
+                                    new_vid['title'] = f"{vid['title']} {video_info['title_suffix']}"
+                                
+                                # First video keeps original ID, others get suffix
+                                if i > 0:
+                                    new_vid['external_id'] = f"{vid['external_id']}_{i+1}"
+                                
+                                videos_to_sync.append(new_vid)
+                        else:
+                            videos_to_sync.append(vid)
+
+                        for v_sync in videos_to_sync:
+                            await sync_video(v_sync, supabase, f"51CG ({source_tag})")
+                    else:
+                         await sync_video(vid, supabase, f"51CG ({source_tag}) - Basic")
+
                 finally:
                     detail_pages.append(page)
         tasks.append(scrape_and_sync())
@@ -266,16 +329,15 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore):
     if tasks:
         await asyncio.gather(*tasks)
 
-async def scrape_51cg(context, supabase, semaphore, detail_pages):
-    print("\n>>> Starting Source: 51CG <<<")
-    base_url = "https://51cg1.com/"
+async def scrape_51cg_feed(context, supabase, semaphore, detail_pages, base_url, source_tag="51cg"):
+    print(f"\n>>> Starting Source: {source_tag.upper()} ({base_url}) <<<")
     
     list_page = await context.new_page()
     
     try:
-        for page_num in range(1, 6): # Scrape first 5 pages
+        for page_num in range(1, 4): # Scrape first 3 pages
             url = base_url if page_num == 1 else f"{base_url}page/{page_num}/"
-            print(f"[51CG] Page {page_num}...")
+            print(f"[{source_tag.upper()}] Page {page_num}...")
             
             await list_page.goto(url, timeout=60000, wait_until="domcontentloaded")
             
@@ -357,14 +419,14 @@ async def scrape_51cg(context, supabase, semaphore, detail_pages):
             }''')
 
             if not videos:
-                print("[51CG] No videos found on this page.")
+                print(f"[{source_tag.upper()}] No videos found on this page.")
                 break
 
-            await process_51cg_batch(videos, detail_pages, supabase, semaphore)
+            await process_51cg_batch(videos, detail_pages, supabase, semaphore, source_tag)
             await asyncio.sleep(random.uniform(2, 5))
 
     except Exception as e:
-        print(f"[51CG] Error: {e}")
+        print(f"[{source_tag.upper()}] Error: {e}")
     finally:
         await list_page.close()
 
@@ -402,8 +464,11 @@ async def scrape_videos():
             await stealth.apply_stealth_async(dp)
             detail_pages.append(dp)
 
-        # Run 51CG Scraper first or after? Let's run it first to test.
-        await scrape_51cg(context, supabase, semaphore, detail_pages)
+        # Run 51CG Scrapers
+        # Main Feed
+        await scrape_51cg_feed(context, supabase, semaphore, detail_pages, "https://51cg1.com/", "51cg")
+        # Daily Competition (Multiple videos per post)
+        await scrape_51cg_feed(context, supabase, semaphore, detail_pages, "https://51cg1.com/category/mrds/", "51mrds")
 
         for source in SOURCES:
             base_url = source["url"]
