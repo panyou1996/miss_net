@@ -6,6 +6,7 @@ import 'injection_container.dart' as di;
 import 'presentation/blocs/home/home_bloc.dart';
 import 'presentation/blocs/theme/theme_bloc.dart';
 import 'presentation/pages/main/main_screen.dart';
+import 'core/services/download_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,9 @@ Future<void> main() async {
 
   // Initialize Dependency Injection
   await di.init();
+
+  // Initialize Services
+  await di.sl<DownloadService>().init();
 
   runApp(const MyApp());
 }

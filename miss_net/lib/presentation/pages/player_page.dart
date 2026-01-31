@@ -8,6 +8,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/services/video_resolver.dart';
+import '../../core/services/download_service.dart';
+import '../../core/services/cast_service.dart';
 import '../../domain/entities/video.dart';
 import '../../domain/repositories/video_repository.dart';
 import '../../injection_container.dart';
@@ -29,6 +31,8 @@ class PlayerPage extends StatefulWidget {
 class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   final VideoResolver _resolver = sl<VideoResolver>();
   final VideoRepository _repository = sl<VideoRepository>();
+  final DownloadService _downloadService = sl<DownloadService>();
+  final CastService _castService = sl<CastService>();
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   bool _isLoading = true;
@@ -140,6 +144,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   void dispose() {
     _progressTimer?.cancel();
     _saveProgress(); // Final save
+    _castService.stop();
     WidgetsBinding.instance.removeObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
     _videoPlayerController?.dispose();
@@ -170,6 +175,53 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     } catch (e) {
       debugPrint("PiP error: $e");
     }
+  }
+
+  Future<void> _handleDownload() async {
+    try {
+      final streamInfo = await _resolver.resolveStreamUrl(widget.video.sourceUrl);
+      final url = streamInfo.streamUrl;
+      if (url.contains('.m3u8')) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("HLS streams cannot be downloaded directly yet.")));
+        return;
+      }
+      final id = await _downloadService.downloadVideo(url, "${widget.video.title}.mp4");
+      if (id != null) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Download started")));
+      }
+    } catch (e) {
+      debugPrint("Download error: $e");
+    }
+  }
+
+  Future<void> _handleCast() async {
+    final devices = _castService.getDevices();
+    if (devices.isEmpty) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No DLNA devices found")));
+      return;
+    }
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      builder: (ctx) => ListView.builder(
+        itemCount: devices.length,
+        itemBuilder: (ctx, i) => ListTile(
+          leading: const Icon(Icons.tv, color: Colors.white),
+          title: Text(devices[i].friendlyName ?? "Unknown Device", style: const TextStyle(color: Colors.white)),
+          onTap: () async {
+            Navigator.pop(ctx);
+            try {
+              final streamInfo = await _resolver.resolveStreamUrl(widget.video.sourceUrl);
+              await _castService.cast(devices[i], streamInfo.streamUrl, widget.video.title);
+              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Casting to ${devices[i].friendlyName}")));
+            } catch (e) {
+              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cast Error: $e")));
+            }
+          }
+        )
+      )
+    );
   }
 
   @override
@@ -299,6 +351,32 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
               children: [
                 Text(widget.video.title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
+                
+                // Action Buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.download, color: Colors.white), 
+                      onPressed: _handleDownload,
+                      tooltip: "Download",
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.cast, color: Colors.white), 
+                      onPressed: _handleCast,
+                      tooltip: "Cast",
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.share, color: Colors.white), 
+                      onPressed: () {
+                         // Share logic
+                      },
+                      tooltip: "Share",
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
                 Row(
                   children: [
                     if (widget.video.duration != null) _infoBadge(Icons.timer, widget.video.duration!),

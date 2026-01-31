@@ -5,6 +5,8 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   flutter_inappwebview_windows
+  local_auth_windows
+  permission_handler_windows
   screen_brightness_windows
   url_launcher_windows
 )
