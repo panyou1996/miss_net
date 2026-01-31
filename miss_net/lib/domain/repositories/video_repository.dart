@@ -21,6 +21,7 @@ abstract class VideoRepository {
   Future<Either<Failure, List<Video>>> getHistory();
   Future<Either<Failure, void>> saveToHistory(Video video, int positionMs);
   Future<int> getProgress(String id);
+  Future<Either<Failure, void>> clearHistory();
   
   // Cloud Sync
   Future<void> syncData();

@@ -60,6 +60,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       repository.getRecentVideos(limit: 10, category: 'monthly_hot'),
       repository.getRecentVideos(limit: 10, category: 'weekly_hot'),
       repository.getRecentVideos(limit: 10, category: 'uncensored'),
+      repository.getRecentVideos(limit: 10, category: '51cg'),
       repository.getHistory(),
     ]);
 
@@ -78,11 +79,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       }
     );
 
-    // Process others (1, 2, 3)
-    final titles = ["Monthly Hot", "Weekly Hot", "Uncensored"];
-    final categories = ["monthly_hot", "weekly_hot", "uncensored"];
+    // Process others (1, 2, 3, 4)
+    final titles = ["Monthly Hot", "Weekly Hot", "Uncensored", "51 Eating Melon"];
+    final categories = ["monthly_hot", "weekly_hot", "uncensored", "51cg"];
 
-    for (int i = 1; i <= 3; i++) {
+    for (int i = 1; i <= 4; i++) {
       results[i].fold(
         (f) => null,
         (videos) {
@@ -93,8 +94,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       );
     }
 
-    // Process History (Index 4)
-    results[4].fold((f) => null, (videos) => history = videos);
+    // Process History (Index 5)
+    results[5].fold((f) => null, (videos) => history = videos);
 
     if (sections.isEmpty) {
       emit(const HomeError("Failed to load content"));

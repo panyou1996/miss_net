@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'injection_container.dart' as di;
 import 'presentation/blocs/home/home_bloc.dart';
+import 'presentation/blocs/theme/theme_bloc.dart';
 import 'presentation/pages/main/main_screen.dart';
 
 Future<void> main() async {
@@ -30,27 +31,62 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => di.sl<HomeBloc>()),
+        BlocProvider(create: (_) => di.sl<ThemeBloc>()..add(LoadTheme())),
       ],
-      child: MaterialApp(
-        title: 'MissNet',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFFE50914), // Netflix Red
-            brightness: Brightness.dark,
-            primary: const Color(0xFFE50914),
-            surface: const Color(0xFF121212),
-          ),
-          useMaterial3: true,
-          scaffoldBackgroundColor: const Color(0xFF000000), // Pure Black for OLED
-          textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-          ),
-        ),
-        home: const MainScreen(),
+      child: BlocBuilder<ThemeBloc, ThemeState>(
+        builder: (context, state) {
+          return MaterialApp(
+            title: 'MissNet',
+            debugShowCheckedModeBanner: false,
+            themeMode: state.themeMode,
+            
+            // Light Theme
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFFE50914),
+                brightness: Brightness.light,
+                primary: const Color(0xFFE50914),
+                surface: Colors.white,
+                onSurface: Colors.black,
+              ),
+              useMaterial3: true,
+              scaffoldBackgroundColor: Colors.white,
+              textTheme: GoogleFonts.poppinsTextTheme(ThemeData.light().textTheme),
+              appBarTheme: const AppBarTheme(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+              ),
+              cardColor: Colors.grey[100],
+              iconTheme: const IconThemeData(color: Colors.black),
+            ),
+
+            // Dark Theme
+            darkTheme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFFE50914),
+                brightness: Brightness.dark,
+                primary: const Color(0xFFE50914),
+                surface: const Color(0xFF121212),
+                onSurface: Colors.white,
+              ),
+              useMaterial3: true,
+              scaffoldBackgroundColor: const Color(0xFF000000),
+              textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+              appBarTheme: const AppBarTheme(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+              ),
+              cardColor: Colors.grey[900],
+              iconTheme: const IconThemeData(color: Colors.white),
+            ),
+
+            home: const MainScreen(),
+          );
+        },
       ),
     );
   }

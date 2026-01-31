@@ -24,6 +24,14 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // Adapt glass effect
+    final glassColor = isDark ? Colors.black.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.9);
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1);
+    final shadowColor = isDark ? Colors.black.withValues(alpha: 0.3) : Colors.grey.withValues(alpha: 0.3);
+
     return Scaffold(
       extendBody: true, // Important for content to show behind nav bar
       body: Stack(
@@ -46,15 +54,15 @@ class _MainScreenState extends State<MainScreen> {
                 child: Container(
                   height: 64,
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.7), // Translucent black
+                    color: glassColor, 
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1), // Subtle border
+                      color: borderColor,
                       width: 0.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
+                        color: shadowColor,
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -63,10 +71,10 @@ class _MainScreenState extends State<MainScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildNavItem(Icons.home_rounded, Icons.home_outlined, "Home", 0),
-                      _buildNavItem(Icons.explore_rounded, Icons.explore_outlined, "Explore", 1),
-                      _buildNavItem(Icons.favorite_rounded, Icons.favorite_border_rounded, "Likes", 2),
-                      _buildNavItem(Icons.settings_rounded, Icons.settings_outlined, "Settings", 3),
+                      _buildNavItem(context, Icons.home_rounded, Icons.home_outlined, "Home", 0),
+                      _buildNavItem(context, Icons.explore_rounded, Icons.explore_outlined, "Explore", 1),
+                      _buildNavItem(context, Icons.favorite_rounded, Icons.favorite_border_rounded, "Likes", 2),
+                      _buildNavItem(context, Icons.settings_rounded, Icons.settings_outlined, "Settings", 3),
                     ],
                   ),
                 ),
@@ -78,8 +86,14 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildNavItem(IconData activeIcon, IconData inactiveIcon, String label, int index) {
+  Widget _buildNavItem(BuildContext context, IconData activeIcon, IconData inactiveIcon, String label, int index) {
     final isSelected = _selectedIndex == index;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final inactiveColor = isDark ? Colors.white70 : Colors.black54;
+    final activeTextColor = isDark ? Colors.white : Colors.black;
+    final activeBg = isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1);
+
     return GestureDetector(
       onTap: () => setState(() => _selectedIndex = index),
       behavior: HitTestBehavior.opaque,
@@ -89,7 +103,7 @@ class _MainScreenState extends State<MainScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: isSelected
             ? BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: activeBg,
                 borderRadius: BorderRadius.circular(16),
               )
             : null,
@@ -98,15 +112,15 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             Icon(
               isSelected ? activeIcon : inactiveIcon,
-              color: isSelected ? Colors.redAccent : Colors.white70,
+              color: isSelected ? Colors.redAccent : inactiveColor,
               size: 24,
             ),
             if (isSelected) ...[
               const SizedBox(width: 8),
               Text(
                 label,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: activeTextColor,
                   fontWeight: FontWeight.w600,
                   fontSize: 12,
                 ),

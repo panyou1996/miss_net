@@ -119,72 +119,144 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: Text(widget.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: _isLoading
-          ? GridView.builder(
-              padding: const EdgeInsets.all(10),
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: ResponsiveGrid.getCrossAxisCount(context),
-                              childAspectRatio: 1.5,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10,
-                            ),              itemCount: 8,
-              itemBuilder: (context, index) => const VideoCardSkeleton(),
-            )
-          : _error != null
-              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.white)))
-              : _videos.isEmpty
-                  ? const Center(child: Text("No videos found", style: TextStyle(color: Colors.white54)))
-                  : RefreshIndicator(
-                      onRefresh: _loadVideos,
-                      color: Colors.red,
-                      child: GridView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(10),
-                                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: ResponsiveGrid.getCrossAxisCount(context),
-                                        childAspectRatio: 1.5,
-                                        crossAxisSpacing: 10,
-                                        mainAxisSpacing: 10,
-                                      ),                        itemCount: _hasReachedMax ? _videos.length : _videos.length + 2,
-                        itemBuilder: (context, index) {
-                          if (index >= _videos.length) {
-                            if (_hasReachedMax) return const SizedBox.shrink();
-                            
-                            if (_hasPaginationError) {
-                              return Center(
-                                child: IconButton(
-                                  icon: const Icon(Icons.refresh, color: Colors.white),
-                                  onPressed: _fetchMoreVideos,
+    @override
+
+    Widget build(BuildContext context) {
+
+      final theme = Theme.of(context);
+
+      return Scaffold(
+
+        // backgroundColor: theme.scaffoldBackgroundColor, // default
+
+        appBar: AppBar(
+
+          title: Text(widget.title, style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold)),
+
+          backgroundColor: theme.appBarTheme.backgroundColor,
+
+          iconTheme: theme.iconTheme,
+
+        ),
+
+        body: _isLoading
+
+            ? GridView.builder(
+
+                padding: const EdgeInsets.all(10),
+
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+
+                                crossAxisCount: ResponsiveGrid.getCrossAxisCount(context),
+
+                                childAspectRatio: 1.5,
+
+                                crossAxisSpacing: 10,
+
+                                mainAxisSpacing: 10,
+
+                              ),              itemCount: 8,
+
+                itemBuilder: (context, index) => const VideoCardSkeleton(),
+
+              )
+
+            : _error != null
+
+                ? Center(child: Text(_error!, style: TextStyle(color: theme.colorScheme.onSurface)))
+
+                : _videos.isEmpty
+
+                    ? Center(child: Text("No videos found", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))))
+
+                    : RefreshIndicator(
+
+                        onRefresh: _loadVideos,
+
+                        color: Colors.red,
+
+                        child: GridView.builder(
+
+                          controller: _scrollController,
+
+                          padding: const EdgeInsets.all(10),
+
+                                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+
+                                          crossAxisCount: ResponsiveGrid.getCrossAxisCount(context),
+
+                                          childAspectRatio: 1.5,
+
+                                          crossAxisSpacing: 10,
+
+                                          mainAxisSpacing: 10,
+
+                                        ),                        itemCount: _hasReachedMax ? _videos.length : _videos.length + 2,
+
+                          itemBuilder: (context, index) {
+
+                            if (index >= _videos.length) {
+
+                              if (_hasReachedMax) return const SizedBox.shrink();
+
+                              
+
+                              if (_hasPaginationError) {
+
+                                return Center(
+
+                                  child: IconButton(
+
+                                    icon: Icon(Icons.refresh, color: theme.iconTheme.color),
+
+                                    onPressed: _fetchMoreVideos,
+
+                                  ),
+
+                                );
+
+                              }
+
+  
+
+                              return const Center(
+
+                                child: Padding(
+
+                                  padding: EdgeInsets.all(8.0),
+
+                                  child: CircularProgressIndicator(color: Colors.red, strokeWidth: 2),
+
                                 ),
+
                               );
+
                             }
 
-                            return const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: CircularProgressIndicator(color: Colors.red, strokeWidth: 2),
+                            return VideoCard(
+
+                              video: _videos[index],
+
+                              onTap: () => Navigator.push(
+
+                                context,
+
+                                MaterialPageRoute(builder: (_) => PlayerPage(video: _videos[index])),
+
                               ),
+
                             );
-                          }
-                          return VideoCard(
-                            video: _videos[index],
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => PlayerPage(video: _videos[index])),
-                            ),
-                          );
-                        },
+
+                          },
+
+                        ),
+
                       ),
-                    ),
-    );
+
+      );
+
+    }
+
   }
-}
+
+  

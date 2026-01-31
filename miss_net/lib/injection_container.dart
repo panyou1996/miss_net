@@ -8,6 +8,7 @@ import 'data/repositories/video_repository_impl.dart';
 import 'domain/repositories/video_repository.dart';
 import 'presentation/blocs/home/home_bloc.dart';
 import 'presentation/blocs/search/search_bloc.dart';
+import 'presentation/blocs/theme/theme_bloc.dart';
 
 final sl = GetIt.instance;
 
@@ -15,6 +16,7 @@ Future<void> init() async {
   // Blocs
   sl.registerFactory(() => HomeBloc(repository: sl()));
   sl.registerFactory(() => SearchBloc(repository: sl()));
+  sl.registerFactory(() => ThemeBloc());
 
   // Repositories
   sl.registerLazySingleton<VideoRepository>(

@@ -153,17 +153,14 @@ async def get_51cg_details(page, url):
         await asyncio.sleep(random.uniform(0.5, 1.5))
 
         details = await page.evaluate(r'''() => {
-            const data = { tags: [], actors: [], title: null };
+            const data = { tags: [], actors: [], title: null, release_date: null };
             
-            // Extract title from detail page
             const titleEl = document.querySelector('h1.post-title');
             if (titleEl) data.title = titleEl.innerText.trim();
 
-            // Extract tags
             const tagLinks = document.querySelectorAll('.tags .keywords a');
             tagLinks.forEach(a => data.tags.push(a.innerText.trim()));
 
-            // Extract date
             const dateEl = document.querySelector('.post-meta time');
             if (dateEl) {
                 data.release_date = dateEl.innerText.trim();
@@ -246,12 +243,21 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore):
                         # If list page title is empty/placeholder, use detail page title
                         if (not vid.get('title') or len(vid['title']) < 2) and details.get('title'):
                             vid['title'] = details['title']
-                        vid.update({k: v for k, v in details.items() if k != 'title' or vid.get('title') == details.get('title')})
+                        
+                        # Merge tags
+                        vid_tags = vid.get('tags', []) + details.get('tags', [])
+                        vid_tags = list(set(vid_tags))
+                        
+                        # Refine Categories based on title and tags
+                        refined_cats = map_categories(vid['title'], vid_tags)
+                        
+                        # Merge with list-page categories
+                        final_cats = list(set(vid.get('categories', []) + refined_cats + ["51吃瓜"]))
+                        
+                        vid.update({k: v for k, v in details.items() if k not in ['title', 'tags']})
+                        vid['categories'] = final_cats
+                        vid['tags'] = vid_tags
                     
-                    # Force category
-                    vid['categories'] = ["51吃瓜"]
-                    # Add tags from title/details
-                    vid['tags'] = list(set(["51cg"] + vid.get('tags', [])))
                     await sync_video(vid, supabase, "51CG Scraped")
                 finally:
                     detail_pages.append(page)
@@ -267,7 +273,7 @@ async def scrape_51cg(context, supabase, semaphore, detail_pages):
     list_page = await context.new_page()
     
     try:
-        for page_num in range(1, 1): # Scrape first 5 pages for example
+        for page_num in range(1, 6): # Scrape first 5 pages
             url = base_url if page_num == 1 else f"{base_url}page/{page_num}/"
             print(f"[51CG] Page {page_num}...")
             
@@ -284,33 +290,65 @@ async def scrape_51cg(context, supabase, semaphore, detail_pages):
                 const results = [];
                 items.forEach(item => {
                     const link = item.querySelector('a');
-                    const titleEl = item.querySelector('.post-card-title');
                     
-                    if (link && titleEl) {
+                    if (link) {
                         const href = link.href;
-                        // Extract ID from URL /archives/12345/
+                        // Extract ID
                         const idMatch = href.match(/archives\/(\d+)/);
                         const id = idMatch ? idMatch[1] : null;
                         
                         // Extract Image from script
                         let cover = "";
-                        const script = item.querySelector('script');
-                        if (script) {
-                            const match = script.innerText.match(/loadBannerDirect\('([^']+)'/);
-                            if (match) cover = match[1];
+                        const scripts = item.querySelectorAll('script');
+                        for (const s of scripts) {
+                             const match = s.innerText.match(/loadBannerDirect\('([^']+)'/);
+                             if (match) {
+                                 cover = match[1];
+                                 break;
+                             }
+                        }
+                        
+                        // Fallback: look for img with data-xkrkllgl
+                        if (!cover) {
+                             const img = item.querySelector('img[data-xkrkllgl]');
+                             if (img) cover = img.getAttribute('data-xkrkllgl');
+                        }
+
+                        // Title
+                        let t = "";
+                        const titleEl = item.querySelector('.post-card-title');
+                        if (titleEl) {
+                             // Clone to remove children
+                             const clone = titleEl.cloneNode(true);
+                             const wraps = clone.querySelectorAll('.wrap');
+                             wraps.forEach(w => w.remove());
+                             t = clone.innerText.trim();
+                        }
+
+                        // Categories
+                        let cats = [];
+                        const infoDiv = item.querySelector('.post-card-info');
+                        if (infoDiv) {
+                            const text = infoDiv.innerText;
+                            const parts = text.split('•');
+                            if (parts.length > 0) {
+                                const lastPart = parts[parts.length - 1];
+                                if (lastPart) {
+                                    cats = lastPart.split(/[,，]/).map(c => c.trim()).filter(c => c);
+                                }
+                            }
                         }
 
                         if (id) {
-                            // Clean title: remove "热搜 HOT" wrap if it exists in the text
-                            let t = titleEl.innerText.replace(/热搜\s*HOT/i, '').trim();
-                            
                             results.push({
-                                external_id: "51cg_" + id, // Prefix to avoid collision
+                                external_id: "51cg_" + id,
                                 title: t,
                                 cover_url: cover,
                                 source_url: href,
-                                duration: "0", // Default for news/images
-                                actors: []
+                                duration: "0",
+                                actors: [],
+                                categories: cats,
+                                tags: []
                             });
                         }
                     }
@@ -365,7 +403,7 @@ async def scrape_videos():
             detail_pages.append(dp)
 
         # Run 51CG Scraper first or after? Let's run it first to test.
-        # await scrape_51cg(context, supabase, semaphore, detail_pages)
+        await scrape_51cg(context, supabase, semaphore, detail_pages)
 
         for source in SOURCES:
             base_url = source["url"]

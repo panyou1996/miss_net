@@ -18,6 +18,7 @@ class _ExplorePageState extends State<ExplorePage> {
   List<String> _popularTags = [];
 
   final List<Map<String, String>> categories = const [
+    {'title': '51 Eating Melon', 'category': '51cg', 'icon': '🍉'},
     {'title': 'School', 'category': 'School', 'icon': '🏫'},
     {'title': 'Office', 'category': 'Office', 'icon': '💼'},
     {'title': 'Mature', 'category': 'Mature', 'icon': '🍷'},
@@ -56,14 +57,14 @@ class _ExplorePageState extends State<ExplorePage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text("Explore", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.black,
+        title: Text("Explore", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
+            icon: Icon(Icons.search, color: theme.iconTheme.color),
             onPressed: () {
               final searchBloc = sl<SearchBloc>();
               showSearch(context: context, delegate: VideoSearchDelegate(searchBloc)).then((_) => searchBloc.close());
@@ -77,9 +78,9 @@ class _ExplorePageState extends State<ExplorePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_popularActors.isNotEmpty) ...[
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text("Popular Actresses", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text("Popular Actresses", style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
               ),
               SizedBox(
                 height: 100,
@@ -87,29 +88,29 @@ class _ExplorePageState extends State<ExplorePage> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _popularActors.length,
-                  itemBuilder: (context, index) => _buildActorAvatar(_popularActors[index]),
+                  itemBuilder: (context, index) => _buildActorAvatar(context, _popularActors[index]),
                 ),
               ),
             ],
 
             if (_popularTags.isNotEmpty) ...[
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 24, 16, 16),
-                child: Text("Trending Tags", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                child: Text("Trending Tags", style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: _popularTags.map((tag) => _buildTagChip(tag)).toList(),
+                  children: _popularTags.map((tag) => _buildTagChip(context, tag)).toList(),
                 ),
               ),
             ],
 
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 24, 16, 16),
-              child: Text("Browse Categories", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              child: Text("Browse Categories", style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
             ),
             GridView.builder(
               shrinkWrap: true,
@@ -130,16 +131,16 @@ class _ExplorePageState extends State<ExplorePage> {
                   },
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.grey[900],
+                      color: theme.cardColor,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white10),
+                      border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(item['icon']!, style: const TextStyle(fontSize: 18)),
                         const SizedBox(width: 8),
-                        Text(item['title']!, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+                        Text(item['title']!, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7), fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
@@ -152,7 +153,8 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  Widget _buildActorAvatar(String name) {
+  Widget _buildActorAvatar(BuildContext context, String name) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(right: 16),
       child: InkWell(
@@ -161,13 +163,13 @@ class _ExplorePageState extends State<ExplorePage> {
           children: [
             CircleAvatar(
               radius: 32,
-              backgroundColor: Colors.grey[800],
-              child: Text(name[0], style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+              backgroundColor: theme.cardColor,
+              child: Text(name[0], style: TextStyle(color: theme.colorScheme.primary, fontSize: 24, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 8),
             SizedBox(
               width: 70,
-              child: Text(name, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+              child: Text(name, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 11)),
             ),
           ],
         ),
@@ -175,12 +177,13 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  Widget _buildTagChip(String tag) {
+  Widget _buildTagChip(BuildContext context, String tag) {
+    final theme = Theme.of(context);
     return ActionChip(
       label: Text(tag),
-      backgroundColor: Colors.grey[900],
-      labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.white10)),
+      backgroundColor: theme.cardColor,
+      labelStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.1))),
       onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryDetailPage(title: tag, category: tag))),
     );
   }

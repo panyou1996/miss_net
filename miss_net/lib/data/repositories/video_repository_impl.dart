@@ -196,6 +196,16 @@ class VideoRepositoryImpl implements VideoRepository {
   }
 
   @override
+  Future<Either<Failure, void>> clearHistory() async {
+    try {
+      await localDataSource.clearHistory();
+      return const Right(null);
+    } catch (e) {
+      return const Left(CacheFailure("Failed to clear history"));
+    }
+  }
+
+  @override
   Future<void> syncData() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;

@@ -30,16 +30,17 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.black,
+      // backgroundColor: theme.scaffoldBackgroundColor, // default
       body: BlocBuilder<HomeBloc, HomeState>(
         builder: (context, state) {
           if (state is HomeLoading) {
             return CustomScrollView(
               slivers: [
-                const SliverAppBar(
-                  backgroundColor: Colors.black,
-                  title: Text("MissNet", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                SliverAppBar(
+                  backgroundColor: theme.scaffoldBackgroundColor,
+                  title: const Text("MissNet", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                 ),
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
@@ -50,7 +51,7 @@ class _HomePageState extends State<HomePage> {
               ],
             );
           } else if (state is HomeError) {
-            return Center(child: Text(state.message, style: const TextStyle(color: Colors.white)));
+            return Center(child: Text(state.message, style: TextStyle(color: theme.colorScheme.error)));
           } else if (state is HomeLoaded) {
             return RefreshIndicator(
               onRefresh: () async {
@@ -62,11 +63,11 @@ class _HomePageState extends State<HomePage> {
                   SliverAppBar(
                     expandedHeight: 0,
                     floating: true,
-                    backgroundColor: Colors.black.withValues(alpha: 0.5),
+                    backgroundColor: theme.appBarTheme.backgroundColor?.withValues(alpha: 0.8),
                     title: const Text("MissNet", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                     actions: [
                       IconButton(
-                        icon: const Icon(Icons.search, color: Colors.white),
+                        icon: Icon(Icons.search, color: theme.iconTheme.color),
                         onPressed: () {
                           final searchBloc = sl<SearchBloc>();
                           showSearch(context: context, delegate: VideoSearchDelegate(searchBloc))
@@ -85,7 +86,7 @@ class _HomePageState extends State<HomePage> {
                   // 2.5 Continue Watching
                   if (state.continueWatching.isNotEmpty)
                     SliverToBoxAdapter(
-                      child: _buildContinueWatching(state.continueWatching),
+                      child: _buildContinueWatching(context, state.continueWatching),
                     ),
 
                   // 3. Horizontal Sections
@@ -93,7 +94,7 @@ class _HomePageState extends State<HomePage> {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final section = state.sections[index];
-                        return _buildSection(section);
+                        return _buildSection(context, section);
                       },
                       childCount: state.sections.length,
                     ),
@@ -112,6 +113,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildHeroBanner(Video video) {
     final heroTag = "${video.id}_banner";
+    // Keep Hero Banner Dark/White for visual impact over image
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video, heroTag: heroTag))),
       child: Stack(
@@ -124,7 +126,7 @@ class _HomePageState extends State<HomePage> {
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
                 colors: [
-                  Colors.black,
+                  Colors.black, // Keep black gradient for image text readability
                   Colors.black.withValues(alpha: 0.5),
                   Colors.transparent,
                 ],
@@ -148,7 +150,7 @@ class _HomePageState extends State<HomePage> {
                   video.title,
                   textAlign: TextAlign.center,
                   maxLines: 2,
-                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), // Keep white
                 ),
                 const SizedBox(height: 15),
                 ElevatedButton.icon(
@@ -169,7 +171,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildSection(HomeSection section) {
+  Widget _buildSection(BuildContext context, HomeSection section) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -189,9 +192,9 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Text(
                   section.title,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                Icon(Icons.arrow_forward_ios, color: theme.colorScheme.onSurface.withValues(alpha: 0.5), size: 16),
               ],
             ),
           ),
@@ -223,15 +226,16 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildContinueWatching(List<Video> videos) {
+  Widget _buildContinueWatching(BuildContext context, List<Video> videos) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.all(16.0),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
           child: Text(
             "Continue Watching",
-            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
         SizedBox(

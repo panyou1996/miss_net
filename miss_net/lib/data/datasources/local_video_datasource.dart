@@ -12,6 +12,7 @@ abstract class LocalVideoDataSource {
   Future<List<VideoModel>> getHistory();
   Future<void> saveToHistory(VideoModel video, int positionMs);
   Future<int> getProgress(String id);
+  Future<void> clearHistory();
 }
 
 class LocalVideoDataSourceImpl implements LocalVideoDataSource {
@@ -99,5 +100,12 @@ class LocalVideoDataSourceImpl implements LocalVideoDataSource {
   @override
   Future<int> getProgress(String id) async {
     return sharedPreferences.getInt('$_progressPrefix$id') ?? 0;
+  }
+
+  @override
+  Future<void> clearHistory() async {
+    await sharedPreferences.remove(_cachedHistory);
+    // Note: We don't clear progress for individual videos as that might still be useful
+    // if the user re-watches them.
   }
 }
