@@ -5,14 +5,14 @@ allprojects {
     }
 }
 
-// ✅ 关键修复：这段代码必须放在文件靠前的位置！
-// 在项目被 evaluate 之前注册监听器，动态注入 namespace
+// ✅ 修复版：移除了 'project ->'，使用 'it' 来代表当前项目，避免类型推断错误
 subprojects {
-    afterEvaluate { project ->
-        if (project.name.contains("ffmpeg_kit_flutter")) {
-            val android = project.extensions.findByName("android")
+    afterEvaluate { 
+        // 在这里，'it' 代表正在配置的子项目
+        if (it.name.contains("ffmpeg_kit_flutter")) {
+            val android = it.extensions.findByName("android")
             if (android != null) {
-                // 使用反射设置 namespace，避免 AGP 8.0 报错
+                // 使用反射动态设置 namespace，解决 AGP 8.0+ 的兼容性问题
                 val setNamespace = android.javaClass.getMethod("setNamespace", String::class.java)
                 setNamespace.invoke(android, "com.arthenica.ffmpegkit.flutter")
             }
@@ -32,7 +32,6 @@ subprojects {
 }
 
 subprojects {
-    // ❌ 之前的报错就是因为修复代码放在了这句话之后
     project.evaluationDependsOn(":app")
 }
 
