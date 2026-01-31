@@ -5,16 +5,22 @@ allprojects {
     }
 }
 
-// ✅ 修复版：移除了 'project ->'，使用 'it' 来代表当前项目，避免类型推断错误
+// ✅ 修复版：使用 'val p = this' 显式捕获项目对象
+// 这样可以避开 'it' 或 'project ->' 导致的语法错误
 subprojects {
-    afterEvaluate { 
-        // 在这里，'it' 代表正在配置的子项目
-        if (it.name.contains("ffmpeg_kit_flutter")) {
-            val android = it.extensions.findByName("android")
+    val p = this
+    p.afterEvaluate {
+        // 直接使用 p，不再依赖 lambda 参数推断
+        if (p.name.contains("ffmpeg_kit_flutter")) {
+            val android = p.extensions.findByName("android")
             if (android != null) {
-                // 使用反射动态设置 namespace，解决 AGP 8.0+ 的兼容性问题
-                val setNamespace = android.javaClass.getMethod("setNamespace", String::class.java)
-                setNamespace.invoke(android, "com.arthenica.ffmpegkit.flutter")
+                // 使用反射设置 namespace，解决 AGP 8.0 报错
+                try {
+                    val setNamespace = android.javaClass.getMethod("setNamespace", String::class.java)
+                    setNamespace.invoke(android, "com.arthenica.ffmpegkit.flutter")
+                } catch (e: Exception) {
+                    println("Failed to set namespace for ${p.name}: ${e.message}")
+                }
             }
         }
     }
