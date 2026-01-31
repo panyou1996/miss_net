@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:animations/animations.dart';
 import '../blocs/home/home_bloc.dart';
 import '../pages/player_page.dart';
 import '../widgets/video_card.dart';
@@ -113,60 +114,67 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildHeroBanner(Video video) {
     final heroTag = "${video.id}_banner";
-    // Keep Hero Banner Dark/White for visual impact over image
-    return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video, heroTag: heroTag))),
-      child: Stack(
-        children: [
-          Container(
-            height: 400,
-            width: double.infinity,
-            foregroundDecoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-                colors: [
-                  Colors.black, // Keep black gradient for image text readability
-                  Colors.black.withValues(alpha: 0.5),
-                  Colors.transparent,
-                ],
-                stops: const [0.0, 0.3, 0.6],
+    final theme = Theme.of(context);
+    
+    return OpenContainer(
+      transitionDuration: const Duration(milliseconds: 500),
+      openBuilder: (context, _) => PlayerPage(video: video, heroTag: heroTag),
+      closedElevation: 0,
+      closedColor: theme.scaffoldBackgroundColor,
+      closedBuilder: (context, openContainer) => GestureDetector(
+        onTap: openContainer,
+        child: Stack(
+          children: [
+            Container(
+              height: 400,
+              width: double.infinity,
+              foregroundDecoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black,
+                    Colors.black.withValues(alpha: 0.5),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.3, 0.6],
+                ),
+              ),
+              child: Hero(
+                tag: heroTag,
+                child: video.coverUrl != null
+                    ? CachedNetworkImage(imageUrl: ImageProxy.getUrl(video.coverUrl!), fit: BoxFit.cover)
+                    : Container(color: Colors.grey[900]),
               ),
             ),
-            child: Hero(
-              tag: heroTag,
-              child: video.coverUrl != null
-                  ? CachedNetworkImage(imageUrl: ImageProxy.getUrl(video.coverUrl!), fit: BoxFit.cover)
-                  : Container(color: Colors.grey[900]),
-            ),
-          ),
-          Positioned(
-            bottom: 40,
-            left: 20,
-            right: 20,
-            child: Column(
-              children: [
-                Text(
-                  video.title,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), // Keep white
-                ),
-                const SizedBox(height: 15),
-                ElevatedButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video, heroTag: heroTag))),
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text("Play Now"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+            Positioned(
+              bottom: 40,
+              left: 20,
+              right: 20,
+              child: Column(
+                children: [
+                  Text(
+                    video.title,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 15),
+                  ElevatedButton.icon(
+                    onPressed: openContainer,
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text("Play Now"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -212,10 +220,17 @@ class _HomePageState extends State<HomePage> {
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: SizedBox(
                   width: 200,
-                  child: VideoCard(
-                    video: video,
-                    heroTag: hTag,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video, heroTag: hTag))),
+                  child: OpenContainer(
+                    transitionDuration: const Duration(milliseconds: 500),
+                    openBuilder: (context, _) => PlayerPage(video: video, heroTag: hTag),
+                    closedElevation: 0,
+                    closedColor: theme.scaffoldBackgroundColor,
+                    closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    closedBuilder: (context, openContainer) => VideoCard(
+                      video: video,
+                      heroTag: hTag,
+                      onTap: openContainer,
+                    ),
                   ),
                 ),
               );
@@ -251,10 +266,17 @@ class _HomePageState extends State<HomePage> {
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: SizedBox(
                   width: 180,
-                  child: VideoCard(
-                    video: video,
-                    heroTag: hTag,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: video, heroTag: hTag))),
+                  child: OpenContainer(
+                    transitionDuration: const Duration(milliseconds: 500),
+                    openBuilder: (context, _) => PlayerPage(video: video, heroTag: hTag),
+                    closedElevation: 0,
+                    closedColor: theme.scaffoldBackgroundColor,
+                    closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    closedBuilder: (context, openContainer) => VideoCard(
+                      video: video,
+                      heroTag: hTag,
+                      onTap: openContainer,
+                    ),
                   ),
                 ),
               );

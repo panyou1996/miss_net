@@ -19,7 +19,7 @@ abstract class VideoRepository {
 
   // History
   Future<Either<Failure, List<Video>>> getHistory();
-  Future<Either<Failure, void>> saveToHistory(Video video, int positionMs);
+  Future<Either<Failure, void>> saveToHistory(Video video, int positionMs, int totalDurationMs);
   Future<int> getProgress(String id);
   Future<Either<Failure, void>> clearHistory();
   

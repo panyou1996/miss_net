@@ -12,6 +12,8 @@ class VideoModel extends Video {
     super.releaseDate,
     super.actors,
     super.categories,
+    super.lastPositionMs,
+    super.totalDurationMs,
   });
 
   factory VideoModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,8 @@ class VideoModel extends Video {
       releaseDate: json['release_date'] as String?,
       actors: json['actors'] != null ? List<String>.from(json['actors'] as List) : null,
       categories: json['categories'] != null ? List<String>.from(json['categories'] as List) : null,
+      lastPositionMs: json['last_position_ms'] as int?,
+      totalDurationMs: json['total_duration_ms'] as int?,
     );
   }
 
@@ -41,6 +45,8 @@ class VideoModel extends Video {
       'release_date': releaseDate,
       'actors': actors,
       'categories': categories,
+      'last_position_ms': lastPositionMs,
+      'total_duration_ms': totalDurationMs,
     };
   }
 }

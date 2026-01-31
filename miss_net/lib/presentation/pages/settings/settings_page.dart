@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/services/privacy_service.dart';
+import '../downloads/downloads_page.dart';
 import '../../../domain/repositories/video_repository.dart';
 import '../../../injection_container.dart';
 import '../../blocs/theme/theme_bloc.dart';
@@ -69,7 +71,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (value) {
       final success = await _privacy.authenticate();
       if (!success) {
-        if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Authentication Failed. Setup Biometrics/PIN first.")));
+        if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Authentication Failed. Please set up a Screen Lock (PIN/Pattern/Fingerprint) in your device settings first.")));
         return;
       }
     }
@@ -86,53 +88,56 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) {
         final theme = Theme.of(context);
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: theme.cardColor,
-              title: Text(isLogin ? "Login" : "Register", style: TextStyle(color: theme.colorScheme.onSurface)),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: emailController,
-                    style: TextStyle(color: theme.colorScheme.onSurface),
-                    decoration: InputDecoration(
-                      labelText: "Email", 
-                      labelStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
-                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                backgroundColor: theme.cardColor.withValues(alpha: 0.8),
+                title: Text(isLogin ? "Login" : "Register", style: TextStyle(color: theme.colorScheme.onSurface)),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: emailController,
+                      style: TextStyle(color: theme.colorScheme.onSurface),
+                      decoration: InputDecoration(
+                        labelText: "Email", 
+                        labelStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+                      ),
                     ),
-                  ),
-                  TextField(
-                    controller: passwordController,
-                    obscureText: true,
-                    style: TextStyle(color: theme.colorScheme.onSurface),
-                    decoration: InputDecoration(
-                      labelText: "Password", 
-                      labelStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
-                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: true,
+                      style: TextStyle(color: theme.colorScheme.onSurface),
+                      decoration: InputDecoration(
+                        labelText: "Password", 
+                        labelStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: () => setState(() => isLogin = !isLogin),
-                    child: Text(isLogin ? "Create Account" : "I have an account", style: const TextStyle(color: Colors.red)),
+                    const SizedBox(height: 10),
+                    TextButton(
+                      onPressed: () => setState(() => isLogin = !isLogin),
+                      child: Text(isLogin ? "Create Account" : "I have an account", style: const TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(child: Text("Cancel", style: TextStyle(color: theme.colorScheme.onSurface)), onPressed: () => Navigator.pop(context)),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      _processAuth(emailController.text, passwordController.text, isLogin);
+                    },
+                    child: Text(isLogin ? "Login" : "Sign Up"),
                   ),
                 ],
-              ),
-              actions: [
-                TextButton(child: Text("Cancel", style: TextStyle(color: theme.colorScheme.onSurface)), onPressed: () => Navigator.pop(context)),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    _processAuth(emailController.text, passwordController.text, isLogin);
-                  },
-                  child: Text(isLogin ? "Login" : "Sign Up"),
-                ),
-              ],
-            );
-          },
+              );
+            },
+          ),
         );
       },
     );
@@ -182,14 +187,17 @@ class _SettingsPageState extends State<SettingsPage> {
     final theme = Theme.of(context);
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: theme.cardColor,
-        title: Text("Clear History?", style: TextStyle(color: theme.colorScheme.onSurface)),
-        content: Text("This cannot be undone.", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7))),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text("Cancel", style: TextStyle(color: theme.colorScheme.onSurface))),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Clear", style: TextStyle(color: Colors.red))),
-        ],
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: AlertDialog(
+          backgroundColor: theme.cardColor.withValues(alpha: 0.8),
+          title: Text("Clear History?", style: TextStyle(color: theme.colorScheme.onSurface)),
+          content: Text("This cannot be undone.", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7))),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: Text("Cancel", style: TextStyle(color: theme.colorScheme.onSurface))),
+            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Clear", style: TextStyle(color: Colors.red))),
+          ],
+        ),
       ),
     );
 
@@ -272,6 +280,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 const Divider(height: 30),
 
                 _buildSectionHeader("Storage & Data"),
+                ListTile(
+                  leading: Icon(Icons.download_done, color: theme.iconTheme.color),
+                  title: Text("Downloads", style: TextStyle(color: theme.colorScheme.onSurface)),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DownloadsPage())),
+                ),
                 ListTile(
                   leading: Icon(Icons.image, color: theme.iconTheme.color),
                   title: Text("Clear Image Cache", style: TextStyle(color: theme.colorScheme.onSurface)),

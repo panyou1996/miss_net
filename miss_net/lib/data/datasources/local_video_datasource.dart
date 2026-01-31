@@ -10,7 +10,7 @@ abstract class LocalVideoDataSource {
 
   // History
   Future<List<VideoModel>> getHistory();
-  Future<void> saveToHistory(VideoModel video, int positionMs);
+  Future<void> saveToHistory(VideoModel video, int positionMs, int totalDurationMs);
   Future<int> getProgress(String id);
   Future<void> clearHistory();
 }
@@ -23,6 +23,7 @@ class LocalVideoDataSourceImpl implements LocalVideoDataSource {
   static const String _cachedFavorites = 'CACHED_FAVORITES';
   static const String _cachedHistory = 'CACHED_HISTORY';
   static const String _progressPrefix = 'PROGRESS_';
+  static const String _durationPrefix = 'DURATION_';
 
   // --- Favorites ---
 
@@ -75,7 +76,25 @@ class LocalVideoDataSourceImpl implements LocalVideoDataSource {
     if (jsonString != null) {
       try {
         List<dynamic> jsonList = json.decode(jsonString);
-        return jsonList.map((e) => VideoModel.fromJson(e)).toList();
+        return jsonList.map((e) {
+          final model = VideoModel.fromJson(e);
+          final pos = sharedPreferences.getInt('$_progressPrefix${model.id}') ?? 0;
+          final total = sharedPreferences.getInt('$_durationPrefix${model.id}') ?? 0;
+          return VideoModel(
+            id: model.id,
+            externalId: model.externalId,
+            title: model.title,
+            coverUrl: model.coverUrl,
+            sourceUrl: model.sourceUrl,
+            createdAt: model.createdAt,
+            duration: model.duration,
+            releaseDate: model.releaseDate,
+            actors: model.actors,
+            categories: model.categories,
+            lastPositionMs: pos,
+            totalDurationMs: total,
+          );
+        }).toList();
       } catch (e) {
         return [];
       }
@@ -84,7 +103,7 @@ class LocalVideoDataSourceImpl implements LocalVideoDataSource {
   }
 
   @override
-  Future<void> saveToHistory(VideoModel video, int positionMs) async {
+  Future<void> saveToHistory(VideoModel video, int positionMs, int totalDurationMs) async {
     List<VideoModel> currentHistory = await getHistory();
     currentHistory.removeWhere((v) => v.id == video.id);
     currentHistory.insert(0, video);
@@ -95,6 +114,7 @@ class LocalVideoDataSourceImpl implements LocalVideoDataSource {
 
     await sharedPreferences.setString(_cachedHistory, json.encode(currentHistory.map((v) => v.toJson()).toList()));
     await sharedPreferences.setInt('$_progressPrefix${video.id}', positionMs);
+    await sharedPreferences.setInt('$_durationPrefix${video.id}', totalDurationMs);
   }
 
   @override

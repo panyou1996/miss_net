@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:video_player/video_player.dart';
+import 'dart:ui';
 
 class VideoGestureWrapper extends StatefulWidget {
   final Widget child;
@@ -17,7 +19,7 @@ class VideoGestureWrapper extends StatefulWidget {
   State<VideoGestureWrapper> createState() => _VideoGestureWrapperState();
 }
 
-class _VideoGestureWrapperState extends State<VideoGestureWrapper> {
+class _VideoGestureWrapperState extends State<VideoGestureWrapper> with SingleTickerProviderStateMixin {
   double? _brightness;
   double? _volume;
   
@@ -26,6 +28,27 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> {
   IconData _icon = Icons.volume_up;
   bool _showOverlay = false;
   Timer? _overlayTimer;
+
+  // Ripple Animation
+  Offset _ripplePos = Offset.zero;
+  bool _showRipple = false;
+  late AnimationController _rippleController;
+
+  @override
+  void initState() {
+    super.initState();
+    _rippleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+  }
+
+  @override
+  void dispose() {
+    _rippleController.dispose();
+    _overlayTimer?.cancel();
+    super.dispose();
+  }
 
   void _showFeedback(String msg, IconData icon) {
     setState(() {
@@ -36,6 +59,16 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> {
     _overlayTimer?.cancel();
     _overlayTimer = Timer(const Duration(seconds: 1), () {
       if (mounted) setState(() => _showOverlay = false);
+    });
+  }
+
+  void _triggerRipple(Offset pos) {
+    setState(() {
+      _ripplePos = pos;
+      _showRipple = true;
+    });
+    _rippleController.forward(from: 0).then((_) {
+      if (mounted) setState(() => _showRipple = false);
     });
   }
 
@@ -70,19 +103,18 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> {
         final newPos = widget.controller.value.position + Duration(milliseconds: delta.toInt());
         _showFeedback(_formatDuration(newPos), delta > 0 ? Icons.fast_forward : Icons.fast_rewind);
       },
-      onHorizontalDragEnd: (details) async {
-        // Perform final seek on drag end to avoid jitter
-        // Note: Actual seek value calculation here should be more precise, 
-        // but for UX, showing feedback during drag and seeking at end is smoother.
-      },
       onDoubleTapDown: (details) {
         final width = MediaQuery.of(context).size.width;
-        if (details.globalPosition.dx < width / 3) {
+        final pos = details.localPosition;
+        _triggerRipple(pos);
+        HapticFeedback.lightImpact();
+
+        if (pos.dx < width / 3) {
           // Rewind 10s
           final pos = widget.controller.value.position - const Duration(seconds: 10);
           widget.controller.seekTo(pos);
           _showFeedback("-10s", Icons.replay_10);
-        } else if (details.globalPosition.dx > width * 2 / 3) {
+        } else if (pos.dx > width * 2 / 3) {
           // Forward 10s
           final pos = widget.controller.value.position + const Duration(seconds: 10);
           widget.controller.seekTo(pos);
@@ -92,21 +124,46 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> {
       child: Stack(
         children: [
           widget.child,
+          if (_showRipple)
+            Positioned(
+              left: _ripplePos.dx - 50,
+              top: _ripplePos.dy - 50,
+              child: AnimatedBuilder(
+                animation: _rippleController,
+                builder: (context, child) {
+                  return Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: (1 - _rippleController.value) * 0.3),
+                    ),
+                  );
+                },
+              ),
+            ),
           if (_showOverlay)
             Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(_icon, color: Colors.white, size: 40),
-                    const SizedBox(height: 8),
-                    Text(_message, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ],
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(_icon, color: Colors.white, size: 48),
+                        const SizedBox(height: 12),
+                        Text(_message, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

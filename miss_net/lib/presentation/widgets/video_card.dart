@@ -60,6 +60,22 @@ class VideoCard extends StatelessWidget {
                 ),
               ),
             ),
+            // Progress Bar
+            if (video.progress > 0)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 3,
+                  color: Colors.white.withValues(alpha: 0.2),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: video.progress,
+                    child: Container(color: Colors.red),
+                  ),
+                ),
+              ),
             // Title
             Positioned(
               bottom: 8,

@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/services/privacy_service.dart';
 import '../../../injection_container.dart';
+import '../../widgets/fade_indexed_stack.dart';
 import '../home_page.dart';
 import '../explore/explore_page.dart';
 import '../favorites/favorites_page.dart';
@@ -97,7 +98,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       body: Stack(
         children: [
           // Content Layer
-          IndexedStack(
+          FadeIndexedStack(
             index: _selectedIndex,
             children: _pages,
           ),

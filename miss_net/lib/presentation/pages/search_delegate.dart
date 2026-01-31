@@ -14,17 +14,15 @@ class VideoSearchDelegate extends SearchDelegate {
 
   @override
   ThemeData appBarTheme(BuildContext context) {
-    return Theme.of(context).copyWith(
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+    final theme = Theme.of(context);
+    return theme.copyWith(
+      appBarTheme: theme.appBarTheme.copyWith(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        foregroundColor: theme.colorScheme.onSurface,
       ),
-      inputDecorationTheme: const InputDecorationTheme(
-        hintStyle: TextStyle(color: Colors.white54),
+      inputDecorationTheme: InputDecorationTheme(
+        hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
         border: InputBorder.none,
-      ),
-      textTheme: const TextTheme(
-        titleLarge: TextStyle(color: Colors.white, fontSize: 18),
       ),
     );
   }
@@ -55,56 +53,61 @@ class VideoSearchDelegate extends SearchDelegate {
   @override
   Widget buildResults(BuildContext context) {
     searchBloc.add(SearchQueryChanged(query));
+    final theme = Theme.of(context);
     
-    return BlocBuilder<SearchBloc, SearchState>(
-      bloc: searchBloc,
-      builder: (context, state) {
-        if (state is SearchLoading) {
-          return const Center(child: CircularProgressIndicator(color: Colors.red));
-        } else if (state is SearchError) {
-          return Center(child: Text(state.message, style: const TextStyle(color: Colors.white)));
-        } else if (state is SearchLoaded) {
-          if (state.videos.isEmpty) {
-            return const Center(child: Text("No results found.", style: TextStyle(color: Colors.white)));
+    return Container(
+      color: theme.scaffoldBackgroundColor,
+      child: BlocBuilder<SearchBloc, SearchState>(
+        bloc: searchBloc,
+        builder: (context, state) {
+          if (state is SearchLoading) {
+            return const Center(child: CircularProgressIndicator(color: Colors.red));
+          } else if (state is SearchError) {
+            return Center(child: Text(state.message, style: TextStyle(color: theme.colorScheme.onSurface)));
+          } else if (state is SearchLoaded) {
+            if (state.videos.isEmpty) {
+              return Center(child: Text("No results found.", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))));
+            }
+            return GridView.builder(
+              padding: const EdgeInsets.all(10),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: ResponsiveGrid.getCrossAxisCount(context),
+                childAspectRatio: 1.5,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemCount: state.videos.length,
+              itemBuilder: (context, index) {
+                final video = state.videos[index];
+                return VideoCard(
+                  video: video,
+                  onTap: () {
+                    if (kIsWeb) {
+                       launchUrl(Uri.parse(video.sourceUrl));
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => PlayerPage(video: video)),
+                      );
+                    }
+                  },
+                );
+              },
+            );
           }
-          return GridView.builder(
-            padding: const EdgeInsets.all(10),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: ResponsiveGrid.getCrossAxisCount(context),
-              childAspectRatio: 1.5,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-            ),
-            itemCount: state.videos.length,
-            itemBuilder: (context, index) {
-              final video = state.videos[index];
-              return VideoCard(
-                video: video,
-                onTap: () {
-                  if (kIsWeb) {
-                     launchUrl(Uri.parse(video.sourceUrl));
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => PlayerPage(video: video)),
-                    );
-                  }
-                },
-              );
-            },
-          );
-        }
-        return const SizedBox.shrink();
-      },
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 
   Widget _hotTag(BuildContext context, String label) {
+    final theme = Theme.of(context);
     return ActionChip(
       label: Text(label),
-      backgroundColor: Colors.grey[900],
-      labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: theme.cardColor,
+      labelStyle: TextStyle(color: theme.colorScheme.onSurface, fontSize: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.1))),
       onPressed: () {
         query = label;
         showResults(context);
@@ -114,14 +117,15 @@ class VideoSearchDelegate extends SearchDelegate {
 
   @override
   Widget buildSuggestions(BuildContext context) {
+    final theme = Theme.of(context);
     if (query.isEmpty) {
       return Container(
-        color: Colors.black,
+        color: theme.scaffoldBackgroundColor,
         child: ListView(
           children: [
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text("Popular Categories", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text("Popular Categories", style: TextStyle(color: theme.hintColor, fontWeight: FontWeight.bold)),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -143,16 +147,16 @@ class VideoSearchDelegate extends SearchDelegate {
 
     searchBloc.add(FetchSuggestions(query));
 
-    return BlocBuilder<SearchBloc, SearchState>(
-      bloc: searchBloc,
-      builder: (context, state) {
-        if (state is SearchSuggestionsLoaded) {
-          final suggestions = state.suggestions;
-          if (suggestions.isEmpty) return Container(color: Colors.black);
+    return Container(
+      color: theme.scaffoldBackgroundColor,
+      child: BlocBuilder<SearchBloc, SearchState>(
+        bloc: searchBloc,
+        builder: (context, state) {
+          if (state is SearchSuggestionsLoaded) {
+            final suggestions = state.suggestions;
+            if (suggestions.isEmpty) return const SizedBox.shrink();
 
-          return Container(
-            color: Colors.black,
-            child: ListView.builder(
+            return ListView.builder(
               itemCount: suggestions.length,
               itemBuilder: (context, index) {
                 final suggestion = suggestions[index];
@@ -160,7 +164,7 @@ class VideoSearchDelegate extends SearchDelegate {
                   leading: const Icon(Icons.search, color: Colors.red),
                   title: Text(
                     suggestion,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: theme.colorScheme.onSurface),
                   ),
                   onTap: () {
                     query = suggestion;
@@ -168,11 +172,11 @@ class VideoSearchDelegate extends SearchDelegate {
                   },
                 );
               },
-            ),
-          );
-        }
-        return Container(color: Colors.black);
-      },
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 }

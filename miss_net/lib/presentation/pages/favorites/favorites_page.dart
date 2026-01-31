@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:animations/animations.dart';
 import '../../../domain/entities/video.dart';
 import '../../../domain/repositories/video_repository.dart';
 import '../../../injection_container.dart';
@@ -50,22 +51,22 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text("My Favorites", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.black,
+        title: Text("My Favorites", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold)),
+        backgroundColor: theme.appBarTheme.backgroundColor,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.red))
           : _videos.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.favorite_border, color: Colors.grey, size: 64),
-                      SizedBox(height: 16),
-                      Text("Your favorites list is empty", style: TextStyle(color: Colors.white54)),
+                      Icon(Icons.favorite_border, color: theme.disabledColor, size: 64),
+                      const SizedBox(height: 16),
+                      Text("Your favorites list is empty", style: TextStyle(color: theme.hintColor)),
                     ],
                   ),
                 )
@@ -79,15 +80,20 @@ class _FavoritesPageState extends State<FavoritesPage> {
                   ),
                   itemCount: _videos.length,
                   itemBuilder: (context, index) {
-                    return VideoCard(
-                      video: _videos[index],
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => PlayerPage(video: _videos[index])),
-                        );
-                        _loadFavorites();
-                      },
+                    return OpenContainer(
+                      transitionDuration: const Duration(milliseconds: 500),
+                      openBuilder: (context, _) => PlayerPage(video: _videos[index]),
+                      closedElevation: 0,
+                      closedColor: theme.scaffoldBackgroundColor,
+                      closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      closedBuilder: (context, openContainer) => VideoCard(
+                        video: _videos[index],
+                        onTap: () {
+                          openContainer();
+                          // Reload after return in case un-favorited
+                          Future.delayed(const Duration(milliseconds: 500), _loadFavorites);
+                        },
+                      ),
                     );
                   },
                 ),

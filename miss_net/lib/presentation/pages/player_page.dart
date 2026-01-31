@@ -83,7 +83,8 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   Future<void> _saveProgress() async {
     if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) {
       final position = _videoPlayerController!.value.position.inMilliseconds;
-      await _repository.saveToHistory(widget.video, position);
+      final duration = _videoPlayerController!.value.duration.inMilliseconds;
+      await _repository.saveToHistory(widget.video, position, duration);
     }
   }
 
@@ -181,13 +182,17 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     try {
       final streamInfo = await _resolver.resolveStreamUrl(widget.video.sourceUrl);
       final url = streamInfo.streamUrl;
-      if (url.contains('.m3u8')) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("HLS streams cannot be downloaded directly yet.")));
-        return;
-      }
-      final id = await _downloadService.downloadVideo(url, "${widget.video.title}.mp4");
+      
+      final filename = "${widget.video.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')}.mp4";
+      final id = await _downloadService.downloadVideo(url, filename);
+      
       if (id != null) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Download started")));
+        if (mounted) {
+          final isHls = url.contains('.m3u8');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(isHls ? "HLS Download started (Processing via FFmpeg)" : "Download started"))
+          );
+        }
       }
     } catch (e) {
       debugPrint("Download error: $e");
@@ -203,33 +208,44 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.grey[900],
-      builder: (ctx) => ListView.builder(
-        itemCount: devices.length,
-        itemBuilder: (ctx, i) => ListTile(
-          leading: const Icon(Icons.tv, color: Colors.white),
-          title: Text(devices[i].friendlyName ?? "Unknown Device", style: const TextStyle(color: Colors.white)),
-          onTap: () async {
-            Navigator.pop(ctx);
-            try {
-              final streamInfo = await _resolver.resolveStreamUrl(widget.video.sourceUrl);
-              await _castService.cast(devices[i], streamInfo.streamUrl, widget.video.title);
-              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Casting to ${devices[i].friendlyName}")));
-            } catch (e) {
-              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cast Error: $e")));
-            }
-          }
-        )
-      )
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.8),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: devices.length,
+            itemBuilder: (ctx, i) => ListTile(
+              leading: const Icon(Icons.tv, color: Colors.white),
+              title: Text(devices[i].friendlyName ?? "Unknown Device", style: const TextStyle(color: Colors.white)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                try {
+                  final streamInfo = await _resolver.resolveStreamUrl(widget.video.sourceUrl);
+                  await _castService.cast(devices[i], streamInfo.streamUrl, widget.video.title);
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Casting to ${devices[i].friendlyName}")));
+                } catch (e) {
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cast Error: $e")));
+                }
+              },
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isPipMode) return _buildPlayerOnly();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.black,
       body: Stack(
         children: [
           if (widget.video.coverUrl != null)
@@ -239,24 +255,24 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                 child: CachedNetworkImage(
                   imageUrl: ImageProxy.getUrl(widget.video.coverUrl!),
                   fit: BoxFit.cover,
-                  color: Colors.black.withValues(alpha: 0.6),
-                  colorBlendMode: BlendMode.darken,
+                  color: theme.scaffoldBackgroundColor.withValues(alpha: 0.6),
+                  colorBlendMode: isDark ? BlendMode.darken : BlendMode.lighten,
                 ),
               ),
             ),
-          Positioned.fill(child: Container(color: Colors.black.withValues(alpha: 0.4))),
+          Positioned.fill(child: Container(color: theme.scaffoldBackgroundColor.withValues(alpha: 0.4))),
           SafeArea(
             child: Column(
               children: [
-                _buildAppBar(),
+                _buildAppBar(context),
                 Expanded(
                   child: kIsWeb 
                     ? _buildWebPlaceholder()
                     : _isLoading
-                      ? _buildLoading()
+                      ? _buildLoading(context)
                       : _errorMessage != null
-                          ? _buildError()
-                          : _buildFullDetailView(),
+                          ? _buildError(context)
+                          : _buildFullDetailView(context),
                 ),
               ],
             ),
@@ -271,15 +287,16 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildAppBar(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.of(context).pop()),
+          IconButton(icon: Icon(Icons.arrow_back, color: theme.colorScheme.onSurface), onPressed: () => Navigator.of(context).pop()),
           if (defaultTargetPlatform == TargetPlatform.android && !_isLoading && _errorMessage == null)
-            IconButton(icon: const Icon(Icons.picture_in_picture_alt, color: Colors.white), onPressed: _enterPipMode),
+            IconButton(icon: Icon(Icons.picture_in_picture_alt, color: theme.colorScheme.onSurface), onPressed: _enterPipMode),
         ],
       ),
     );
@@ -289,7 +306,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     return _chewieController != null ? Chewie(controller: _chewieController!) : const Center(child: CircularProgressIndicator());
   }
 
-  Widget _buildLoading() {
+  Widget _buildLoading(BuildContext context) {
     return Column(
       children: [
         Hero(
@@ -302,7 +319,8 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildError() {
+  Widget _buildError(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       children: [
         Hero(
@@ -310,7 +328,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
           createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
           child: AspectRatio(aspectRatio: 16 / 9, child: _buildCoverImage()),
         ),
-        Expanded(child: Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))),
+        Expanded(child: Center(child: Text(_errorMessage!, style: TextStyle(color: theme.colorScheme.error)))),
       ],
     );
   }
@@ -327,7 +345,8 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     return Container(color: Colors.grey[900]);
   }
 
-  Widget _buildFullDetailView() {
+  Widget _buildFullDetailView(BuildContext context) {
+    final theme = Theme.of(context);
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
@@ -349,7 +368,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.video.title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(widget.video.title, style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 
                 // Action Buttons
@@ -357,17 +376,17 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.download, color: Colors.white), 
+                      icon: Icon(Icons.download, color: theme.colorScheme.onSurface), 
                       onPressed: _handleDownload,
                       tooltip: "Download",
                     ),
                     IconButton(
-                      icon: const Icon(Icons.cast, color: Colors.white), 
+                      icon: Icon(Icons.cast, color: theme.colorScheme.onSurface), 
                       onPressed: _handleCast,
                       tooltip: "Cast",
                     ),
                     IconButton(
-                      icon: const Icon(Icons.share, color: Colors.white), 
+                      icon: Icon(Icons.share, color: theme.colorScheme.onSurface), 
                       onPressed: () {
                          // Share logic
                       },
@@ -379,20 +398,20 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
                 Row(
                   children: [
-                    if (widget.video.duration != null) _infoBadge(Icons.timer, widget.video.duration!),
+                    if (widget.video.duration != null) _infoBadge(context, Icons.timer, widget.video.duration!),
                     const SizedBox(width: 15),
-                    if (widget.video.releaseDate != null) _infoBadge(Icons.calendar_today, widget.video.releaseDate!),
+                    if (widget.video.releaseDate != null) _infoBadge(context, Icons.calendar_today, widget.video.releaseDate!),
                     const SizedBox(width: 15),
-                    if (_hasSubtitles(widget.video)) _infoBadge(Icons.subtitles, "Subtitled"),
+                    if (_hasSubtitles(widget.video)) _infoBadge(context, Icons.subtitles, "Subtitled"),
                   ],
                 ),
                 if (widget.video.categories != null && widget.video.categories!.isNotEmpty) ...[
                   const SizedBox(height: 20),
-                  Wrap(spacing: 8, runSpacing: 8, children: widget.video.categories!.map((cat) => _tagChip(cat, Colors.red.withValues(alpha: 0.8))).toList()),
+                  Wrap(spacing: 8, runSpacing: 8, children: widget.video.categories!.map((cat) => _tagChip(context, cat, Colors.red.withValues(alpha: 0.8))).toList()),
                 ],
                 if (widget.video.actors != null && widget.video.actors!.isNotEmpty) ...[
                   const SizedBox(height: 24),
-                  const Text("Actors", style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text("Actors", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
@@ -402,14 +421,14 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                         onTap: () {
                           Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryDetailPage(title: actor, actor: actor)));
                         },
-                        child: _tagChip(actor, Colors.white.withValues(alpha: 0.1)),
+                        child: _tagChip(context, actor, theme.cardColor.withValues(alpha: 0.5)),
                       );
                     }).toList(),
                   ),
                 ],
                 if (_relatedVideos.isNotEmpty) ...[
                   const SizedBox(height: 30),
-                  const Text("You May Also Like", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text("You May Also Like", style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 140,
@@ -449,7 +468,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text("Embedded playback not supported on Web.", style: TextStyle(color: Colors.white)),
+          const Text("Embedded playback not supported on Web."),
           const SizedBox(height: 20),
           ElevatedButton(onPressed: () => launchUrl(Uri.parse(widget.video.sourceUrl)), child: const Text("Watch on Source")),
         ],
@@ -457,8 +476,9 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _infoBadge(IconData icon, String text) {
-    return Row(children: [Icon(icon, size: 16, color: Colors.white70), const SizedBox(width: 6), Text(text, style: const TextStyle(color: Colors.white70, fontSize: 13))]);
+  Widget _infoBadge(BuildContext context, IconData icon, String text) {
+    final theme = Theme.of(context);
+    return Row(children: [Icon(icon, size: 16, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)), const SizedBox(width: 6), Text(text, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 13))]);
   }
 
   bool _hasSubtitles(Video video) {
@@ -467,15 +487,16 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     return title.contains("中文字幕") || title.contains("中文") || categories.contains("subtitled");
   }
 
-  Widget _tagChip(String label, Color color) {
+  Widget _tagChip(BuildContext context, String label, Color color) {
+    final theme = Theme.of(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white.withValues(alpha: 0.1))),
-          child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20), border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1))),
+          child: Text(label, style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 12, fontWeight: FontWeight.w500)),
         ),
       ),
     );

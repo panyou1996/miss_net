@@ -6,13 +6,14 @@ class VideoCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Shimmer.fromColors(
-      baseColor: Colors.grey[900]!,
-      highlightColor: Colors.grey[800]!,
+      baseColor: isDark ? Colors.grey[900]! : Colors.grey[300]!,
+      highlightColor: isDark ? Colors.grey[800]! : Colors.grey[100]!,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(8),
+          color: isDark ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
     );
@@ -25,17 +26,22 @@ class SectionSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Container(
-            width: 120,
-            height: 20,
-            decoration: BoxDecoration(
-              color: Colors.grey[900],
-              borderRadius: BorderRadius.circular(4),
+          child: Shimmer.fromColors(
+            baseColor: isDark ? Colors.grey[900]! : Colors.grey[300]!,
+            highlightColor: isDark ? Colors.grey[800]! : Colors.grey[100]!,
+            child: Container(
+              width: 120,
+              height: 20,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.black : Colors.white,
+                borderRadius: BorderRadius.circular(4),
+              ),
             ),
           ),
         ),
@@ -46,11 +52,11 @@ class SectionSkeleton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8),
             itemCount: 5,
             itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              return const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
                 child: SizedBox(
                   width: 200,
-                  child: const VideoCardSkeleton(),
+                  child: VideoCardSkeleton(),
                 ),
               );
             },

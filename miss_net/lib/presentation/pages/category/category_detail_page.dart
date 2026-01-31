@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:animations/animations.dart';
 import '../../../domain/entities/video.dart';
 import '../../../domain/repositories/video_repository.dart';
 import '../../../injection_container.dart';
 import '../../widgets/video_card.dart';
 import '../../widgets/video_skeleton.dart';
+import '../../widgets/empty_state.dart';
 import '../player_page.dart';
 import '../../../core/utils/responsive_grid.dart';
 
@@ -159,17 +161,31 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
 
                 itemBuilder: (context, index) => const VideoCardSkeleton(),
 
-              )
+                          )
 
-            : _error != null
+                        : _error != null
 
-                ? Center(child: Text(_error!, style: TextStyle(color: theme.colorScheme.onSurface)))
+                            ? EmptyState(
 
-                : _videos.isEmpty
+                                message: "Oops!", 
 
-                    ? Center(child: Text("No videos found", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))))
+                                subMessage: _error, 
 
-                    : RefreshIndicator(
+                                onRetry: _loadVideos
+
+                              )
+
+                            : _videos.isEmpty
+
+                                ? const EmptyState(
+
+                                    message: "No videos found",
+
+                                    subMessage: "Try another category or search for something else.",
+
+                                  )
+
+                                : RefreshIndicator(
 
                         onRefresh: _loadVideos,
 
@@ -233,19 +249,27 @@ class _CategoryDetailPageState extends State<CategoryDetailPage> {
 
                             }
 
-                            return VideoCard(
+                                                      return OpenContainer(
 
-                              video: _videos[index],
+                                                        transitionDuration: const Duration(milliseconds: 500),
 
-                              onTap: () => Navigator.push(
+                                                        openBuilder: (context, _) => PlayerPage(video: _videos[index]),
 
-                                context,
+                                                        closedElevation: 0,
 
-                                MaterialPageRoute(builder: (_) => PlayerPage(video: _videos[index])),
+                                                        closedColor: theme.scaffoldBackgroundColor,
 
-                              ),
+                                                        closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
 
-                            );
+                                                        closedBuilder: (context, openContainer) => VideoCard(
+
+                                                          video: _videos[index],
+
+                                                          onTap: openContainer,
+
+                                                        ),
+
+                                                      );
 
                           },
 

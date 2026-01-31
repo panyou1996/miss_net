@@ -172,7 +172,7 @@ class VideoRepositoryImpl implements VideoRepository {
   }
 
   @override
-  Future<Either<Failure, void>> saveToHistory(Video video, int positionMs) async {
+  Future<Either<Failure, void>> saveToHistory(Video video, int positionMs, int totalDurationMs) async {
     if (privacyService.isIncognito) return const Right(null);
     try {
       final model = VideoModel(
@@ -186,8 +186,10 @@ class VideoRepositoryImpl implements VideoRepository {
         actors: video.actors,
         categories: video.categories,
         releaseDate: video.releaseDate,
+        lastPositionMs: positionMs,
+        totalDurationMs: totalDurationMs,
       );
-      await localDataSource.saveToHistory(model, positionMs);
+      await localDataSource.saveToHistory(model, positionMs, totalDurationMs);
       return const Right(null);
     } catch (e) {
       return const Left(CacheFailure("History Save Error"));
