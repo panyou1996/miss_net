@@ -5,6 +5,21 @@ allprojects {
     }
 }
 
+// ✅ 关键修复：这段代码必须放在文件靠前的位置！
+// 在项目被 evaluate 之前注册监听器，动态注入 namespace
+subprojects {
+    afterEvaluate { project ->
+        if (project.name.contains("ffmpeg_kit_flutter")) {
+            val android = project.extensions.findByName("android")
+            if (android != null) {
+                // 使用反射设置 namespace，避免 AGP 8.0 报错
+                val setNamespace = android.javaClass.getMethod("setNamespace", String::class.java)
+                setNamespace.invoke(android, "com.arthenica.ffmpegkit.flutter")
+            }
+        }
+    }
+}
+
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")
@@ -17,22 +32,11 @@ subprojects {
 }
 
 subprojects {
+    // ❌ 之前的报错就是因为修复代码放在了这句话之后
     project.evaluationDependsOn(":app")
 }
 
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
-}
-
-// ✅ 添加以下代码来修复 ffmpeg_kit 的 namespace 问题
-subprojects {
-    afterEvaluate {
-        if (project.name.contains("ffmpeg_kit_flutter")) {
-            // 在 Kotlin DSL 中访问动态属性比较麻烦，需要扩展函数或直接配置
-            configure<com.android.build.gradle.LibraryExtension> {
-                namespace = "com.arthenica.ffmpegkit.flutter"
-            }
-        }
-    }
 }
 
