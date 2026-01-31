@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../../core/services/privacy_service.dart';
+import '../../../injection_container.dart';
 import '../home_page.dart';
 import '../explore/explore_page.dart';
 import '../favorites/favorites_page.dart';
@@ -12,8 +14,10 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _selectedIndex = 0;
+  final PrivacyService _privacy = sl<PrivacyService>();
+  bool _isLocked = false;
 
   final List<Widget> _pages = [
     const HomePage(),
@@ -23,7 +27,63 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkAppLock();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkAppLock();
+    } else if (state == AppLifecycleState.paused) {
+      if (_privacy.isAppLockEnabled) {
+        setState(() => _isLocked = true);
+      }
+    }
+  }
+
+  Future<void> _checkAppLock() async {
+    if (_privacy.isAppLockEnabled) {
+      setState(() => _isLocked = true);
+      final authenticated = await _privacy.authenticate();
+      if (authenticated) {
+        if (mounted) setState(() => _isLocked = false);
+      } else {
+        // If auth fails or cancelled, user stays on lock screen or exits
+        // SystemNavigator.pop(); 
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLocked) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.lock_outline, size: 64, color: Colors.grey),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _checkAppLock,
+                child: const Text("Unlock"),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     

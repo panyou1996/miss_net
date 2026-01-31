@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/services/privacy_service.dart';
 import '../../../domain/repositories/video_repository.dart';
 import '../../../injection_container.dart';
 import '../../blocs/theme/theme_bloc.dart';
@@ -21,6 +22,9 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isLoading = false;
   String _version = "";
   bool _autoplayNext = false;
+  bool _incognito = false;
+  bool _appLock = false;
+  final PrivacyService _privacy = sl<PrivacyService>();
   
   @override
   void initState() {
@@ -44,6 +48,8 @@ class _SettingsPageState extends State<SettingsPage> {
       setState(() {
         _version = info.version;
         _autoplayNext = prefs.getBool('autoplay_next') ?? false;
+        _incognito = _privacy.isIncognito;
+        _appLock = _privacy.isAppLockEnabled;
       });
     }
   }
@@ -52,6 +58,23 @@ class _SettingsPageState extends State<SettingsPage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('autoplay_next', value);
     setState(() => _autoplayNext = value);
+  }
+
+  Future<void> _toggleIncognito(bool value) async {
+    await _privacy.setIncognito(value);
+    setState(() => _incognito = value);
+  }
+
+  Future<void> _toggleAppLock(bool value) async {
+    if (value) {
+      final success = await _privacy.authenticate();
+      if (!success) {
+        if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Authentication Failed. Setup Biometrics/PIN first.")));
+        return;
+      }
+    }
+    await _privacy.setAppLock(value);
+    setState(() => _appLock = value);
   }
 
   Future<void> _handleAuth() async {
@@ -213,6 +236,26 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: Text("Dark Mode", style: TextStyle(color: theme.colorScheme.onSurface)),
                   value: isDark,
                   onChanged: (val) => context.read<ThemeBloc>().add(ToggleTheme()),
+                ),
+
+                const Divider(height: 30),
+                
+                _buildSectionHeader("Privacy & Security"),
+                SwitchListTile(
+                  activeThumbColor: Colors.red,
+                  secondary: Icon(Icons.visibility_off, color: theme.iconTheme.color),
+                  title: Text("Incognito Mode", style: TextStyle(color: theme.colorScheme.onSurface)),
+                  subtitle: Text("Don't save watch history", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
+                  value: _incognito,
+                  onChanged: _toggleIncognito,
+                ),
+                SwitchListTile(
+                  activeThumbColor: Colors.red,
+                  secondary: Icon(Icons.fingerprint, color: theme.iconTheme.color),
+                  title: Text("App Lock", style: TextStyle(color: theme.colorScheme.onSurface)),
+                  subtitle: Text("Require authentication on start", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
+                  value: _appLock,
+                  onChanged: _toggleAppLock,
                 ),
 
                 const Divider(height: 30),

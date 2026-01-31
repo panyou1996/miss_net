@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/error/failures.dart';
 import '../../domain/entities/video.dart';
 import '../../domain/repositories/video_repository.dart';
+import '../../core/services/privacy_service.dart';
 import '../datasources/local_video_datasource.dart';
 import '../datasources/video_datasource.dart';
 import '../models/video_model.dart';
@@ -11,11 +12,13 @@ import '../models/video_model.dart';
 class VideoRepositoryImpl implements VideoRepository {
   final VideoDataSource remoteDataSource;
   final LocalVideoDataSource localDataSource;
+  final PrivacyService privacyService;
   final _favoritesController = StreamController<void>.broadcast();
 
   VideoRepositoryImpl({
     required this.remoteDataSource,
     required this.localDataSource,
+    required this.privacyService,
   });
 
   @override
@@ -170,6 +173,7 @@ class VideoRepositoryImpl implements VideoRepository {
 
   @override
   Future<Either<Failure, void>> saveToHistory(Video video, int positionMs) async {
+    if (privacyService.isIncognito) return const Right(null);
     try {
       final model = VideoModel(
         id: video.id,

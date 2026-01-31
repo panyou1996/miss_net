@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/services/video_resolver.dart';
+import 'core/services/privacy_service.dart';
 import 'data/datasources/local_video_datasource.dart';
 import 'data/datasources/video_datasource.dart';
 import 'data/repositories/video_repository_impl.dart';
@@ -23,6 +24,7 @@ Future<void> init() async {
     () => VideoRepositoryImpl(
       remoteDataSource: sl(),
       localDataSource: sl(),
+      privacyService: sl(), // Add dependency
     ),
   );
 
@@ -42,4 +44,5 @@ Future<void> init() async {
   
   // Services
   sl.registerFactory(() => VideoResolver());
+  sl.registerLazySingleton(() => PrivacyService(sl()));
 }
