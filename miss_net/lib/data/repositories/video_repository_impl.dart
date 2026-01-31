@@ -212,6 +212,36 @@ class VideoRepositoryImpl implements VideoRepository {
   }
 
   @override
+  Future<Either<Failure, List<String>>> getSearchHistory() async {
+    try {
+      final history = await localDataSource.getSearchHistory();
+      return Right(history);
+    } catch (e) {
+      return const Left(CacheFailure("Failed to get search history"));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> saveSearch(String query) async {
+    try {
+      await localDataSource.saveSearch(query);
+      return const Right(null);
+    } catch (e) {
+      return const Left(CacheFailure("Failed to save search"));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> clearSearchHistory() async {
+    try {
+      await localDataSource.clearSearchHistory();
+      return const Right(null);
+    } catch (e) {
+      return const Left(CacheFailure("Failed to clear search history"));
+    }
+  }
+
+  @override
   Future<void> syncData() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;

@@ -23,6 +23,11 @@ abstract class VideoRepository {
   Future<int> getProgress(String id);
   Future<Either<Failure, void>> clearHistory();
   
+  // Search History
+  Future<Either<Failure, List<String>>> getSearchHistory();
+  Future<Either<Failure, void>> saveSearch(String query);
+  Future<Either<Failure, void>> clearSearchHistory();
+  
   // Cloud Sync
   Future<void> syncData();
 }

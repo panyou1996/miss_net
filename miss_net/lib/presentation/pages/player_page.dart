@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:chewie/chewie.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -39,6 +40,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   String? _errorMessage;
   bool _isFavorite = false;
   bool _isPipMode = false;
+  bool _isLocked = false;
   Timer? _progressTimer;
   List<Video> _relatedVideos = [];
 
@@ -97,12 +99,20 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   Future<void> _initializePlayer() async {
     try {
-      final streamInfo = await _resolver.resolveStreamUrl(widget.video.sourceUrl);
-      
-      _videoPlayerController = VideoPlayerController.networkUrl(
-        Uri.parse(streamInfo.streamUrl),
-        httpHeaders: streamInfo.headers,
-      );
+      if (widget.video.isOffline && widget.video.filePath != null) {
+        final file = File(widget.video.filePath!);
+        if (await file.exists()) {
+          _videoPlayerController = VideoPlayerController.file(file);
+        } else {
+          throw Exception("Offline file not found");
+        }
+      } else {
+        final streamInfo = await _resolver.resolveStreamUrl(widget.video.sourceUrl);
+        _videoPlayerController = VideoPlayerController.networkUrl(
+          Uri.parse(streamInfo.streamUrl),
+          httpHeaders: streamInfo.headers,
+        );
+      }
 
       await _videoPlayerController!.initialize();
 
@@ -119,7 +129,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         aspectRatio: _videoPlayerController!.value.aspectRatio,
         allowFullScreen: true,
         allowMuting: true,
-        showControls: true,
+        showControls: !_isLocked,
         materialProgressColors: ChewieProgressColors(
           playedColor: Colors.red,
           handleColor: Colors.red,
@@ -139,6 +149,30 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     } catch (e) {
       if (mounted) setState(() { _isLoading = false; _errorMessage = "Failed to load video: $e"; });
     }
+  }
+
+  void _toggleLock() {
+    setState(() {
+      _isLocked = !_isLocked;
+      // Update controls visibility
+      if (_chewieController != null) {
+        final oldController = _chewieController!;
+        _chewieController = ChewieController(
+          videoPlayerController: oldController.videoPlayerController,
+          autoPlay: oldController.autoPlay,
+          looping: oldController.looping,
+          aspectRatio: oldController.aspectRatio,
+          allowFullScreen: oldController.allowFullScreen,
+          allowMuting: oldController.allowMuting,
+          showControls: !_isLocked,
+          materialProgressColors: oldController.materialProgressColors,
+          errorBuilder: oldController.errorBuilder,
+          allowedScreenSleep: oldController.allowedScreenSleep,
+          deviceOrientationsAfterFullScreen: oldController.deviceOrientationsAfterFullScreen,
+        );
+      }
+    });
+    HapticFeedback.mediumImpact();
   }
 
   @override
@@ -352,16 +386,35 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Hero(
-            tag: widget.heroTag ?? widget.video.id,
-            createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
-            child: AspectRatio(
-              aspectRatio: _videoPlayerController!.value.aspectRatio,
-              child: VideoGestureWrapper(
-                controller: _videoPlayerController!,
-                child: Chewie(controller: _chewieController!),
+          Stack(
+            children: [
+              Hero(
+                tag: widget.heroTag ?? widget.video.id,
+                createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
+                child: AspectRatio(
+                  aspectRatio: _videoPlayerController?.value.aspectRatio ?? 16 / 9,
+                  child: VideoGestureWrapper(
+                    controller: _videoPlayerController!,
+                    isLocked: _isLocked,
+                    child: _chewieController != null 
+                        ? Chewie(controller: _chewieController!)
+                        : const Center(child: CircularProgressIndicator()),
+                  ),
+                ),
               ),
-            ),
+              if (!_isLoading && _errorMessage == null)
+                Positioned(
+                  right: 10,
+                  bottom: 10,
+                  child: IconButton(
+                    icon: Icon(
+                      _isLocked ? Icons.lock : Icons.lock_open,
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                    onPressed: _toggleLock,
+                  ),
+                ),
+            ],
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),

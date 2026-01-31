@@ -13,9 +13,10 @@ abstract class SearchEvent extends Equatable {
 
 class SearchQueryChanged extends SearchEvent {
   final String query;
-  const SearchQueryChanged(this.query);
+  final bool saveToHistory;
+  const SearchQueryChanged(this.query, {this.saveToHistory = true});
   @override
-  List<Object> get props => [query];
+  List<Object> get props => [query, saveToHistory];
 }
 
 class FetchSuggestions extends SearchEvent {
@@ -25,6 +26,9 @@ class FetchSuggestions extends SearchEvent {
   List<Object> get props => [query];
 }
 
+class LoadSearchHistory extends SearchEvent {}
+class ClearSearchHistory extends SearchEvent {}
+
 // States
 abstract class SearchState extends Equatable {
   const SearchState();
@@ -33,6 +37,12 @@ abstract class SearchState extends Equatable {
 }
 
 class SearchInitial extends SearchState {}
+class SearchHistoryLoaded extends SearchState {
+  final List<String> history;
+  const SearchHistoryLoaded(this.history);
+  @override
+  List<Object> get props => [history];
+}
 class SearchLoading extends SearchState {}
 class SearchLoaded extends SearchState {
   final List<Video> videos;
@@ -59,20 +69,36 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
   String? _lastQuery;
 
   SearchBloc({required this.repository}) : super(SearchInitial()) {
+    on<LoadSearchHistory>((event, emit) async {
+      final result = await repository.getSearchHistory();
+      result.fold(
+        (f) => emit(const SearchHistoryLoaded([])),
+        (history) => emit(SearchHistoryLoaded(history)),
+      );
+    });
+
+    on<ClearSearchHistory>((event, emit) async {
+      await repository.clearSearchHistory();
+      emit(const SearchHistoryLoaded([]));
+    });
+
     on<SearchQueryChanged>(
       (event, emit) async {
         if (event.query.isEmpty) {
           _lastQuery = null;
-          emit(SearchInitial());
+          add(LoadSearchHistory());
           return;
         }
 
-        // Fix: Avoid reloading if query is same and we have results
         if (event.query == _lastQuery && state is SearchLoaded) {
           return;
         }
 
         _lastQuery = event.query;
+        if (event.saveToHistory) {
+          await repository.saveSearch(event.query);
+        }
+
         emit(SearchLoading());
         final result = await repository.searchVideos(event.query);
         result.fold(
@@ -93,7 +119,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
         }
         final result = await repository.getSearchSuggestions(event.query);
         result.fold(
-          (failure) => {}, // Ignore errors for suggestions to not disrupt user typing
+          (failure) => {},
           (suggestions) => emit(SearchSuggestionsLoaded(suggestions)),
         );
       },

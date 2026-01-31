@@ -14,6 +14,8 @@ class VideoModel extends Video {
     super.categories,
     super.lastPositionMs,
     super.totalDurationMs,
+    super.filePath,
+    super.isOffline = false,
   });
 
   factory VideoModel.fromJson(Map<String, dynamic> json) {
@@ -30,6 +32,8 @@ class VideoModel extends Video {
       categories: json['categories'] != null ? List<String>.from(json['categories'] as List) : null,
       lastPositionMs: json['last_position_ms'] as int?,
       totalDurationMs: json['total_duration_ms'] as int?,
+      filePath: json['file_path'] as String?,
+      isOffline: json['is_offline'] as bool? ?? false,
     );
   }
 
@@ -47,6 +51,8 @@ class VideoModel extends Video {
       'categories': categories,
       'last_position_ms': lastPositionMs,
       'total_duration_ms': totalDurationMs,
+      'file_path': filePath,
+      'is_offline': isOffline,
     };
   }
 }

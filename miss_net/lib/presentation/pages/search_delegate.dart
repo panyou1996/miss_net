@@ -119,28 +119,65 @@ class VideoSearchDelegate extends SearchDelegate {
   Widget buildSuggestions(BuildContext context) {
     final theme = Theme.of(context);
     if (query.isEmpty) {
+      searchBloc.add(LoadSearchHistory());
       return Container(
         color: theme.scaffoldBackgroundColor,
-        child: ListView(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text("Popular Categories", style: TextStyle(color: theme.hintColor, fontWeight: FontWeight.bold)),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
-                spacing: 10,
-                children: [
-                  _hotTag(context, "School"),
-                  _hotTag(context, "Office"),
-                  _hotTag(context, "Mature"),
-                  _hotTag(context, "Exclusive"),
-                  _hotTag(context, "Nympho"),
+        child: BlocBuilder<SearchBloc, SearchState>(
+          bloc: searchBloc,
+          builder: (context, state) {
+            final List<String> history = (state is SearchHistoryLoaded) ? state.history : [];
+            
+            return ListView(
+              children: [
+                if (history.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("Recent Searches", style: TextStyle(color: theme.hintColor, fontWeight: FontWeight.bold)),
+                        IconButton(
+                          icon: const Icon(Icons.delete_sweep_outlined, size: 20),
+                          onPressed: () => searchBloc.add(ClearSearchHistory()),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Wrap(
+                      spacing: 10,
+                      children: history.map((h) => ActionChip(
+                        label: Text(h),
+                        backgroundColor: theme.cardColor,
+                        onPressed: () {
+                          query = h;
+                          showResults(context);
+                        },
+                      )).toList(),
+                    ),
+                  ),
                 ],
-              ),
-            ),
-          ],
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text("Popular Categories", style: TextStyle(color: theme.hintColor, fontWeight: FontWeight.bold)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Wrap(
+                    spacing: 10,
+                    children: [
+                      _hotTag(context, "School"),
+                      _hotTag(context, "Office"),
+                      _hotTag(context, "Mature"),
+                      _hotTag(context, "Exclusive"),
+                      _hotTag(context, "Nympho"),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       );
     }

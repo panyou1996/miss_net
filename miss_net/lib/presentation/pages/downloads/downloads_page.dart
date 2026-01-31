@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'dart:io';
+import '../player_page.dart';
+import '../../../domain/entities/video.dart';
 
 class DownloadsPage extends StatefulWidget {
   const DownloadsPage({super.key});
@@ -106,17 +108,24 @@ class _DownloadsPageState extends State<DownloadsPage> {
   }
 
   void _playOffline(DownloadTask task) async {
-    // Note: To play offline, we need a Video entity.
-    // In a real app, we should save metadata alongside the file.
-    // For now, we'll create a dummy Video entity to trigger the player.
-    // Since we don't have the original source URL or ID here easily without DB,
-    // we'll just open the file directly or use a placeholder.
-    
     final file = File("${task.savedDir}/${task.filename}");
     if (await file.exists()) {
-       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Playing: ${task.filename}")));
-       }
+      if (mounted) {
+        final video = Video(
+          id: task.taskId,
+          externalId: task.taskId,
+          title: task.filename ?? "Downloaded Video",
+          sourceUrl: "",
+          coverUrl: null,
+          createdAt: DateTime.now(),
+          isOffline: true,
+          filePath: file.path,
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => PlayerPage(video: video)),
+        );
+      }
     }
   }
 }

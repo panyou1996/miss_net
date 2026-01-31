@@ -13,6 +13,8 @@ class Video extends Equatable {
   final List<String>? categories;
   final int? lastPositionMs;
   final int? totalDurationMs;
+  final String? filePath;
+  final bool isOffline;
 
   const Video({
     required this.id,
@@ -27,6 +29,8 @@ class Video extends Equatable {
     this.categories,
     this.lastPositionMs,
     this.totalDurationMs,
+    this.filePath,
+    this.isOffline = false,
   });
 
   double get progress {
@@ -48,5 +52,7 @@ class Video extends Equatable {
         categories,
         lastPositionMs,
         totalDurationMs,
+        filePath,
+        isOffline,
       ];
 }

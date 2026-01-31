@@ -19,6 +19,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   final PrivacyService _privacy = sl<PrivacyService>();
   bool _isLocked = false;
+  final ValueNotifier<bool> _isNavbarVisible = ValueNotifier<bool>(true);
 
   final List<Widget> _pages = [
     const HomePage(),
@@ -37,6 +38,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _isNavbarVisible.dispose();
     super.dispose();
   }
 
@@ -57,9 +59,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       final authenticated = await _privacy.authenticate();
       if (authenticated) {
         if (mounted) setState(() => _isLocked = false);
-      } else {
-        // If auth fails or cancelled, user stays on lock screen or exits
-        // SystemNavigator.pop(); 
       }
     }
   }
@@ -88,61 +87,78 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
-    // Adapt glass effect
     final glassColor = isDark ? Colors.black.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.9);
     final borderColor = isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1);
     final shadowColor = isDark ? Colors.black.withValues(alpha: 0.3) : Colors.grey.withValues(alpha: 0.3);
 
     return Scaffold(
-      extendBody: true, // Important for content to show behind nav bar
-      body: Stack(
-        children: [
-          // Content Layer
-          FadeIndexedStack(
-            index: _selectedIndex,
-            children: _pages,
-          ),
-          
-          // Floating Glass Nav Bar Layer
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 24, // Float from bottom
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24), // Rounded pill shape
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // Glass blur
-                child: Container(
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: glassColor, 
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: borderColor,
-                      width: 0.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: shadowColor,
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+      extendBody: true,
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification is ScrollUpdateNotification) {
+            if (notification.scrollDelta! > 10 && _isNavbarVisible.value) {
+              _isNavbarVisible.value = false;
+            } else if (notification.scrollDelta! < -10 && !_isNavbarVisible.value) {
+              _isNavbarVisible.value = true;
+            }
+          }
+          return false;
+        },
+        child: Stack(
+          children: [
+            FadeIndexedStack(
+              index: _selectedIndex,
+              children: _pages,
+            ),
+            
+            ValueListenableBuilder<bool>(
+              valueListenable: _isNavbarVisible,
+              builder: (context, isVisible, child) {
+                return AnimatedPositioned(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  left: 16,
+                  right: 16,
+                  bottom: isVisible ? 24 : -100,
+                  child: child!,
+                );
+              },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: glassColor, 
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: borderColor,
+                        width: 0.5,
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildNavItem(context, Icons.home_rounded, Icons.home_outlined, "Home", 0),
-                      _buildNavItem(context, Icons.explore_rounded, Icons.explore_outlined, "Explore", 1),
-                      _buildNavItem(context, Icons.favorite_rounded, Icons.favorite_border_rounded, "Likes", 2),
-                      _buildNavItem(context, Icons.settings_rounded, Icons.settings_outlined, "Settings", 3),
-                    ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: shadowColor,
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildNavItem(context, Icons.home_rounded, Icons.home_outlined, "Home", 0),
+                        _buildNavItem(context, Icons.explore_rounded, Icons.explore_outlined, "Explore", 1),
+                        _buildNavItem(context, Icons.favorite_rounded, Icons.favorite_border_rounded, "Likes", 2),
+                        _buildNavItem(context, Icons.settings_rounded, Icons.settings_outlined, "Settings", 3),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

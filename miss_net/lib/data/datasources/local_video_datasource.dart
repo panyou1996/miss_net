@@ -13,6 +13,11 @@ abstract class LocalVideoDataSource {
   Future<void> saveToHistory(VideoModel video, int positionMs, int totalDurationMs);
   Future<int> getProgress(String id);
   Future<void> clearHistory();
+
+  // Search History
+  Future<List<String>> getSearchHistory();
+  Future<void> saveSearch(String query);
+  Future<void> clearSearchHistory();
 }
 
 class LocalVideoDataSourceImpl implements LocalVideoDataSource {
@@ -22,6 +27,7 @@ class LocalVideoDataSourceImpl implements LocalVideoDataSource {
 
   static const String _cachedFavorites = 'CACHED_FAVORITES';
   static const String _cachedHistory = 'CACHED_HISTORY';
+  static const String _cachedSearch = 'CACHED_SEARCH';
   static const String _progressPrefix = 'PROGRESS_';
   static const String _durationPrefix = 'DURATION_';
 
@@ -127,5 +133,27 @@ class LocalVideoDataSourceImpl implements LocalVideoDataSource {
     await sharedPreferences.remove(_cachedHistory);
     // Note: We don't clear progress for individual videos as that might still be useful
     // if the user re-watches them.
+  }
+
+  // --- Search History ---
+
+  @override
+  Future<List<String>> getSearchHistory() async {
+    return sharedPreferences.getStringList(_cachedSearch) ?? [];
+  }
+
+  @override
+  Future<void> saveSearch(String query) async {
+    if (query.trim().isEmpty) return;
+    List<String> history = await getSearchHistory();
+    history.remove(query);
+    history.insert(0, query);
+    if (history.length > 10) history = history.sublist(0, 10);
+    await sharedPreferences.setStringList(_cachedSearch, history);
+  }
+
+  @override
+  Future<void> clearSearchHistory() async {
+    await sharedPreferences.remove(_cachedSearch);
   }
 }

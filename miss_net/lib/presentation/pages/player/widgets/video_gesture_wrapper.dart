@@ -8,11 +8,13 @@ import 'dart:ui';
 class VideoGestureWrapper extends StatefulWidget {
   final Widget child;
   final VideoPlayerController controller;
+  final bool isLocked;
 
   const VideoGestureWrapper({
     super.key,
     required this.child,
     required this.controller,
+    this.isLocked = false,
   });
 
   @override
@@ -76,6 +78,7 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> with SingleTi
   Widget build(BuildContext context) {
     return GestureDetector(
       onVerticalDragUpdate: (details) async {
+        if (widget.isLocked) return;
         final width = MediaQuery.of(context).size.width;
         final delta = details.primaryDelta! / -200; // Sensitivity
 
@@ -98,12 +101,14 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> with SingleTi
         }
       },
       onHorizontalDragUpdate: (details) {
+        if (widget.isLocked) return;
         // Seek logic
         final delta = details.primaryDelta! * 500; // 500ms per pixel approx
         final newPos = widget.controller.value.position + Duration(milliseconds: delta.toInt());
         _showFeedback(_formatDuration(newPos), delta > 0 ? Icons.fast_forward : Icons.fast_rewind);
       },
       onDoubleTapDown: (details) {
+        if (widget.isLocked) return;
         final width = MediaQuery.of(context).size.width;
         final pos = details.localPosition;
         _triggerRipple(pos);
