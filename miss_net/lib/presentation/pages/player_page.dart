@@ -222,10 +222,15 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       
       if (id != null) {
         if (mounted) {
-          final isHls = url.contains('.m3u8');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(isHls ? "HLS Download started (Processing via FFmpeg)" : "Download started"))
-          );
+          if (id == "hls_disabled") {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("HLS Download is currently unavailable. Standard MP4s only."))
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Download started"))
+            );
+          }
         }
       }
     } catch (e) {
