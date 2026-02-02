@@ -74,6 +74,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   }
 
   Future<void> _toggleFavorite() async {
+    HapticFeedback.mediumImpact();
     if (_isFavorite) {
       await _repository.removeFavorite(widget.video.id);
     } else {
@@ -217,7 +218,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       final streamInfo = await _resolver.resolveStreamUrl(widget.video.sourceUrl);
       final url = streamInfo.streamUrl;
       
-      final filename = "${widget.video.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')}.mp4";
+      final filename = "${widget.video.title.replaceAll(RegExp(r'[\/:*?"<>|]'), '_')}.mp4";
       final id = await _downloadService.downloadVideo(url, filename, headers: streamInfo.headers);
       
       if (id != null) {
@@ -319,16 +320,19 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   Widget _playerActionButton(BuildContext context, IconData icon, String label, VoidCallback onTap) {
     final theme = Theme.of(context);
     return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: theme.colorScheme.onSurface),
+            Icon(icon, color: theme.colorScheme.onSurface, size: 22),
             const SizedBox(height: 4),
-            Text(label, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 12)),
+            Text(label, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 10, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -449,29 +453,56 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Stack(
+            alignment: Alignment.center,
             children: [
+              // 1. Ambient Glow (Environmental Light)
+              if (widget.video.coverUrl != null)
+                Positioned(
+                  top: 20,
+                  child: Opacity(
+                    opacity: 0.6,
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                      child: CachedNetworkImage(
+                        imageUrl: ImageProxy.getUrl(widget.video.coverUrl!),
+                        width: MediaQuery.of(context).size.width * 0.9,
+                        height: 200,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // 2. Video Player
               Hero(
                 tag: widget.heroTag ?? widget.video.id,
                 createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
-                child: AspectRatio(
-                  aspectRatio: _videoPlayerController?.value.aspectRatio ?? 16 / 9,
-                  child: VideoGestureWrapper(
-                    controller: _videoPlayerController!,
-                    isLocked: _isLocked,
-                    child: _chewieController != null 
-                        ? Chewie(controller: _chewieController!)
-                        : const Center(child: CircularProgressIndicator()),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: AspectRatio(
+                      aspectRatio: _videoPlayerController?.value.aspectRatio ?? 16 / 9,
+                      child: VideoGestureWrapper(
+                        controller: _videoPlayerController!,
+                        isLocked: _isLocked,
+                        child: _chewieController != null 
+                            ? Chewie(controller: _chewieController!)
+                            : const Center(child: CircularProgressIndicator()),
+                      ),
+                    ),
                   ),
                 ),
               ),
               if (!_isLoading && _errorMessage == null)
                 Positioned(
-                  right: 10,
+                  right: 20,
                   bottom: 10,
                   child: IconButton(
                     icon: Icon(
                       _isLocked ? Icons.lock : Icons.lock_open,
                       color: Colors.white.withValues(alpha: 0.5),
+                      size: 20,
                     ),
                     onPressed: _toggleLock,
                   ),
@@ -479,92 +510,91 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
             ],
           ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.video.title, style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
+                Text(widget.video.title, style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                const SizedBox(height: 16),
                 
-                // Action Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _playerActionButton(
-                      context, 
-                      Icons.download, 
-                      "Download", 
-                      _handleDownload
+                // Floating Action Capsule
+                Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _playerActionButton(context, Icons.download_rounded, "Download", _handleDownload),
+                            _playerActionButton(context, Icons.speed_rounded, "Speed", _showSpeedDialog),
+                            _playerActionButton(context, Icons.cast_connected_rounded, "Cast", _handleCast),
+                            _playerActionButton(context, Icons.share_rounded, "Share", () {}),
+                          ],
+                        ),
+                      ),
                     ),
-                    _playerActionButton(
-                      context, 
-                      Icons.speed, 
-                      "Speed", 
-                      _showSpeedDialog
-                    ),
-                    _playerActionButton(
-                      context, 
-                      Icons.cast, 
-                      "Cast", 
-                      _handleCast
-                    ),
-                    _playerActionButton(
-                      context, 
-                      Icons.share, 
-                      "Share", 
-                      () {
-                         // Share logic
-                      }
-                    ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 24),
 
                 Row(
                   children: [
-                    if (widget.video.duration != null) _infoBadge(context, Icons.timer, widget.video.duration!),
-                    const SizedBox(width: 15),
-                    if (widget.video.releaseDate != null) _infoBadge(context, Icons.calendar_today, widget.video.releaseDate!),
-                    const SizedBox(width: 15),
-                    if (_hasSubtitles(widget.video)) _infoBadge(context, Icons.subtitles, "Subtitled"),
+                    if (widget.video.duration != null) _infoBadge(context, Icons.timer_outlined, widget.video.duration!),
+                    const SizedBox(width: 12),
+                    if (widget.video.releaseDate != null) _infoBadge(context, Icons.calendar_month_outlined, widget.video.releaseDate!),
                   ],
                 ),
                 if (widget.video.categories != null && widget.video.categories!.isNotEmpty) ...[
                   const SizedBox(height: 20),
-                  Wrap(spacing: 8, runSpacing: 8, children: widget.video.categories!.map((cat) => _tagChip(context, cat, Colors.red.withValues(alpha: 0.8))).toList()),
+                  Wrap(spacing: 8, runSpacing: 8, children: widget.video.categories!.map((cat) => _tagChip(context, cat, Colors.transparent)).toList()),
                 ],
                 if (widget.video.actors != null && widget.video.actors!.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  Text("Actors", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 30),
+                  Text("Actresses", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5), fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  const SizedBox(height: 12),
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: 10,
+                    runSpacing: 10,
                     children: widget.video.actors!.map((actor) {
                       return InkWell(
                         onTap: () {
                           Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryDetailPage(title: actor, actor: actor)));
                         },
-                        child: _tagChip(context, actor, theme.cardColor.withValues(alpha: 0.5)),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: theme.cardColor.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(actor, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                        ),
                       );
                     }).toList(),
                   ),
                 ],
                 if (_relatedVideos.isNotEmpty) ...[
-                  const SizedBox(height: 30),
-                  Text("You May Also Like", style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 40),
+                  Text("Related Content", style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
                   SizedBox(
-                    height: 140,
+                    height: 150,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       itemCount: _relatedVideos.length,
                       itemBuilder: (context, index) {
                          final rv = _relatedVideos[index];
                          return Padding(
-                           padding: const EdgeInsets.only(right: 12),
+                           padding: const EdgeInsets.only(right: 16),
                            child: SizedBox(
-                             width: 200, 
+                             width: 220, 
                              child: VideoCard(
                                video: rv, 
                                onTap: () => Navigator.push(
@@ -603,17 +633,17 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   Widget _infoBadge(BuildContext context, IconData icon, String text) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)), 
+          Icon(icon, size: 14, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)), 
           const SizedBox(width: 6), 
-          Text(text, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12, fontWeight: FontWeight.w500))
+          Text(text, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12, fontWeight: FontWeight.w600))
         ]
       ),
     );
@@ -627,31 +657,24 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   Widget _tagChip(BuildContext context, String label, Color color) {
     final theme = Theme.of(context);
-    // Use a more subtle color for general tags
-    final bgColor = label.toUpperCase() == "SUBTITLED" || label.contains("中文") 
-        ? Colors.red.withValues(alpha: 0.7) 
-        : theme.colorScheme.onSurface.withValues(alpha: 0.1);
+    final isImportant = label.toUpperCase() == "SUBTITLED" || label.contains("中文");
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: bgColor, 
-            borderRadius: BorderRadius.circular(20), 
-            border: Border.all(color: theme.dividerColor.withValues(alpha: 0.05))
-          ),
-          child: Text(
-            label, 
-            style: TextStyle(
-              color: bgColor == Colors.red.withValues(alpha: 0.7) ? Colors.white : theme.colorScheme.onSurface, 
-              fontSize: 12, 
-              fontWeight: FontWeight.w500
-            )
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isImportant ? Colors.red.withValues(alpha: 0.1) : theme.colorScheme.onSurface.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isImportant ? Colors.red.withValues(alpha: 0.2) : theme.dividerColor.withValues(alpha: 0.1),
         ),
+      ),
+      child: Text(
+        label, 
+        style: TextStyle(
+          color: isImportant ? Colors.redAccent : theme.colorScheme.onSurface.withValues(alpha: 0.7), 
+          fontSize: 11, 
+          fontWeight: FontWeight.bold
+        )
       ),
     );
   }

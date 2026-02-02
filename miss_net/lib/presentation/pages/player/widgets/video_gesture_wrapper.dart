@@ -52,14 +52,22 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> with SingleTi
     super.dispose();
   }
 
-  void _showFeedback(String msg, IconData icon) {
+  void _showFeedback(String msg, IconData icon, {bool heavy = false}) {
     setState(() {
       _message = msg;
       _icon = icon;
       _showOverlay = true;
     });
+    
+    // Physical Haptics
+    if (heavy) {
+      HapticFeedback.mediumImpact();
+    } else {
+      HapticFeedback.selectionClick();
+    }
+
     _overlayTimer?.cancel();
-    _overlayTimer = Timer(const Duration(seconds: 1), () {
+    _overlayTimer = Timer(const Duration(milliseconds: 800), () {
       if (mounted) setState(() => _showOverlay = false);
     });
   }
@@ -80,10 +88,9 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> with SingleTi
       onVerticalDragUpdate: (details) async {
         if (widget.isLocked) return;
         final width = MediaQuery.of(context).size.width;
-        final delta = details.primaryDelta! / -200; // Sensitivity
+        final delta = details.primaryDelta! / -250; // Adjusted sensitivity
 
         if (details.globalPosition.dx < width / 2) {
-          // Left side: Brightness
           try {
             _brightness ??= await ScreenBrightness().application;
             _brightness = (_brightness! + delta).clamp(0.0, 1.0);
@@ -93,7 +100,6 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> with SingleTi
             debugPrint("Brightness error: $e");
           }
         } else {
-          // Right side: Volume
           _volume ??= widget.controller.value.volume;
           _volume = (_volume! + delta).clamp(0.0, 1.0);
           await widget.controller.setVolume(_volume!);
@@ -102,11 +108,10 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> with SingleTi
       },
       onHorizontalDragUpdate: (details) {
         if (widget.isLocked) return;
-        final delta = details.primaryDelta! * 200; // Adjusted sensitivity
+        final delta = details.primaryDelta! * 200;
         final currentPos = widget.controller.value.position;
         final newPos = currentPos + Duration(milliseconds: delta.toInt());
         
-        // Limit seek range between 0 and duration
         final clampedPos = Duration(
           milliseconds: newPos.inMilliseconds.clamp(0, widget.controller.value.duration.inMilliseconds)
         );
@@ -119,18 +124,15 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> with SingleTi
         final width = MediaQuery.of(context).size.width;
         final pos = details.localPosition;
         _triggerRipple(pos);
-        HapticFeedback.lightImpact();
 
         if (pos.dx < width / 3) {
-          // Rewind 10s
-          final pos = widget.controller.value.position - const Duration(seconds: 10);
-          widget.controller.seekTo(pos);
-          _showFeedback("-10s", Icons.replay_10);
+          final target = widget.controller.value.position - const Duration(seconds: 10);
+          widget.controller.seekTo(target);
+          _showFeedback("-10s", Icons.replay_10, heavy: true);
         } else if (pos.dx > width * 2 / 3) {
-          // Forward 10s
-          final pos = widget.controller.value.position + const Duration(seconds: 10);
-          widget.controller.seekTo(pos);
-          _showFeedback("+10s", Icons.forward_10);
+          final target = widget.controller.value.position + const Duration(seconds: 10);
+          widget.controller.seekTo(target);
+          _showFeedback("+10s", Icons.forward_10, heavy: true);
         }
       },
       child: Stack(
@@ -138,17 +140,18 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> with SingleTi
           widget.child,
           if (_showRipple)
             Positioned(
-              left: _ripplePos.dx - 50,
-              top: _ripplePos.dy - 50,
+              left: _ripplePos.dx - 60,
+              top: _ripplePos.dy - 60,
               child: AnimatedBuilder(
                 animation: _rippleController,
                 builder: (context, child) {
                   return Container(
-                    width: 100,
-                    height: 100,
+                    width: 120,
+                    height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: (1 - _rippleController.value) * 0.3),
+                      color: Colors.white.withValues(alpha: (1 - _rippleController.value) * 0.2),
+                      border: Border.all(color: Colors.white.withValues(alpha: (1 - _rippleController.value) * 0.4), width: 2),
                     ),
                   );
                 },
@@ -157,22 +160,22 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> with SingleTi
           if (_showOverlay)
             Center(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(20),
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(15),
+                      color: Colors.black.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(_icon, color: Colors.white, size: 48),
+                        Icon(_icon, color: Colors.white, size: 42),
                         const SizedBox(height: 12),
-                        Text(_message, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text(_message, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1)),
                       ],
                     ),
                   ),
@@ -186,8 +189,8 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> with SingleTi
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, "0");
-    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-    return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+    String m = twoDigits(duration.inMinutes.remainder(60));
+    String s = twoDigits(duration.inSeconds.remainder(60));
+    return duration.inHours > 0 ? "${twoDigits(duration.inHours)}:$m:$s" : "$m:$s";
   }
 }
