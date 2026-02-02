@@ -119,7 +119,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               builder: (context, isVisible, child) {
                 return AnimatedPositioned(
                   duration: const Duration(milliseconds: 500),
-                  curve: Curves.systemCurve, // Smoother spring-like curve
+                  curve: Curves.easeInOutCubic, // Restored valid curve
                   left: 24,
                   right: 24,
                   bottom: isVisible ? 32 : -100, // 32px floating
@@ -245,7 +245,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             AnimatedScale(
               scale: isSelected ? 1.2 : 1.0,
               duration: const Duration(milliseconds: 300),
-              curve: Curves.backOut,
+              curve: Curves.easeOutBack,
               child: Icon(
                 isSelected ? activeIcon : inactiveIcon,
                 color: isSelected ? Colors.redAccent : (isDark ? Colors.white54 : Colors.black45),
