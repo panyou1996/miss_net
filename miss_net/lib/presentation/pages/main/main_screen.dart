@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/services/privacy_service.dart';
 import '../../../injection_container.dart';
 import '../../widgets/fade_indexed_stack.dart';
@@ -87,18 +88,19 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
-    final glassColor = isDark ? Colors.black.withValues(alpha: 0.7) : Colors.white.withValues(alpha: 0.9);
-    final borderColor = isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1);
-    final shadowColor = isDark ? Colors.black.withValues(alpha: 0.3) : Colors.grey.withValues(alpha: 0.3);
+    // iOS 26 Glass Palette
+    final glassColor = isDark ? Colors.black.withValues(alpha: 0.75) : Colors.white.withValues(alpha: 0.85);
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08);
+    final shadowColor = Colors.black.withValues(alpha: 0.4);
 
     return Scaffold(
       extendBody: true,
       body: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
           if (notification is ScrollUpdateNotification) {
-            if (notification.scrollDelta! > 10 && _isNavbarVisible.value) {
+            if (notification.scrollDelta! > 15 && _isNavbarVisible.value) {
               _isNavbarVisible.value = false;
-            } else if (notification.scrollDelta! < -10 && !_isNavbarVisible.value) {
+            } else if (notification.scrollDelta! < -15 && !_isNavbarVisible.value) {
               _isNavbarVisible.value = true;
             }
           }
@@ -111,47 +113,56 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               children: _pages,
             ),
             
+            // The Floating Island (Bottom Navbar)
             ValueListenableBuilder<bool>(
               valueListenable: _isNavbarVisible,
               builder: (context, isVisible, child) {
                 return AnimatedPositioned(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  left: 16,
-                  right: 16,
-                  bottom: isVisible ? 24 : -100,
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.systemCurve, // Smoother spring-like curve
+                  left: 24,
+                  right: 24,
+                  bottom: isVisible ? 32 : -100, // 32px floating
                   child: child!,
                 );
               },
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: glassColor, 
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: borderColor,
-                        width: 0.5,
+              child: Container(
+                height: 72,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(36),
+                  boxShadow: [
+                    BoxShadow(color: shadowColor, blurRadius: 30, offset: const Offset(0, 15)),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(36),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: glassColor, 
+                        borderRadius: BorderRadius.circular(36),
+                        border: Border.all(color: borderColor, width: 0.5), // Ultra-thin border
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: shadowColor,
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildNavItem(context, Icons.home_rounded, Icons.home_outlined, "Home", 0),
-                        _buildNavItem(context, Icons.explore_rounded, Icons.explore_outlined, "Explore", 1),
-                        _buildNavItem(context, Icons.favorite_rounded, Icons.favorite_border_rounded, "Likes", 2),
-                        _buildNavItem(context, Icons.settings_rounded, Icons.settings_outlined, "Settings", 3),
-                      ],
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Fluid Background Indicator
+                          _buildFluidIndicator(context),
+                          
+                          // Nav Items
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildNavItem(Icons.home_rounded, Icons.home_outlined, 0),
+                              _buildNavItem(Icons.explore_rounded, Icons.explore_outlined, 1),
+                              _buildNavItem(Icons.favorite_rounded, Icons.favorite_border_rounded, 2),
+                              _buildNavItem(Icons.settings_rounded, Icons.settings_outlined, 3),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -163,46 +174,101 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildNavItem(BuildContext context, IconData activeIcon, IconData inactiveIcon, String label, int index) {
-    final isSelected = _selectedIndex == index;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final inactiveColor = isDark ? Colors.white70 : Colors.black54;
-    final activeTextColor = isDark ? Colors.white : Colors.black;
-    final activeBg = isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1);
+  Widget _buildFluidIndicator(BuildContext context) {
+    final double width = MediaQuery.of(context).size.width - 64; // Total width minus padding
+    final double itemWidth = width / 4;
+    
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.elasticOut,
+      left: _selectedIndex * itemWidth + (itemWidth - 50) / 2,
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.15),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.red.withValues(alpha: 0.2),
+              blurRadius: 15,
+              spreadRadius: 2,
+            )
+          ],
+        ),
+      ),
+    );
+  }
 
+  Widget _buildNavItem(IconData activeIcon, IconData inactiveIcon, int index) {
+    final isSelected = _selectedIndex == index;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return GestureDetector(
-      onTap: () => setState(() => _selectedIndex = index),
+      onTap: () {
+        if (_selectedIndex != index) {
+          HapticFeedback.lightImpact(); // iOS-style touch feedback
+          setState(() => _selectedIndex = index);
+        }
+      },
       behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: isSelected
-            ? BoxDecoration(
-                color: activeBg,
-                borderRadius: BorderRadius.circular(16),
-              )
-            : null,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+      child: Container(
+        width: 60,
+        height: 60,
+        alignment: Alignment.center,
+        child: Stack(
+          alignment: Alignment.center,
           children: [
-            Icon(
-              isSelected ? activeIcon : inactiveIcon,
-              color: isSelected ? Colors.redAccent : inactiveColor,
-              size: 24,
+            // Active Glow
+            if (isSelected)
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 400),
+                builder: (context, value, child) {
+                  return Opacity(
+                    opacity: value * 0.5,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: Colors.redAccent.withValues(alpha: 0.5), blurRadius: 15 * value, spreadRadius: 5 * value),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            
+            // Animated Icon
+            AnimatedScale(
+              scale: isSelected ? 1.2 : 1.0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.backOut,
+              child: Icon(
+                isSelected ? activeIcon : inactiveIcon,
+                color: isSelected ? Colors.redAccent : (isDark ? Colors.white54 : Colors.black45),
+                size: 26,
+              ),
             ),
-            if (isSelected) ...[
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: activeTextColor,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
+            
+            // Indicator Dot
+            if (isSelected)
+              Positioned(
+                bottom: 8,
+                child: Container(
+                  width: 4,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: Colors.redAccent.withValues(alpha: 0.6), blurRadius: 4, spreadRadius: 1),
+                    ],
+                  ),
                 ),
               ),
-            ],
           ],
         ),
       ),
