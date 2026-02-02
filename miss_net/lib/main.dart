@@ -11,18 +11,29 @@ import 'core/services/download_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Supabase
-  // TODO: Replace with your actual Supabase URL and Anon Key
-  await Supabase.initialize(
-    url: 'https://gapmmwdbxzcglvvdhhiu.supabase.co',
-    anonKey: 'sb_publishable_08qYVl69uwJs444rqwodug_wKjj6eD0',
-  );
+  try {
+    // 1. Initialize Supabase (with minimal timeout logic in mind)
+    await Supabase.initialize(
+      url: 'https://gapmmwdbxzcglvvdhhiu.supabase.co',
+      anonKey: 'sb_publishable_08qYVl69uwJs444rqwodug_wKjj6eD0',
+    ).timeout(const Duration(seconds: 10), onTimeout: () {
+      debugPrint("Supabase initialization timed out");
+      throw Exception("Connection Timeout");
+    });
 
-  // Initialize Dependency Injection
-  await di.init();
+    // 2. Initialize Dependency Injection
+    await di.init();
 
-  // Initialize Services
-  await di.sl<DownloadService>().init();
+    // 3. Initialize Services (non-blocking)
+    di.sl<DownloadService>().init().catchError((e) {
+      debugPrint("DownloadService init error: $e");
+    });
+    
+  } catch (e) {
+    debugPrint("Initialization Error: $e");
+    // We continue to runApp even if services fail, 
+    // to avoid stuck on splash screen.
+  }
 
   runApp(const MyApp());
 }
