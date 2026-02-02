@@ -4,7 +4,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:async';
+import 'dart:io';
 
 class FFmpegTask {
   final String taskId;
@@ -35,14 +37,25 @@ class DownloadService {
   List<FFmpegTask> getActiveFFmpegTasks() => _ffmpegTasks.values.toList();
 
   Future<String?> downloadVideo(String url, String filename, {Map<String, String>? headers}) async {
-    var status = await Permission.storage.status;
-    if (!status.isGranted) {
-        status = await Permission.storage.request();
+    // 1. Better Permission Handling
+    if (Platform.isAndroid) {
+      final deviceInfo = await DeviceInfoPlugin().androidInfo;
+      if (deviceInfo.version.sdkInt >= 33) {
+        await [Permission.videos, Permission.photos].request();
+      } else {
+        await [Permission.storage].request();
+      }
     }
 
     final dir = await getExternalStorageDirectory();
-    if (dir == null) return null;
-    final String savePath = "${dir.path}/$filename";
+    if (dir == null) {
+      debugPrint("Download Error: Could not get external storage directory");
+      return null;
+    }
+    
+    // Clean filename to prevent OS errors
+    final cleanFilename = filename.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    final String savePath = "${dir.path}/$cleanFilename";
 
     if (url.contains('.m3u8')) {
       String headerString = "";
@@ -53,27 +66,28 @@ class DownloadService {
       }
 
       final taskId = "ffmpeg_${DateTime.now().millisecondsSinceEpoch}";
-      final newTask = FFmpegTask(taskId: taskId, filename: filename, path: savePath);
+      final newTask = FFmpegTask(taskId: taskId, filename: cleanFilename, path: savePath);
       _ffmpegTasks[taskId] = newTask;
       _controller.add(_ffmpegTasks.values.toList());
 
-      final command = "-headers \"$headerString\" -i \"$url\" -c copy -bsf:a aac_adtstoasc \"$savePath\"";
+      // Correctly escape headers for FFmpeg
+      final command = "-headers '$headerString' -i \"$url\" -c copy -bsf:a aac_adtstoasc \"$savePath\"";
+      
+      debugPrint("Executing FFmpeg: $command");
       
       FFmpegKit.execute(command).then((session) async {
         final returnCode = await session.getReturnCode();
+        final logs = await session.getAllLogsAsString();
+        
         if (ReturnCode.isSuccess(returnCode)) {
+          debugPrint("FFmpeg Success: $savePath");
           _ffmpegTasks[taskId]?.status = "complete";
           _ffmpegTasks[taskId]?.progress = 100;
         } else {
+          debugPrint("FFmpeg Failed. Logs: $logs");
           _ffmpegTasks[taskId]?.status = "failed";
         }
         _controller.add(_ffmpegTasks.values.toList());
-      });
-
-      // Track progress via statistics
-      FFmpegKit.listSessions().then((sessions) {
-         // In a real app, we'd use session.getStatistics() callback
-         // but for simplicity, we update status on return.
       });
       
       return taskId;
@@ -82,7 +96,7 @@ class DownloadService {
     final taskId = await FlutterDownloader.enqueue(
       url: url,
       savedDir: dir.path,
-      fileName: filename,
+      fileName: cleanFilename,
       showNotification: true,
       openFileFromNotification: true,
       headers: headers ?? {},
