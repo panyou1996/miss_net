@@ -36,6 +36,7 @@ dependencies:
   permission_handler: ^11.3.0
   path_provider: ^2.1.2
   dlna_dart: any
+  ffmpeg_kit_flutter_new: ^4.1.0
   xml: ^6.5.0
   animations: ^2.0.11
   flutter_svg: ^2.0.10+1

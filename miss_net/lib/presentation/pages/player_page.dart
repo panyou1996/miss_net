@@ -218,13 +218,13 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       final url = streamInfo.streamUrl;
       
       final filename = "${widget.video.title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')}.mp4";
-      final id = await _downloadService.downloadVideo(url, filename);
+      final id = await _downloadService.downloadVideo(url, filename, headers: streamInfo.headers);
       
       if (id != null) {
         if (mounted) {
-          if (id == "hls_disabled") {
+          if (id.startsWith("ffmpeg_")) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("HLS Download is currently unavailable. Standard MP4s only."))
+              const SnackBar(content: Text("HLS Download started (FFmpeg)"))
             );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(

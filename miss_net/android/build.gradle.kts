@@ -10,14 +10,14 @@ allprojects {
 subprojects {
     val p = this
     p.afterEvaluate {
-        // 直接使用 p，不再依赖 lambda 参数推断
         if (p.name.contains("ffmpeg_kit_flutter")) {
             val android = p.extensions.findByName("android")
             if (android != null) {
-                // 使用反射设置 namespace，解决 AGP 8.0 报错
                 try {
                     val setNamespace = android.javaClass.getMethod("setNamespace", String::class.java)
-                    setNamespace.invoke(android, "com.arthenica.ffmpegkit.flutter")
+                    // Use the package name found in the error message
+                    val targetNamespace = if (p.name.contains("new")) "com.antonkarpenko.ffmpegkit" else "com.arthenica.ffmpegkit.flutter"
+                    setNamespace.invoke(android, targetNamespace)
                 } catch (e: Exception) {
                     println("Failed to set namespace for ${p.name}: ${e.message}")
                 }
