@@ -211,9 +211,12 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final groupBg = isDark ? const Color(0xFF1C1C1E) : Colors.grey[100];
 
     return Scaffold(
+      backgroundColor: isDark ? Colors.black : Colors.grey[50],
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
         title: const Text("Settings", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: _isLoading
@@ -221,109 +224,139 @@ class _SettingsPageState extends State<SettingsPage> {
           : ListView(
               children: [
                 _buildSectionHeader("Account"),
-                ListTile(
-                  leading: Icon(_user == null ? Icons.account_circle_outlined : Icons.check_circle, color: theme.iconTheme.color),
-                  title: Text(_user == null ? "Login / Register" : "Logged in as ${_user!.email}", style: TextStyle(color: theme.colorScheme.onSurface)),
-                  subtitle: _user == null ? Text("Sync your favorites to cloud", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))) : null,
-                  trailing: _user != null ? IconButton(icon: Icon(Icons.logout, color: theme.iconTheme.color), onPressed: _logout) : Icon(Icons.arrow_forward_ios, color: theme.iconTheme.color?.withValues(alpha: 0.5), size: 16),
-                  onTap: _user == null ? _handleAuth : null,
-                ),
-                if (_user != null)
+                _buildGroup(theme, groupBg, [
                   ListTile(
-                    leading: Icon(Icons.sync, color: theme.iconTheme.color),
-                    title: Text("Sync Now", style: TextStyle(color: theme.colorScheme.onSurface)),
-                    onTap: _sync,
+                    leading: Icon(_user == null ? Icons.account_circle_outlined : Icons.check_circle, color: theme.iconTheme.color),
+                    title: Text(_user == null ? "Login / Register" : "Logged in as ${_user!.email}", style: TextStyle(color: theme.colorScheme.onSurface)),
+                    subtitle: _user == null ? Text("Sync your favorites to cloud", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))) : null,
+                    trailing: _user != null ? IconButton(icon: Icon(Icons.logout, color: theme.iconTheme.color), onPressed: _logout) : Icon(Icons.arrow_forward_ios, color: theme.iconTheme.color?.withValues(alpha: 0.5), size: 16),
+                    onTap: _user == null ? _handleAuth : null,
                   ),
+                  if (_user != null)
+                    ListTile(
+                      leading: Icon(Icons.sync, color: theme.iconTheme.color),
+                      title: Text("Sync Now", style: TextStyle(color: theme.colorScheme.onSurface)),
+                      onTap: _sync,
+                    ),
+                ]),
 
-                const Divider(height: 30),
-                
                 _buildSectionHeader("Appearance"),
-                SwitchListTile(
-                  activeThumbColor: Colors.red,
-                  secondary: Icon(isDark ? Icons.dark_mode : Icons.light_mode, color: theme.iconTheme.color),
-                  title: Text("Dark Mode", style: TextStyle(color: theme.colorScheme.onSurface)),
-                  value: isDark,
-                  onChanged: (val) => context.read<ThemeBloc>().add(ToggleTheme()),
-                ),
-
-                const Divider(height: 30),
+                _buildGroup(theme, groupBg, [
+                  SwitchListTile(
+                    activeColor: Colors.red,
+                    secondary: Icon(isDark ? Icons.dark_mode : Icons.light_mode, color: theme.iconTheme.color),
+                    title: Text("Dark Mode", style: TextStyle(color: theme.colorScheme.onSurface)),
+                    value: isDark,
+                    onChanged: (val) => context.read<ThemeBloc>().add(ToggleTheme()),
+                  ),
+                ]),
                 
                 _buildSectionHeader("Privacy & Security"),
-                SwitchListTile(
-                  activeThumbColor: Colors.red,
-                  secondary: Icon(Icons.visibility_off, color: theme.iconTheme.color),
-                  title: Text("Incognito Mode", style: TextStyle(color: theme.colorScheme.onSurface)),
-                  subtitle: Text("Don't save watch history", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
-                  value: _incognito,
-                  onChanged: _toggleIncognito,
-                ),
-                SwitchListTile(
-                  activeThumbColor: Colors.red,
-                  secondary: Icon(Icons.fingerprint, color: theme.iconTheme.color),
-                  title: Text("App Lock", style: TextStyle(color: theme.colorScheme.onSurface)),
-                  subtitle: Text("Require authentication on start", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
-                  value: _appLock,
-                  onChanged: _toggleAppLock,
-                ),
-
-                const Divider(height: 30),
+                _buildGroup(theme, groupBg, [
+                  SwitchListTile(
+                    activeColor: Colors.red,
+                    secondary: Icon(Icons.visibility_off, color: theme.iconTheme.color),
+                    title: Text("Incognito Mode", style: TextStyle(color: theme.colorScheme.onSurface)),
+                    subtitle: Text("Don't save watch history", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
+                    value: _incognito,
+                    onChanged: _toggleIncognito,
+                  ),
+                  SwitchListTile(
+                    activeColor: Colors.red,
+                    secondary: Icon(Icons.fingerprint, color: theme.iconTheme.color),
+                    title: Text("App Lock", style: TextStyle(color: theme.colorScheme.onSurface)),
+                    subtitle: Text("Require authentication on start", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
+                    value: _appLock,
+                    onChanged: _toggleAppLock,
+                  ),
+                ]),
                 
                 _buildSectionHeader("Playback"),
-                SwitchListTile(
-                  activeThumbColor: Colors.red,
-                  secondary: Icon(Icons.play_circle_outline, color: theme.iconTheme.color),
-                  title: Text("Autoplay Next Video", style: TextStyle(color: theme.colorScheme.onSurface)),
-                  value: _autoplayNext,
-                  onChanged: _toggleAutoplay,
-                ),
-
-                const Divider(height: 30),
+                _buildGroup(theme, groupBg, [
+                  SwitchListTile(
+                    activeColor: Colors.red,
+                    secondary: Icon(Icons.play_circle_outline, color: theme.iconTheme.color),
+                    title: Text("Autoplay Next Video", style: TextStyle(color: theme.colorScheme.onSurface)),
+                    value: _autoplayNext,
+                    onChanged: _toggleAutoplay,
+                  ),
+                ]),
 
                 _buildSectionHeader("Storage & Data"),
-                ListTile(
-                  leading: Icon(Icons.download_done, color: theme.iconTheme.color),
-                  title: Text("Downloads", style: TextStyle(color: theme.colorScheme.onSurface)),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DownloadsPage())),
-                ),
-                ListTile(
-                  leading: Icon(Icons.image, color: theme.iconTheme.color),
-                  title: Text("Clear Image Cache", style: TextStyle(color: theme.colorScheme.onSurface)),
-                  subtitle: Text("Free up space used by thumbnails", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
-                  onTap: _clearImageCache,
-                ),
-                ListTile(
-                  leading: Icon(Icons.history, color: theme.iconTheme.color),
-                  title: Text("Clear Watch History", style: TextStyle(color: theme.colorScheme.onSurface)),
-                  onTap: _clearHistory,
-                ),
-
-                const Divider(height: 30),
+                _buildGroup(theme, groupBg, [
+                  ListTile(
+                    leading: Icon(Icons.download_done, color: theme.iconTheme.color),
+                    title: Text("Downloads", style: TextStyle(color: theme.colorScheme.onSurface)),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DownloadsPage())),
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.image, color: theme.iconTheme.color),
+                    title: Text("Clear Image Cache", style: TextStyle(color: theme.colorScheme.onSurface)),
+                    subtitle: Text("Free up space used by thumbnails", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+                    onTap: _clearImageCache,
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.history, color: theme.iconTheme.color),
+                    title: Text("Clear Watch History", style: TextStyle(color: theme.colorScheme.onSurface)),
+                    onTap: _clearHistory,
+                  ),
+                ]),
 
                 _buildSectionHeader("About"),
-                ListTile(
-                  leading: Icon(Icons.info_outline, color: theme.iconTheme.color),
-                  title: Text("Version", style: TextStyle(color: theme.colorScheme.onSurface)),
-                  trailing: Text(_version.isNotEmpty ? _version : "Loading...", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
-                ),
-                ListTile(
-                  leading: Icon(Icons.code, color: theme.iconTheme.color),
-                  title: Text("Source Code", style: TextStyle(color: theme.colorScheme.onSurface)),
-                  trailing: Icon(Icons.open_in_new, color: theme.iconTheme.color?.withValues(alpha: 0.5), size: 16),
-                  onTap: () => launchUrl(Uri.parse("https://github.com/panyou1996/miss_net")),
-                ),
-                const SizedBox(height: 50),
+                _buildGroup(theme, groupBg, [
+                  ListTile(
+                    leading: Icon(Icons.info_outline, color: theme.iconTheme.color),
+                    title: Text("Version", style: TextStyle(color: theme.colorScheme.onSurface)),
+                    trailing: Text(_version.isNotEmpty ? _version : "Loading...", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.code, color: theme.iconTheme.color),
+                    title: Text("Source Code", style: TextStyle(color: theme.colorScheme.onSurface)),
+                    trailing: Icon(Icons.open_in_new, color: theme.iconTheme.color?.withValues(alpha: 0.5), size: 16),
+                    onTap: () => launchUrl(Uri.parse("https://github.com/panyou1996/miss_net")),
+                  ),
+                ]),
+                const SizedBox(height: 100),
               ],
             ),
     );
   }
 
+  Widget _buildGroup(ThemeData theme, Color? bgColor, List<Widget> children) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: children.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final widget = entry.value;
+          final isLast = idx == children.length - 1;
+          
+          if (isLast) return widget;
+          return Column(
+            children: [
+              widget,
+              Padding(
+                padding: const EdgeInsets.only(left: 60),
+                child: Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.05)),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.fromLTRB(32, 16, 16, 8),
       child: Text(
-        title,
-        style: const TextStyle(color: Colors.red, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+        title.toUpperCase(),
+        style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5),
       ),
     );
   }
