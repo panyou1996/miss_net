@@ -52,51 +52,66 @@ class _FavoritesPageState extends State<FavoritesPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text("My Favorites", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold)),
-        backgroundColor: theme.appBarTheme.backgroundColor,
-      ),
+      backgroundColor: isDark ? Colors.black : Colors.grey[50],
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.red))
-          : _videos.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.favorite_border, color: theme.disabledColor, size: 64),
-                      const SizedBox(height: 16),
-                      Text("Your favorites list is empty", style: TextStyle(color: theme.hintColor)),
-                    ],
-                  ),
-                )
-              : GridView.builder(
-                  padding: const EdgeInsets.all(10),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: ResponsiveGrid.getCrossAxisCount(context),
-                    childAspectRatio: 1.5,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                  ),
-                  itemCount: _videos.length,
-                  itemBuilder: (context, index) {
-                    return OpenContainer(
-                      transitionDuration: const Duration(milliseconds: 500),
-                      openBuilder: (context, _) => PlayerPage(video: _videos[index]),
-                      closedElevation: 0,
-                      closedColor: theme.scaffoldBackgroundColor,
-                      closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      closedBuilder: (context, openContainer) => VideoCard(
-                        video: _videos[index],
-                        onTap: () {
-                          openContainer();
-                          // Reload after return in case un-favorited
-                          Future.delayed(const Duration(milliseconds: 500), _loadFavorites);
-                        },
-                      ),
-                    );
-                  },
+          : CustomScrollView(
+              slivers: [
+                SliverAppBar.large(
+                  expandedHeight: 120,
+                  backgroundColor: Colors.transparent,
+                  title: Text("My Favorites", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold, letterSpacing: -1)),
                 ),
+                if (_videos.isEmpty)
+                  SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.favorite_border_rounded, color: theme.disabledColor.withValues(alpha: 0.3), size: 80),
+                          const SizedBox(height: 20),
+                          Text("No favorites yet", style: TextStyle(color: theme.hintColor, fontSize: 16, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                    sliver: SliverGrid(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: ResponsiveGrid.getCrossAxisCount(context),
+                        childAspectRatio: 1.4,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final video = _videos[index];
+                          return OpenContainer(
+                            transitionDuration: const Duration(milliseconds: 500),
+                            openBuilder: (context, _) => PlayerPage(video: video),
+                            closedElevation: 0,
+                            closedColor: Colors.transparent,
+                            closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            closedBuilder: (context, openContainer) => VideoCard(
+                              video: video,
+                              onTap: () {
+                                openContainer();
+                                Future.delayed(const Duration(milliseconds: 500), _loadFavorites);
+                              },
+                            ),
+                          );
+                        },
+                        childCount: _videos.length,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
     );
   }
 }
