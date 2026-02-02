@@ -24,6 +24,7 @@ dependencies:
   google_fonts: ^8.0.0
   dartz: ^0.10.1
   transparent_image: ^2.0.1
+  device_info_plus: ^11.3.0
   rxdart: ^0.28.0
   shared_preferences: ^2.5.4
   shimmer: ^3.0.0

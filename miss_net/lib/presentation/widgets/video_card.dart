@@ -38,126 +38,127 @@ class VideoCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16.0), 
           child: Stack(
             children: [
-            Positioned.fill(
-              child: Hero(
-                tag: heroTag ?? video.id,
-                child: video.coverUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: ImageProxy.getUrl(video.coverUrl!),
-                        httpHeaders: const {'Referer': 'https://missav.ws/'},
-                        memCacheHeight: 400,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const VideoCardSkeleton(),
-                        errorWidget: (context, url, error) => Container(
-                          color: Colors.grey[900],
-                          child: const Icon(Icons.broken_image, color: Colors.white12),
-                        ),
-                      )
-                    : Image.memory(kTransparentImage),
+              Positioned.fill(
+                child: Hero(
+                  tag: heroTag ?? video.id,
+                  child: video.coverUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: ImageProxy.getUrl(video.coverUrl!),
+                          httpHeaders: const {'Referer': 'https://missav.ws/'},
+                          memCacheHeight: 400,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => const VideoCardSkeleton(),
+                          errorWidget: (context, url, error) => Container(
+                            color: Colors.grey[900],
+                            child: const Icon(Icons.broken_image, color: Colors.white12),
+                          ),
+                        )
+                      : Image.memory(kTransparentImage),
+                ),
               ),
-            ),
-            // Improved Gradient Overlay
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.9), 
-                      Colors.black.withValues(alpha: 0.4),
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.1),
-                    ],
-                    stops: const [0.0, 0.3, 0.6, 1.0], 
+              // Improved Gradient Overlay
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.9), 
+                        Colors.black.withValues(alpha: 0.4),
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.1),
+                      ],
+                      stops: const [0.0, 0.3, 0.6, 1.0], 
+                    ),
                   ),
                 ),
               ),
-            ),
-            // Progress Bar
-            if (video.progress > 0)
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 3,
-                  color: Colors.white.withValues(alpha: 0.1),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: video.progress,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        boxShadow: [
-                          BoxShadow(color: Colors.red.withValues(alpha: 0.5), blurRadius: 4, spreadRadius: 1)
-                        ]
+              // Progress Bar
+              if (video.progress > 0)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: 3,
+                    color: Colors.white.withValues(alpha: 0.1),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: video.progress,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          boxShadow: [
+                            BoxShadow(color: Colors.red.withValues(alpha: 0.5), blurRadius: 4, spreadRadius: 1)
+                          ]
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            // Title
-            Positioned(
-              bottom: 10,
-              left: 10,
-              right: 10,
-              child: Text(
-                video.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  height: 1.2,
-                  letterSpacing: 0.2,
+              // Title
+              Positioned(
+                bottom: 10,
+                left: 10,
+                right: 10,
+                child: Text(
+                  video.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    height: 1.2,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ),
-            ),
-            // Duration Badge
-            if (video.duration != null && video.duration!.isNotEmpty)
-              Positioned(
-                bottom: 30,
-                right: 5,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    video.duration!,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+              // Duration Badge
+              if (video.duration != null && video.duration!.isNotEmpty)
+                Positioned(
+                  bottom: 30,
+                  right: 5,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      video.duration!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            // Subtitle Badge
-            if (_hasSubtitles(video))
-              Positioned(
-                top: 5,
-                left: 5,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text(
-                    "SUB",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
+              // Subtitle Badge
+              if (_hasSubtitles(video))
+                Positioned(
+                  top: 5,
+                  left: 5,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      "SUB",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
