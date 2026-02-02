@@ -51,11 +51,12 @@ class VideoCard extends StatelessWidget {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Colors.black.withValues(alpha: 0.95), // Darker at bottom
-                      Colors.black.withValues(alpha: 0.5),
+                      Colors.black.withValues(alpha: 0.9), 
+                      Colors.black.withValues(alpha: 0.4),
                       Colors.transparent,
+                      Colors.black.withValues(alpha: 0.1),
                     ],
-                    stops: const [0.0, 0.3, 0.6], // Smoother transition
+                    stops: const [0.0, 0.3, 0.6, 1.0], 
                   ),
                 ),
               ),
@@ -68,28 +69,36 @@ class VideoCard extends StatelessWidget {
                 right: 0,
                 child: Container(
                   height: 3,
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white.withValues(alpha: 0.1),
                   child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
                     widthFactor: video.progress,
-                    child: Container(color: Colors.red),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        boxShadow: [
+                          BoxShadow(color: Colors.red.withValues(alpha: 0.5), blurRadius: 4, spreadRadius: 1)
+                        ]
+                      ),
+                    ),
                   ),
                 ),
               ),
             // Title
             Positioned(
-              bottom: 8,
-              left: 8,
-              right: 8,
+              bottom: 10,
+              left: 10,
+              right: 10,
               child: Text(
                 video.title,
-                maxLines: 2, // Allow 2 lines for better readability
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
                   color: Colors.white,
                   height: 1.2,
+                  letterSpacing: 0.2,
                 ),
               ),
             ),

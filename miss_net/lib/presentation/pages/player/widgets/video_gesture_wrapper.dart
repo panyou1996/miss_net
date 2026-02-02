@@ -102,10 +102,17 @@ class _VideoGestureWrapperState extends State<VideoGestureWrapper> with SingleTi
       },
       onHorizontalDragUpdate: (details) {
         if (widget.isLocked) return;
-        // Seek logic
-        final delta = details.primaryDelta! * 500; // 500ms per pixel approx
-        final newPos = widget.controller.value.position + Duration(milliseconds: delta.toInt());
-        _showFeedback(_formatDuration(newPos), delta > 0 ? Icons.fast_forward : Icons.fast_rewind);
+        final delta = details.primaryDelta! * 200; // Adjusted sensitivity
+        final currentPos = widget.controller.value.position;
+        final newPos = currentPos + Duration(milliseconds: delta.toInt());
+        
+        // Limit seek range between 0 and duration
+        final clampedPos = Duration(
+          milliseconds: newPos.inMilliseconds.clamp(0, widget.controller.value.duration.inMilliseconds)
+        );
+        
+        widget.controller.seekTo(clampedPos);
+        _showFeedback(_formatDuration(clampedPos), delta > 0 ? Icons.fast_forward : Icons.fast_rewind);
       },
       onDoubleTapDown: (details) {
         if (widget.isLocked) return;

@@ -278,6 +278,63 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     );
   }
 
+  void _showSpeedDialog() {
+    final speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.8),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text("Playback Speed", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+              ...speeds.map((speed) => ListTile(
+                title: Text("${speed}x", style: const TextStyle(color: Colors.white)),
+                trailing: _videoPlayerController?.value.playbackSpeed == speed 
+                    ? const Icon(Icons.check, color: Colors.red) 
+                    : null,
+                onTap: () {
+                  _videoPlayerController?.setPlaybackSpeed(speed);
+                  Navigator.pop(ctx);
+                  setState(() {});
+                },
+              )),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _playerActionButton(BuildContext context, IconData icon, String label, VoidCallback onTap) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: theme.colorScheme.onSurface),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isPipMode) return _buildPlayerOnly();
@@ -433,22 +490,31 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    IconButton(
-                      icon: Icon(Icons.download, color: theme.colorScheme.onSurface), 
-                      onPressed: _handleDownload,
-                      tooltip: "Download",
+                    _playerActionButton(
+                      context, 
+                      Icons.download, 
+                      "Download", 
+                      _handleDownload
                     ),
-                    IconButton(
-                      icon: Icon(Icons.cast, color: theme.colorScheme.onSurface), 
-                      onPressed: _handleCast,
-                      tooltip: "Cast",
+                    _playerActionButton(
+                      context, 
+                      Icons.speed, 
+                      "Speed", 
+                      _showSpeedDialog
                     ),
-                    IconButton(
-                      icon: Icon(Icons.share, color: theme.colorScheme.onSurface), 
-                      onPressed: () {
+                    _playerActionButton(
+                      context, 
+                      Icons.cast, 
+                      "Cast", 
+                      _handleCast
+                    ),
+                    _playerActionButton(
+                      context, 
+                      Icons.share, 
+                      "Share", 
+                      () {
                          // Share logic
-                      },
-                      tooltip: "Share",
+                      }
                     ),
                   ],
                 ),
