@@ -126,18 +126,19 @@ class _HomePageState extends State<HomePage> {
         child: Stack(
           children: [
             Container(
-              height: 400,
+              height: 460, // Increased height for better visual impact
               width: double.infinity,
               foregroundDecoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
                   colors: [
-                    Colors.black,
-                    Colors.black.withValues(alpha: 0.5),
+                    Colors.black.withValues(alpha: 0.9),
+                    Colors.black.withValues(alpha: 0.4),
                     Colors.transparent,
+                    Colors.black.withValues(alpha: 0.2),
                   ],
-                  stops: const [0.0, 0.3, 0.6],
+                  stops: const [0.0, 0.35, 0.6, 1.0], // More natural gradient
                 ),
               ),
               child: Hero(
@@ -149,25 +150,33 @@ class _HomePageState extends State<HomePage> {
             ),
             Positioned(
               bottom: 40,
-              left: 20,
-              right: 20,
+              left: 24,
+              right: 24,
               child: Column(
                 children: [
                   Text(
                     video.title,
                     textAlign: TextAlign.center,
                     maxLines: 2,
-                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white, 
+                      fontSize: 26, 
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                      shadows: [Shadow(color: Colors.black45, blurRadius: 10, offset: Offset(0, 2))],
+                    ),
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 20),
                   ElevatedButton.icon(
                     onPressed: openContainer,
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text("Play Now"),
+                    icon: const Icon(Icons.play_arrow, size: 28),
+                    label: const Text("Play Now", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+                      elevation: 8,
+                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
                   ),
                 ],
@@ -185,7 +194,7 @@ class _HomePageState extends State<HomePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 12), // Increased top and bottom padding
           child: InkWell(
             onTap: () {
               Navigator.push(
@@ -200,9 +209,14 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Text(
                   section.title,
-                  style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface, 
+                    fontSize: 20, // Slightly larger
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
                 ),
-                Icon(Icons.arrow_forward_ios, color: theme.colorScheme.onSurface.withValues(alpha: 0.5), size: 16),
+                Icon(Icons.arrow_forward_ios, color: theme.colorScheme.onSurface.withValues(alpha: 0.4), size: 14),
               ],
             ),
           ),
@@ -211,7 +225,7 @@ class _HomePageState extends State<HomePage> {
           height: 160,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12), // Adjusted padding
             itemCount: section.videos.length,
             itemBuilder: (context, index) {
               final video = section.videos[index];

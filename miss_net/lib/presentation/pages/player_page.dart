@@ -602,7 +602,21 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   Widget _infoBadge(BuildContext context, IconData icon, String text) {
     final theme = Theme.of(context);
-    return Row(children: [Icon(icon, size: 16, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)), const SizedBox(width: 6), Text(text, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7), fontSize: 13))]);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)), 
+          const SizedBox(width: 6), 
+          Text(text, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12, fontWeight: FontWeight.w500))
+        ]
+      ),
+    );
   }
 
   bool _hasSubtitles(Video video) {
@@ -613,14 +627,30 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   Widget _tagChip(BuildContext context, String label, Color color) {
     final theme = Theme.of(context);
+    // Use a more subtle color for general tags
+    final bgColor = label.toUpperCase() == "SUBTITLED" || label.contains("中文") 
+        ? Colors.red.withValues(alpha: 0.7) 
+        : theme.colorScheme.onSurface.withValues(alpha: 0.1);
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20), border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1))),
-          child: Text(label, style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 12, fontWeight: FontWeight.w500)),
+          decoration: BoxDecoration(
+            color: bgColor, 
+            borderRadius: BorderRadius.circular(20), 
+            border: Border.all(color: theme.dividerColor.withValues(alpha: 0.05))
+          ),
+          child: Text(
+            label, 
+            style: TextStyle(
+              color: bgColor == Colors.red.withValues(alpha: 0.7) ? Colors.white : theme.colorScheme.onSurface, 
+              fontSize: 12, 
+              fontWeight: FontWeight.w500
+            )
+          ),
         ),
       ),
     );

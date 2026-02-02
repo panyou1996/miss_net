@@ -103,15 +103,43 @@ class VideoSearchDelegate extends SearchDelegate {
 
   Widget _hotTag(BuildContext context, String label) {
     final theme = Theme.of(context);
-    return ActionChip(
-      label: Text(label),
-      backgroundColor: theme.cardColor,
-      labelStyle: TextStyle(color: theme.colorScheme.onSurface, fontSize: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.1))),
-      onPressed: () {
-        query = label;
-        showResults(context);
-      },
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: InkWell(
+        onTap: () {
+          query = label;
+          showResults(context);
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.cardColor,
+                theme.cardColor.withValues(alpha: 0.8),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              )
+            ],
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
