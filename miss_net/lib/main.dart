@@ -18,9 +18,7 @@ Future<void> main() async {
     await Supabase.initialize(
       url: 'https://gapmmwdbxzcglvvdhhiu.supabase.co',
       anonKey: 'sb_publishable_08qYVl69uwJs444rqwodug_wKjj6eD0',
-    ).timeout(const Duration(seconds: 5), onTimeout: () {
-      debugPrint("Supabase init timed out - continuing anyway");
-    });
+    ).timeout(const Duration(seconds: 5));
 
     // 2. DI
     await di.init();
