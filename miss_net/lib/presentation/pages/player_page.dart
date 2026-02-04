@@ -553,28 +553,78 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                   ],
                 ),
                 if (widget.video.categories != null && widget.video.categories!.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  Wrap(spacing: 8, runSpacing: 8, children: widget.video.categories!.map((cat) => _tagChip(context, cat, Colors.transparent)).toList()),
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "CATEGORIES", 
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6), 
+                          fontSize: 13, 
+                          fontWeight: FontWeight.w900, 
+                          letterSpacing: 1.2
+                        )
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(spacing: 10, runSpacing: 10, children: widget.video.categories!.map((cat) => _tagChip(context, cat, Colors.transparent)).toList()),
                 ],
                 if (widget.video.actors != null && widget.video.actors!.isNotEmpty) ...[
-                  const SizedBox(height: 30),
-                  Text("Actresses", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5), fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "ACTRESSES", 
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6), 
+                          fontSize: 13, 
+                          fontWeight: FontWeight.w900, 
+                          letterSpacing: 1.2
+                        )
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
                     children: widget.video.actors!.map((actor) {
                       return InkWell(
                         onTap: () {
+                          HapticFeedback.selectionClick();
                           Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryDetailPage(title: actor, actor: actor)));
                         },
+                        borderRadius: BorderRadius.circular(12),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(
-                            color: theme.cardColor.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(8),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
                           ),
-                          child: Text(actor, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                          child: Text(
+                            actor, 
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)
+                          ),
                         ),
                       );
                     }).toList(),
@@ -659,22 +709,34 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     final theme = Theme.of(context);
     final isImportant = label.toUpperCase() == "SUBTITLED" || label.contains("中文");
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: isImportant ? Colors.red.withValues(alpha: 0.1) : theme.colorScheme.onSurface.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isImportant ? Colors.red.withValues(alpha: 0.2) : theme.dividerColor.withValues(alpha: 0.1),
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CategoryDetailPage(title: label, category: label),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isImportant ? Colors.red.withValues(alpha: 0.12) : theme.colorScheme.onSurface.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isImportant ? Colors.red.withValues(alpha: 0.25) : theme.dividerColor.withValues(alpha: 0.15),
+            width: 0.8,
+          ),
         ),
-      ),
-      child: Text(
-        label, 
-        style: TextStyle(
-          color: isImportant ? Colors.redAccent : theme.colorScheme.onSurface.withValues(alpha: 0.7), 
-          fontSize: 11, 
-          fontWeight: FontWeight.bold
-        )
+        child: Text(
+          label, 
+          style: TextStyle(
+            color: isImportant ? Colors.redAccent : theme.colorScheme.onSurface.withValues(alpha: 0.8), 
+            fontSize: 12, 
+            fontWeight: FontWeight.w600
+          )
+        ),
       ),
     );
   }
