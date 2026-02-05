@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart' as http;
@@ -41,6 +42,9 @@ class VideoResolver {
     VideoStreamInfo info;
     if (kIsWeb) {
       info = await _resolveWeb(sourceUrl);
+    } else if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
+      // Desktop platforms don't support request interception in Headless WebView
+      info = await _resolveDesktop(sourceUrl);
     } else {
       info = await _resolveMobile(sourceUrl);
     }
@@ -52,6 +56,38 @@ class VideoResolver {
     );
     
     return info;
+  }
+
+  // --- Desktop Implementation (Source Parsing) ---
+  Future<VideoStreamInfo> _resolveDesktop(String sourceUrl) async {
+    try {
+      // Direct GET with high-end UA
+      final response = await http.get(Uri.parse(sourceUrl), headers: {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://missav.ws/',
+      });
+      
+      if (response.statusCode != 200) throw Exception("Source Fetch Failed (${response.statusCode})");
+
+      final html = response.body;
+      final m3u8Regex = RegExp(r'https?://[^"]+\.m3u8');
+      final match = m3u8Regex.firstMatch(html);
+
+      if (match != null) {
+        return VideoStreamInfo(
+          streamUrl: match.group(0)!,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://missav.ws/',
+          }
+        );
+      }
+      
+      // Fallback to packed JS parsing (same as Web)
+      return await _resolveWeb(sourceUrl);
+    } catch (e) {
+      throw Exception("Desktop Resolution Failed: $e");
+    }
   }
 
   // --- Mobile Implementation (Headless WebView) ---
