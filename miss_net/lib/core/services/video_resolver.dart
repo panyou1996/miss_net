@@ -24,58 +24,97 @@ class VideoResolver {
   HeadlessInAppWebView? _headlessWebView;
   Completer<VideoStreamInfo>? _completer;
 
-  // Cache: sourceUrl -> Entry
   static final Map<String, _CacheEntry> _cache = {};
 
   Future<VideoStreamInfo> resolveStreamUrl(String sourceUrl) async {
-    // Check Cache first
+    // 0. If it's already an m3u8 (e.g. from 51cg), return immediately
+    if (sourceUrl.toLowerCase().contains('.m3u8')) {
+      return VideoStreamInfo(
+        streamUrl: sourceUrl,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': sourceUrl.contains('51cg') ? 'https://51cg1.com/' : 'https://missav.ws/',
+        },
+      );
+    }
+
+    // 1. Check Cache
     if (_cache.containsKey(sourceUrl)) {
       final entry = _cache[sourceUrl]!;
-      if (!entry.isExpired) {
-        debugPrint("Resolver: Cache Hit for $sourceUrl");
-        return entry.info;
-      } else {
-        _cache.remove(sourceUrl);
-      }
+      if (!entry.isExpired) return entry.info;
+      _cache.remove(sourceUrl);
     }
 
     VideoStreamInfo info;
-    if (kIsWeb) {
-      info = await _resolveWeb(sourceUrl);
-    } else if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-      // Desktop platforms don't support request interception in Headless WebView
-      info = await _resolveDesktop(sourceUrl);
-    } else {
-      info = await _resolveMobile(sourceUrl);
+    try {
+      if (kIsWeb) {
+        info = await _resolveWeb(sourceUrl);
+      } else if (Platform.isLinux) {
+        info = await _resolveLinux(sourceUrl);
+      } else if (Platform.isWindows || Platform.isMacOS) {
+        info = await _resolveDesktop(sourceUrl);
+      } else {
+        info = await _resolveMobile(sourceUrl);
+      }
+    } catch (e) {
+      debugPrint("Resolution attempt failed: $e. Trying fallback...");
+      info = await _resolveWeb(sourceUrl); // Global fallback
     }
 
-    // Save to cache (valid for 15 minutes)
-    _cache[sourceUrl] = _CacheEntry(
-      info, 
-      DateTime.now().add(const Duration(minutes: 15))
-    );
-    
+    _cache[sourceUrl] = _CacheEntry(info, DateTime.now().add(const Duration(minutes: 15)));
     return info;
   }
 
-  // --- Desktop Implementation (JS Extraction via WebView) ---
+  // --- Linux Implementation (Pure HTTP with Multiple Patterns) ---
+  Future<VideoStreamInfo> _resolveLinux(String sourceUrl) async {
+    final headers = {
+      'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Referer': 'https://missav.ws/',
+    };
+
+    try {
+      final response = await http.get(Uri.parse(sourceUrl), headers: headers);
+      if (response.statusCode != 200) throw Exception("Status ${response.statusCode}");
+
+      final html = response.body;
+      
+      // Pattern 1: Direct URL in HTML
+      final m3u8Regex = RegExp(r'''https?://[^"'\s]+\.m3u8[^"'\s]*''');
+      final match = m3u8Regex.firstMatch(html);
+      if (match != null) {
+        return VideoStreamInfo(streamUrl: match.group(0)!, headers: headers);
+      }
+
+      // Pattern 2: Packed JS (Common in MissAV)
+      if (html.contains('eval(function(p,a,c,k,e,d)')) {
+        final evalRegex = RegExp(r"eval\(function\(p,a,c,k,e,d\).*?\.split\('\|'\)\)\)", dotAll: true);
+        final evalMatch = evalRegex.firstMatch(html);
+        if (evalMatch != null) {
+          final unpacked = _unpack(evalMatch.group(0)!);
+          final mMatch = m3u8Regex.firstMatch(unpacked);
+          if (mMatch != null) {
+            return VideoStreamInfo(streamUrl: mMatch.group(0)!, headers: headers);
+          }
+        }
+      }
+      
+      throw Exception("No m3u8 pattern found in source");
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // --- Desktop WebView Implementation ---
   Future<VideoStreamInfo> _resolveDesktop(String sourceUrl) async {
     _completer = Completer<VideoStreamInfo>();
-    
-    // In a real Desktop environment, we'd use a hidden window or small widget.
-    // For now, we still try the Headless approach but with JS extraction.
-    
-    if (_headlessWebView != null) {
-      await _headlessWebView?.dispose();
-    }
+    if (_headlessWebView != null) await _headlessWebView?.dispose();
 
     _headlessWebView = HeadlessInAppWebView(
       initialUrlRequest: URLRequest(url: WebUri(sourceUrl)),
       onLoadStop: (controller, url) async {
-        // Once page loaded (bypassed CF), extract HTML source
         final html = await controller.evaluateJavascript(source: "document.documentElement.innerHTML");
-        if (html != null && html.toString().contains('.m3u8')) {
-          final m3u8Regex = RegExp(r'https?://[^"\'\\s]+\\.m3u8[^"\'\\s]*');
+        if (html != null) {
+          final m3u8Regex = RegExp(r'''https?://[^"'\s]+\.m3u8[^"'\s]*''');
           final match = m3u8Regex.firstMatch(html.toString());
           if (match != null && !_completer!.isCompleted) {
             _completer!.complete(VideoStreamInfo(
@@ -91,79 +130,47 @@ class VideoResolver {
     );
 
     await _headlessWebView?.run();
-    
-    try {
-      return await _completer!.future.timeout(const Duration(seconds: 20));
-    } catch (e) {
-      // Last ditch effort: try the Web/Proxy approach
-      return await _resolveWeb(sourceUrl);
-    }
+    return await _completer!.future.timeout(const Duration(seconds: 20));
   }
 
-  // --- Mobile Implementation (Headless WebView) ---
+  // --- Mobile Implementation (Android/iOS) ---
   Future<VideoStreamInfo> _resolveMobile(String sourceUrl) async {
     _completer = Completer<VideoStreamInfo>();
-    
-    if (_headlessWebView != null) {
-      await _headlessWebView?.dispose();
-    }
+    if (_headlessWebView != null) await _headlessWebView?.dispose();
 
     _headlessWebView = HeadlessInAppWebView(
       initialUrlRequest: URLRequest(url: WebUri(sourceUrl)),
-      initialSettings: InAppWebViewSettings(
-        isInspectable: true,
-        mediaPlaybackRequiresUserGesture: false,
-        useShouldInterceptRequest: true,
-      ),
+      initialSettings: InAppWebViewSettings(useShouldInterceptRequest: true),
       shouldInterceptRequest: (controller, request) async {
         final url = request.url.toString();
-        if (url.contains('.m3u8')) {
-          if (!_completer!.isCompleted) {
-            _completer!.complete(VideoStreamInfo(
-              streamUrl: url,
-              headers: request.headers ?? {},
-            ));
-          }
+        if (url.contains('.m3u8') && !_completer!.isCompleted) {
+          _completer!.complete(VideoStreamInfo(streamUrl: url, headers: request.headers ?? {}));
         }
         return null;
       },
     );
 
     await _headlessWebView?.run();
-    
-    try {
-      return await _completer!.future.timeout(const Duration(seconds: 15));
-    } catch (e) {
-      await _headlessWebView?.dispose();
-      _headlessWebView = null;
-      throw TimeoutException("Failed to resolve stream URL via Headless WebView");
-    }
+    return await _completer!.future.timeout(const Duration(seconds: 15));
   }
 
-  // --- Web Implementation ---
+  // --- Web Proxy Fallback ---
   Future<VideoStreamInfo> _resolveWeb(String sourceUrl) async {
-    try {
-      final proxyUrl = "https://api.allorigins.win/raw?url=${Uri.encodeComponent(sourceUrl)}";
-      final response = await http.get(Uri.parse(proxyUrl));
-      if (response.statusCode != 200) throw Exception("Failed to fetch page source");
+    final proxyUrl = "https://api.allorigins.win/raw?url=${Uri.encodeComponent(sourceUrl)}";
+    final response = await http.get(Uri.parse(proxyUrl));
+    if (response.statusCode != 200) throw Exception("Proxy error");
 
-      final html = response.body;
-      final regExp = RegExp(r"eval\(function\(p,a,c,k,e,d\).*?\.split\('\|'\)\)\)", dotAll: true);
-      final match = regExp.firstMatch(html);
+    final html = response.body;
+    final evalRegex = RegExp(r"eval\(function\(p,a,c,k,e,d\).*?\.split\('\|'\)\)\)", dotAll: true);
+    final match = evalRegex.firstMatch(html);
 
-      if (match != null) {
-        final unpacked = _unpack(match.group(0)!);
-        final m3u8Regex = RegExp(r"https?://[^']+\.m3u8");
-        final m3u8Match = m3u8Regex.firstMatch(unpacked);
-
-        if (m3u8Match != null) {
-          return VideoStreamInfo(streamUrl: m3u8Match.group(0)!, headers: {});
-        }
-      }
-      throw Exception("No m3u8 found in unpacked code");
-    } catch (e) {
-      throw Exception("Web Resolution Failed: $e");
+    if (match != null) {
+      final unpacked = _unpack(match.group(0)!);
+      final m3u8Regex = RegExp(r"https?://[^']+\.m3u8");
+      final mMatch = m3u8Regex.firstMatch(unpacked);
+      if (mMatch != null) return VideoStreamInfo(streamUrl: mMatch.group(0)!, headers: {});
     }
+    throw Exception("No m3u8 found in proxy source");
   }
 
   String _unpack(String packed) {
