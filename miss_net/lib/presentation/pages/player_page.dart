@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'dart:ui'; 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:palette_generator/palette_generator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/services/video_resolver.dart';
@@ -44,6 +45,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   bool _isLocked = false;
   Timer? _progressTimer;
   List<Video> _relatedVideos = [];
+  Color _dominantColor = Colors.red;
 
   @override
   void initState() {
@@ -52,10 +54,26 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _checkFavoriteStatus();
     _loadRelatedVideos();
+    _updatePalette();
     if (!kIsWeb) {
       _initializePlayer();
     } else {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updatePalette() async {
+    if (widget.video.coverUrl == null) return;
+    try {
+      final image = CachedNetworkImageProvider(ImageProxy.getUrl(widget.video.coverUrl!));
+      final palette = await PaletteGenerator.fromImageProvider(image, maximumColorCount: 10);
+      if (mounted) {
+        setState(() {
+          _dominantColor = palette.dominantColor?.color ?? Colors.red;
+        });
+      }
+    } catch (e) {
+      debugPrint("Palette Error: $e");
     }
   }
 
@@ -132,8 +150,8 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         allowMuting: true,
         showControls: !_isLocked,
         materialProgressColors: ChewieProgressColors(
-          playedColor: Colors.red,
-          handleColor: Colors.red,
+          playedColor: _dominantColor,
+          handleColor: _dominantColor,
           backgroundColor: Colors.grey.withValues(alpha: 0.5),
           bufferedColor: Colors.grey,
         ),
@@ -291,7 +309,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
               ...speeds.map((speed) => ListTile(
                 title: Text("${speed}x", style: const TextStyle(color: Colors.white)),
                 trailing: _videoPlayerController?.value.playbackSpeed == speed 
-                    ? const Icon(Icons.check, color: Colors.red) 
+                    ? Icon(Icons.check, color: _dominantColor) 
                     : null,
                 onTap: () {
                   _videoPlayerController?.setPlaybackSpeed(speed);
@@ -375,7 +393,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: _toggleFavorite,
-          backgroundColor: Colors.red,
+          backgroundColor: _dominantColor,
           elevation: 10,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           child: Icon(_isFavorite ? Icons.favorite : Icons.favorite_border, color: Colors.white),
@@ -482,7 +500,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                   child: Container(
                     decoration: BoxDecoration(
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 30, offset: const Offset(0, 10))
+                        BoxShadow(color: _dominantColor.withValues(alpha: 0.3), blurRadius: 30, offset: const Offset(0, 10))
                       ],
                     ),
                     child: ClipRRect(
@@ -631,7 +649,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   Widget _buildVisualHeader(String title) {
     return Row(
       children: [
-        Container(width: 4, height: 16, decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(2))),
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: _dominantColor, borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 8),
         Text(title, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
       ],
@@ -663,11 +681,11 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isImportant ? Colors.red.withValues(alpha: 0.12) : theme.colorScheme.onSurface.withValues(alpha: 0.06),
+          color: isImportant ? _dominantColor.withValues(alpha: 0.12) : theme.colorScheme.onSurface.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isImportant ? Colors.red.withValues(alpha: 0.25) : theme.dividerColor.withValues(alpha: 0.15), width: 0.8),
+          border: Border.all(color: isImportant ? _dominantColor.withValues(alpha: 0.25) : theme.dividerColor.withValues(alpha: 0.15), width: 0.8),
         ),
-        child: Text(label, style: TextStyle(color: isImportant ? Colors.redAccent : theme.colorScheme.onSurface.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600)),
+        child: Text(label, style: TextStyle(color: isImportant ? _dominantColor : theme.colorScheme.onSurface.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600)),
       ),
     );
   }

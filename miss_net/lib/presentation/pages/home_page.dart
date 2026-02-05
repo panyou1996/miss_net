@@ -45,7 +45,7 @@ class _HomePageState extends State<HomePage> {
 
   void _onScroll() {
     final double offset = _scrollController.offset;
-    final double opacity = (offset / 300).clamp(0.0, 1.0);
+    final double opacity = (offset / 350).clamp(0.0, 1.0);
     if (opacity != _appBarOpacity) {
       setState(() => _appBarOpacity = opacity);
     }
@@ -58,8 +58,8 @@ class _HomePageState extends State<HomePage> {
 
     // Fix Status Bar Contrast Dynamically
     final statusStyle = isDark 
-        ? (_appBarOpacity > 0.5 ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.light)
-        : (_appBarOpacity > 0.5 ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light);
+        ? SystemUiOverlayStyle.light
+        : (_appBarOpacity > 0.6 ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: statusStyle,
@@ -69,11 +69,11 @@ class _HomePageState extends State<HomePage> {
           preferredSize: const Size.fromHeight(kToolbarHeight),
           child: ClipRect(
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: _appBarOpacity * 25, sigmaY: _appBarOpacity * 25),
+              filter: ImageFilter.blur(sigmaX: _appBarOpacity * 30, sigmaY: _appBarOpacity * 30),
               child: AppBar(
                 backgroundColor: isDark 
-                    ? Colors.black.withValues(alpha: _appBarOpacity * 0.75)
-                    : Colors.white.withValues(alpha: _appBarOpacity * 0.75),
+                    ? Colors.black.withValues(alpha: _appBarOpacity * 0.8)
+                    : Colors.white.withValues(alpha: _appBarOpacity * 0.8),
                 elevation: 0,
                 centerTitle: true,
                 title: Opacity(
@@ -83,13 +83,13 @@ class _HomePageState extends State<HomePage> {
                     style: GoogleFonts.playfairDisplay(
                       color: Colors.red, 
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
+                      letterSpacing: 1.5,
                     )
                   ),
                 ),
                 actions: [
                   IconButton(
-                    icon: Icon(Icons.search, color: _appBarOpacity > 0.5 ? theme.iconTheme.color : Colors.white),
+                    icon: Icon(Icons.search, color: (isDark || _appBarOpacity < 0.5) ? Colors.white : Colors.black),
                     onPressed: () {
                       final searchBloc = sl<SearchBloc>();
                       showSearch(context: context, delegate: VideoSearchDelegate(searchBloc))
@@ -101,55 +101,70 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ),
-        body: BlocBuilder<HomeBloc, HomeState>(
-          builder: (context, state) {
-            if (state is HomeLoading) {
-              return _buildLoading(theme);
-            } else if (state is HomeError) {
-              return Center(child: Text(state.message, style: TextStyle(color: theme.colorScheme.error)));
-            } else if (state is HomeLoaded) {
-              return RefreshIndicator(
-                onRefresh: () async {
-                  context.read<HomeBloc>().add(LoadRecentVideos());
-                },
-                child: CustomScrollView(
-                  controller: _scrollController,
-                  slivers: [
-                    // 1. Hero Banner
-                    if (state.featuredVideo != null)
-                      SliverToBoxAdapter(
-                        child: _buildImmersiveHero(state.featuredVideo!),
-                      ),
-
-                    // 2. Content Sections with Editorial Rhythm
-                    SliverToBoxAdapter(
-                      child: Transform.translate(
-                        offset: const Offset(0, -40),
-                        child: Column(
-                          children: [
-                            if (state.continueWatching.isNotEmpty)
-                              _buildContinueWatching(context, state.continueWatching),
-                            
-                            // Use different scales for different sections
-                            ...state.sections.asMap().entries.map((entry) {
-                              final idx = entry.key;
-                              final section = entry.value;
-                              // Magazine Rhythm: alternate between landscape and portrait
-                              final bool isLandscape = idx % 2 == 0;
-                              return _buildEditorialSection(context, section, isLandscape);
-                            }),
-                          ],
-                        ),
-                      ),
-                    ),
-                    
-                    const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                  ],
+        body: Stack(
+          children: [
+            // Background Typography Decoration
+            Positioned(
+              top: 400,
+              right: -50,
+              child: Opacity(
+                opacity: 0.03,
+                child: Text(
+                  "EDITION",
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 120,
+                    fontWeight: FontWeight.w900,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
-              );
-            }
-            return const SizedBox.shrink();
-          },
+              ),
+            ),
+            
+            BlocBuilder<HomeBloc, HomeState>(
+              builder: (context, state) {
+                if (state is HomeLoading) {
+                  return _buildLoading(theme);
+                } else if (state is HomeError) {
+                  return Center(child: Text(state.message, style: TextStyle(color: theme.colorScheme.error)));
+                } else if (state is HomeLoaded) {
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      context.read<HomeBloc>().add(LoadRecentVideos());
+                    },
+                    child: CustomScrollView(
+                      controller: _scrollController,
+                      physics: const BouncingScrollPhysics(),
+                      slivers: [
+                        if (state.featuredVideo != null)
+                          SliverToBoxAdapter(child: _buildImmersiveHero(state.featuredVideo!)),
+
+                        SliverToBoxAdapter(
+                          child: Transform.translate(
+                            offset: const Offset(0, -50),
+                            child: Column(
+                              children: [
+                                if (state.continueWatching.isNotEmpty)
+                                  _buildContinueWatching(context, state.continueWatching),
+                                
+                                ...state.sections.asMap().entries.map((entry) {
+                                  final idx = entry.key;
+                                  final section = entry.value;
+                                  final bool isLandscape = idx % 2 == 0;
+                                  return _buildEditorialSection(context, section, isLandscape);
+                                }),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                      ],
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -160,7 +175,7 @@ class _HomePageState extends State<HomePage> {
       slivers: [
         SliverAppBar(
           backgroundColor: theme.scaffoldBackgroundColor,
-          title: const Text("MissNet", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          title: Text("MissNet", style: GoogleFonts.playfairDisplay(color: Colors.red, fontWeight: FontWeight.bold)),
         ),
         SliverList(
           delegate: SliverChildBuilderDelegate(
@@ -174,27 +189,29 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 32, 16, 16),
+      padding: const EdgeInsets.fromLTRB(20, 48, 16, 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(
             title, 
             style: GoogleFonts.playfairDisplay(
-              fontSize: 26, 
+              fontSize: 28, 
               fontWeight: FontWeight.w900, 
-              letterSpacing: -0.5
+              letterSpacing: -0.8
             )
           ),
           const Spacer(),
-          Text(
-            "View All", 
-            style: TextStyle(
-              color: Colors.redAccent, 
-              fontSize: 12, 
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1
-            )
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Text(
+              "ALL", 
+              style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)
+            ),
           ),
         ],
       ),
@@ -207,24 +224,25 @@ class _HomePageState extends State<HomePage> {
       children: [
         _buildSectionHeader(section.title),
         SizedBox(
-          height: isLandscape ? 180 : 260, // Vary height
+          height: isLandscape ? 190 : 280,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 12),
             itemCount: section.videos.length,
             itemBuilder: (context, index) {
               final video = section.videos[index];
               final hTag = "${video.id}_${section.title}_$index";
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
                 child: SizedBox(
-                  width: isLandscape ? 280 : 170, // Vary width
+                  width: isLandscape ? 300 : 180,
                   child: OpenContainer(
-                    transitionDuration: const Duration(milliseconds: 600),
+                    transitionDuration: const Duration(milliseconds: 700),
                     openBuilder: (context, _) => PlayerPage(video: video, heroTag: hTag),
                     closedElevation: 0,
                     closedColor: Colors.transparent,
-                    closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     closedBuilder: (context, openContainer) => VideoCard(
                       video: video,
                       heroTag: hTag,
@@ -254,7 +272,7 @@ class _HomePageState extends State<HomePage> {
         child: Stack(
           children: [
             Container(
-              height: MediaQuery.of(context).size.height * 0.7,
+              height: MediaQuery.of(context).size.height * 0.72,
               width: double.infinity,
               foregroundDecoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -264,9 +282,9 @@ class _HomePageState extends State<HomePage> {
                     Colors.black.withValues(alpha: 0.98),
                     Colors.black.withValues(alpha: 0.4),
                     Colors.transparent,
-                    Colors.black.withValues(alpha: 0.1),
+                    Colors.black.withValues(alpha: 0.15),
                   ],
-                  stops: const [0.0, 0.45, 0.7, 1.0],
+                  stops: const [0.0, 0.4, 0.75, 1.0],
                 ),
               ),
               child: Hero(
@@ -277,7 +295,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             Positioned(
-              bottom: 80,
+              bottom: 100,
               left: 24,
               right: 24,
               child: Column(
@@ -288,42 +306,32 @@ class _HomePageState extends State<HomePage> {
                     maxLines: 2,
                     style: GoogleFonts.playfairDisplay(
                       color: Colors.white, 
-                      fontSize: 38, // Massive Editorial Title
+                      fontSize: 42, 
                       fontWeight: FontWeight.w900,
                       height: 1.0,
-                      letterSpacing: -1,
-                      shadows: [Shadow(color: Colors.black45, blurRadius: 20, offset: Offset(0, 10))],
+                      letterSpacing: -1.2,
+                      shadows: [Shadow(color: Colors.black45, blurRadius: 25, offset: Offset(0, 10))],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Row(
                     children: [
-                      _heroBadge("ULTRA HD"),
-                      const SizedBox(width: 8),
-                      Text(video.duration ?? "", style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                      _heroBadge("MASTERCLASS"),
+                      const SizedBox(width: 12),
+                      Text(video.duration ?? "", style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
                     ],
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 36),
                   Row(
                     children: [
                       Expanded(
                         flex: 2,
-                        child: _heroButton(
-                          onPressed: openContainer,
-                          icon: Icons.play_arrow_rounded,
-                          label: "Watch Now",
-                          isPrimary: true,
-                        ),
+                        child: _heroButton(onPressed: openContainer, icon: Icons.play_arrow_rounded, label: "WATCH NOW", isPrimary: true),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         flex: 1,
-                        child: _heroButton(
-                          onPressed: () {},
-                          icon: Icons.add,
-                          label: "List",
-                          isPrimary: false,
-                        ),
+                        child: _heroButton(onPressed: () {}, icon: Icons.add, label: "LIST", isPrimary: false),
                       ),
                     ],
                   ),
@@ -338,36 +346,36 @@ class _HomePageState extends State<HomePage> {
 
   Widget _heroBadge(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 0.5),
       ),
-      child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+      child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
     );
   }
 
   Widget _heroButton({required VoidCallback onPressed, required IconData icon, required String label, required bool isPrimary}) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
         child: InkWell(
           onTap: onPressed,
           child: Container(
-            height: 48,
+            height: 54,
             decoration: BoxDecoration(
-              color: isPrimary ? Colors.white : Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(14),
-              border: isPrimary ? null : Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              color: isPrimary ? Colors.white : Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(16),
+              border: isPrimary ? null : Border.all(color: Colors.white.withValues(alpha: 0.15)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, color: isPrimary ? Colors.black : Colors.white, size: 24),
-                const SizedBox(width: 8),
-                Text(label, style: TextStyle(color: isPrimary ? Colors.black : Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                Icon(icon, color: isPrimary ? Colors.black : Colors.white, size: 26),
+                const SizedBox(width: 10),
+                Text(label, style: TextStyle(color: isPrimary ? Colors.black : Colors.white, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
               ],
             ),
           ),
@@ -377,19 +385,18 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildContinueWatching(BuildContext context, List<Video> videos) {
-    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
+          padding: const EdgeInsets.fromLTRB(24, 16, 16, 16),
           child: Text(
-            "Continue Watching",
-            style: GoogleFonts.playfairDisplay(fontSize: 22, fontWeight: FontWeight.bold),
+            "REPLAY",
+            style: TextStyle(color: Colors.redAccent.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 3.0),
           ),
         ),
         SizedBox(
-          height: 140,
+          height: 150,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -398,15 +405,15 @@ class _HomePageState extends State<HomePage> {
               final video = videos[index];
               final hTag = "${video.id}_cw_$index";
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
                 child: SizedBox(
-                  width: 180,
+                  width: 200,
                   child: OpenContainer(
-                    transitionDuration: const Duration(milliseconds: 500),
+                    transitionDuration: const Duration(milliseconds: 600),
                     openBuilder: (context, _) => PlayerPage(video: video, heroTag: hTag),
                     closedElevation: 0,
                     closedColor: Colors.transparent,
-                    closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     closedBuilder: (context, openContainer) => VideoCard(
                       video: video,
                       heroTag: hTag,
