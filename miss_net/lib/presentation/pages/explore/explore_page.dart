@@ -20,7 +20,7 @@ class _ExplorePageState extends State<ExplorePage> {
   List<String> _popularTags = [];
 
   final List<Map<String, dynamic>> categories = const [
-    {'title': '51 Eating Melon', 'category': '51cg', 'icon': FontAwesomeIcons.watermelonSlice, 'color': Colors.red},
+    {'title': '51 Eating Melon', 'category': '51cg', 'icon': FontAwesomeIcons.fire, 'color': Colors.red},
     {'title': 'School', 'category': 'School', 'icon': FontAwesomeIcons.graduationCap, 'color': Colors.blue},
     {'title': 'Office', 'category': 'Office', 'icon': FontAwesomeIcons.briefcase, 'color': Colors.blueGrey},
     {'title': 'Mature', 'category': 'Mature', 'icon': FontAwesomeIcons.wineGlass, 'color': Colors.purple},
@@ -35,7 +35,7 @@ class _ExplorePageState extends State<ExplorePage> {
     {'title': 'Big Tits', 'category': 'BigTits', 'icon': FontAwesomeIcons.circleExclamation, 'color': Colors.lime},
     {'title': 'Creampie', 'category': 'Creampie', 'icon': FontAwesomeIcons.droplet, 'color': Colors.lightBlue},
     {'title': 'Beautiful', 'category': 'Beautiful', 'icon': FontAwesomeIcons.wandMagicSparkles, 'color': Colors.deepPurple},
-    {'title': 'Oral', 'category': 'Oral', 'icon': FontAwesomeIcons.lips, 'color': Colors.pinkAccent},
+    {'title': 'Oral', 'category': 'Oral', 'icon': FontAwesomeIcons.faceKiss, 'color': Colors.pinkAccent},
     {'title': 'Group', 'category': 'Group', 'icon': FontAwesomeIcons.users, 'color': Colors.cyan},
   ];
 
