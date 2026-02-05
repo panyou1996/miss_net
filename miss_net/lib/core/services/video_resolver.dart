@@ -154,23 +154,48 @@ class VideoResolver {
     return await _completer!.future.timeout(const Duration(seconds: 15));
   }
 
-  // --- Web Proxy Fallback ---
+  // --- Web Proxy Fallback (Bypass 403) ---
   Future<VideoStreamInfo> _resolveWeb(String sourceUrl) async {
+    // We use a CORS proxy to get the HTML content from another IP
     final proxyUrl = "https://api.allorigins.win/raw?url=${Uri.encodeComponent(sourceUrl)}";
-    final response = await http.get(Uri.parse(proxyUrl));
-    if (response.statusCode != 200) throw Exception("Proxy error");
+    
+    try {
+      final response = await http.get(Uri.parse(proxyUrl)).timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) throw Exception("Proxy returned ${response.statusCode}");
 
-    final html = response.body;
-    final evalRegex = RegExp(r"eval\(function\(p,a,c,k,e,d\).*?\.split\('\|'\)\)\)", dotAll: true);
-    final match = evalRegex.firstMatch(html);
+      final html = response.body;
+      final m3u8RegexGlobal = RegExp(r'''https?://[^"'\s]+\.m3u8[^"'\s]*''');
 
-    if (match != null) {
-      final unpacked = _unpack(match.group(0)!);
-      final m3u8Regex = RegExp(r"https?://[^']+\.m3u8");
-      final mMatch = m3u8Regex.firstMatch(unpacked);
-      if (mMatch != null) return VideoStreamInfo(streamUrl: mMatch.group(0)!, headers: {});
+      // Strategy 1: Search raw HTML directly
+      final directMatch = m3u8RegexGlobal.firstMatch(html);
+      if (directMatch != null) {
+        debugPrint("Resolver: Found direct m3u8 in proxy source");
+        return VideoStreamInfo(streamUrl: directMatch.group(0)!, headers: {});
+      }
+
+      // Strategy 2: Search inside packed JS (eval)
+      final evalRegex = RegExp(r"eval\(function\(p,a,c,k,e,d\).*?\.split\('\|'\)\)\)", dotAll: true);
+      final evalMatch = evalRegex.firstMatch(html);
+      if (evalMatch != null) {
+        final unpacked = _unpack(evalMatch.group(0)!);
+        final mMatch = m3u8RegexGlobal.firstMatch(unpacked);
+        if (mMatch != null) {
+          debugPrint("Resolver: Found m3u8 in unpacked JS via proxy");
+          return VideoStreamInfo(streamUrl: mMatch.group(0)!, headers: {});
+        }
+      }
+
+      // Strategy 3: Aggressive search for partial URLs (e.g. //cdn.com/...)
+      final partialRegex = RegExp(r'''//[^"'\s]+\.m3u8''');
+      final partialMatch = partialRegex.firstMatch(html);
+      if (partialMatch != null) {
+        return VideoStreamInfo(streamUrl: "https:${partialMatch.group(0)!}", headers: {});
+      }
+
+      throw Exception("No m3u8 pattern found after 3 attempts");
+    } catch (e) {
+      throw Exception("Proxy Resolution Failed: $e");
     }
-    throw Exception("No m3u8 found in proxy source");
   }
 
   String _unpack(String packed) {
