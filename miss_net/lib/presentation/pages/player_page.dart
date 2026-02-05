@@ -484,7 +484,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                       boxShadow: [
                         BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 30, offset: const Offset(0, 10))
                       ],
-                    ],
+                    ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
                       child: AspectRatio(

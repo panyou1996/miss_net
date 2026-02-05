@@ -1,8 +1,10 @@
 import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animations/animations.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../blocs/home/home_bloc.dart';
 import '../pages/player_page.dart';
 import '../widgets/video_card.dart';
@@ -153,6 +155,23 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildLoading(ThemeData theme) {
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          title: const Text("MissNet", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        ),
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => const SectionSkeleton(title: ""),
+            childCount: 3,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 32, 16, 16),
@@ -183,7 +202,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildEditorialSection(BuildContext context, HomeSection section, bool isLandscape) {
-    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -358,90 +376,23 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildSection(BuildContext context, HomeSection section) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-          child: InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CategoryDetailPage(title: section.title, category: section.category),
-                ),
-              );
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  section.title,
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface, 
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                Icon(Icons.arrow_forward_ios, color: theme.colorScheme.onSurface.withValues(alpha: 0.4), size: 14),
-              ],
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 160,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: section.videos.length,
-            itemBuilder: (context, index) {
-              final video = section.videos[index];
-              final hTag = "${video.id}_${section.title}_$index";
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: SizedBox(
-                  width: 200,
-                  child: OpenContainer(
-                    transitionDuration: const Duration(milliseconds: 500),
-                    openBuilder: (context, _) => PlayerPage(video: video, heroTag: hTag),
-                    closedElevation: 0,
-                    closedColor: theme.scaffoldBackgroundColor,
-                    closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    closedBuilder: (context, openContainer) => VideoCard(
-                      video: video,
-                      heroTag: hTag,
-                      onTap: openContainer,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildContinueWatching(BuildContext context, List<Video> videos) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
           child: Text(
             "Continue Watching",
-            style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold),
+            style: GoogleFonts.playfairDisplay(fontSize: 22, fontWeight: FontWeight.bold),
           ),
         ),
         SizedBox(
           height: 140,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             itemCount: videos.length,
             itemBuilder: (context, index) {
               final video = videos[index];
@@ -454,7 +405,7 @@ class _HomePageState extends State<HomePage> {
                     transitionDuration: const Duration(milliseconds: 500),
                     openBuilder: (context, _) => PlayerPage(video: video, heroTag: hTag),
                     closedElevation: 0,
-                    closedColor: theme.scaffoldBackgroundColor,
+                    closedColor: Colors.transparent,
                     closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     closedBuilder: (context, openContainer) => VideoCard(
                       video: video,
