@@ -1,8 +1,13 @@
 package com.panyou.missnet
 
+import android.app.PictureInPictureParams
+import android.os.Build
+import android.util.Rational
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 
-class MainActivity: FlutterActivity()
+class MainActivity: FlutterActivity() {
     private val CHANNEL = "flutter.io/pip"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -22,12 +27,6 @@ class MainActivity: FlutterActivity()
             val params = PictureInPictureParams.Builder()
                 .setAspectRatio(Rational(16, 9))
                 .build()
-                initiatePictureInPicture(params)
-        }
-    }
-
-    private fun initiatePictureInPicture(params: PictureInPictureParams) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             enterPictureInPictureMode(params)
         }
     }

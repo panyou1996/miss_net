@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.miss_net"
+    namespace = "com.panyou.missnet"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
