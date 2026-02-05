@@ -58,35 +58,45 @@ class VideoResolver {
     return info;
   }
 
-  // --- Desktop Implementation (Source Parsing) ---
+  // --- Desktop Implementation (JS Extraction via WebView) ---
   Future<VideoStreamInfo> _resolveDesktop(String sourceUrl) async {
-    try {
-      // Direct GET with high-end UA
-      final response = await http.get(Uri.parse(sourceUrl), headers: {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Referer': 'https://missav.ws/',
-      });
-      
-      if (response.statusCode != 200) throw Exception("Source Fetch Failed (${response.statusCode})");
+    _completer = Completer<VideoStreamInfo>();
+    
+    // In a real Desktop environment, we'd use a hidden window or small widget.
+    // For now, we still try the Headless approach but with JS extraction.
+    
+    if (_headlessWebView != null) {
+      await _headlessWebView?.dispose();
+    }
 
-      final html = response.body;
-      final m3u8Regex = RegExp(r'https?://[^"]+\.m3u8');
-      final match = m3u8Regex.firstMatch(html);
-
-      if (match != null) {
-        return VideoStreamInfo(
-          streamUrl: match.group(0)!,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Referer': 'https://missav.ws/',
+    _headlessWebView = HeadlessInAppWebView(
+      initialUrlRequest: URLRequest(url: WebUri(sourceUrl)),
+      onLoadStop: (controller, url) async {
+        // Once page loaded (bypassed CF), extract HTML source
+        final html = await controller.evaluateJavascript(source: "document.documentElement.innerHTML");
+        if (html != null && html.toString().contains('.m3u8')) {
+          final m3u8Regex = RegExp(r'https?://[^"\'\\s]+\\.m3u8[^"\'\\s]*');
+          final match = m3u8Regex.firstMatch(html.toString());
+          if (match != null && !_completer!.isCompleted) {
+            _completer!.complete(VideoStreamInfo(
+              streamUrl: match.group(0)!,
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Referer': 'https://missav.ws/',
+              },
+            ));
           }
-        );
-      }
-      
-      // Fallback to packed JS parsing (same as Web)
-      return await _resolveWeb(sourceUrl);
+        }
+      },
+    );
+
+    await _headlessWebView?.run();
+    
+    try {
+      return await _completer!.future.timeout(const Duration(seconds: 20));
     } catch (e) {
-      throw Exception("Desktop Resolution Failed: $e");
+      // Last ditch effort: try the Web/Proxy approach
+      return await _resolveWeb(sourceUrl);
     }
   }
 
