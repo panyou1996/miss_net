@@ -88,10 +88,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
-    // iOS 26 Glass Palette
-    final glassColor = isDark ? Colors.black.withValues(alpha: 0.75) : Colors.white.withValues(alpha: 0.85);
-    final borderColor = isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08);
-    final shadowColor = Colors.black.withValues(alpha: 0.4);
+    // iOS 26 High-End Glass Palette
+    final glassColor = isDark ? Colors.black.withValues(alpha: 0.78) : Colors.white.withValues(alpha: 0.88);
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05);
+    final shadowColor = Colors.black.withValues(alpha: 0.45);
 
     return Scaffold(
       extendBody: true,
@@ -113,42 +113,42 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               children: _pages,
             ),
             
-            // The Floating Island (Bottom Navbar)
+            // The Refined Floating Island
             ValueListenableBuilder<bool>(
               valueListenable: _isNavbarVisible,
               builder: (context, isVisible, child) {
                 return AnimatedPositioned(
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.easeInOutCubic, // Restored valid curve
-                  left: 24,
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeInOutCubic,
+                  left: 28,
                   right: 24,
-                  bottom: isVisible ? 32 : -100, // 32px floating
+                  bottom: isVisible ? 36 : -100,
                   child: child!,
                 );
               },
               child: Container(
-                height: 72,
+                height: 70,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(36),
+                  borderRadius: BorderRadius.circular(35),
                   boxShadow: [
-                    BoxShadow(color: shadowColor, blurRadius: 30, offset: const Offset(0, 15)),
+                    BoxShadow(color: shadowColor, blurRadius: 40, offset: const Offset(0, 20)),
                   ],
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(36),
+                  borderRadius: BorderRadius.circular(35),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+                    filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       decoration: BoxDecoration(
                         color: glassColor, 
-                        borderRadius: BorderRadius.circular(36),
-                        border: Border.all(color: borderColor, width: 0.5), // Ultra-thin border
+                        borderRadius: BorderRadius.circular(35),
+                        border: Border.all(color: borderColor, width: 0.5),
                       ),
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          // Fluid Background Indicator
+                          // Fluid "Liquid Mercury" Indicator
                           _buildFluidIndicator(context),
                           
                           // Nav Items
@@ -175,26 +175,27 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildFluidIndicator(BuildContext context) {
-    final double width = MediaQuery.of(context).size.width - 64; // Total width minus padding
+    final double width = MediaQuery.of(context).size.width - 64; 
     final double itemWidth = width / 4;
     
     return AnimatedPositioned(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.elasticOut,
-      left: _selectedIndex * itemWidth + (itemWidth - 50) / 2,
+      duration: const Duration(milliseconds: 550),
+      curve: Curves.easeOutQuart, // Much smoother than elastic
+      left: _selectedIndex * itemWidth + (itemWidth - 56) / 2,
       child: Container(
-        width: 50,
-        height: 50,
+        width: 56,
+        height: 48,
         decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.15),
-          shape: BoxShape.circle,
+          color: Colors.red.withValues(alpha: 0.08), // Lower saturation
+          borderRadius: BorderRadius.circular(20), // Squircle-like
           boxShadow: [
             BoxShadow(
-              color: Colors.red.withValues(alpha: 0.2),
-              blurRadius: 15,
+              color: Colors.red.withValues(alpha: 0.1),
+              blurRadius: 20,
               spreadRadius: 2,
             )
           ],
+          border: Border.all(color: Colors.red.withValues(alpha: 0.15), width: 0.5),
         ),
       ),
     );
@@ -207,7 +208,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     return GestureDetector(
       onTap: () {
         if (_selectedIndex != index) {
-          HapticFeedback.lightImpact(); // iOS-style touch feedback
+          HapticFeedback.mediumImpact(); // Stronger but concise haptic
           setState(() => _selectedIndex = index);
         }
       },
@@ -219,21 +220,25 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Active Glow
+            // Active Soft Glow
             if (isSelected)
               TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 400),
+                duration: const Duration(milliseconds: 500),
                 builder: (context, value, child) {
                   return Opacity(
-                    opacity: value * 0.5,
+                    opacity: value * 0.35,
                     child: Container(
-                      width: 30,
-                      height: 30,
+                      width: 20,
+                      height: 20,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         boxShadow: [
-                          BoxShadow(color: Colors.redAccent.withValues(alpha: 0.5), blurRadius: 15 * value, spreadRadius: 5 * value),
+                          BoxShadow(
+                            color: Colors.redAccent.withValues(alpha: 0.4), 
+                            blurRadius: 25 * value, 
+                            spreadRadius: 8 * value
+                          ),
                         ],
                       ),
                     ),
@@ -243,29 +248,26 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             
             // Animated Icon
             AnimatedScale(
-              scale: isSelected ? 1.2 : 1.0,
-              duration: const Duration(milliseconds: 300),
+              scale: isSelected ? 1.15 : 1.0,
+              duration: const Duration(milliseconds: 400),
               curve: Curves.easeOutBack,
               child: Icon(
                 isSelected ? activeIcon : inactiveIcon,
-                color: isSelected ? Colors.redAccent : (isDark ? Colors.white54 : Colors.black45),
-                size: 26,
+                color: isSelected ? Colors.redAccent : (isDark ? Colors.white38 : Colors.black38),
+                size: 24,
               ),
             ),
             
-            // Indicator Dot
+            // Indicator Breathing Dot
             if (isSelected)
               Positioned(
-                bottom: 8,
+                bottom: 10,
                 child: Container(
-                  width: 4,
-                  height: 4,
+                  width: 3,
+                  height: 3,
                   decoration: BoxDecoration(
-                    color: Colors.redAccent,
+                    color: Colors.redAccent.withValues(alpha: 0.8),
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(color: Colors.redAccent.withValues(alpha: 0.6), blurRadius: 4, spreadRadius: 1),
-                    ],
                   ),
                 ),
               ),
