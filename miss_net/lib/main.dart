@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,6 +8,7 @@ import 'injection_container.dart' as di;
 import 'presentation/blocs/home/home_bloc.dart';
 import 'presentation/blocs/theme/theme_bloc.dart';
 import 'presentation/pages/main/main_screen.dart';
+import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'core/services/download_service.dart';
 
 Future<void> main() async {
@@ -14,6 +17,15 @@ Future<void> main() async {
 
   // Robust Initialization
   try {
+    // 0. Set High Refresh Rate for Android
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        await FlutterDisplayMode.setHighRefreshRate();
+      } catch (e) {
+        debugPrint("DisplayMode Error: $e");
+      }
+    }
+
     // 1. Initialize Supabase with a shorter timeout for mobile networks
     await Supabase.initialize(
       url: 'https://gapmmwdbxzcglvvdhhiu.supabase.co',
