@@ -5,6 +5,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_displaymode/flutter_displaymode.dart';
+import 'injection_container.dart' as di;
+import 'presentation/blocs/home/home_bloc.dart';
+import 'presentation/blocs/theme/theme_bloc.dart';
+import 'presentation/pages/main/main_screen.dart';
+import 'core/services/download_service.dart';
 
 Future<void> main() async {
   // Ensure Flutter is ready
