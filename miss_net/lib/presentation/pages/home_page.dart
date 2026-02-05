@@ -54,92 +54,168 @@ class _HomePageState extends State<HomePage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: _appBarOpacity * 20, sigmaY: _appBarOpacity * 20),
-            child: AppBar(
-              backgroundColor: isDark 
-                  ? Colors.black.withValues(alpha: _appBarOpacity * 0.7)
-                  : Colors.white.withValues(alpha: _appBarOpacity * 0.7),
-              elevation: 0,
-              title: Opacity(
-                opacity: _appBarOpacity,
-                child: const Text("MissNet", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+    // Fix Status Bar Contrast Dynamically
+    final statusStyle = isDark 
+        ? (_appBarOpacity > 0.5 ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.light)
+        : (_appBarOpacity > 0.5 ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light);
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: statusStyle,
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(kToolbarHeight),
+          child: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: _appBarOpacity * 25, sigmaY: _appBarOpacity * 25),
+              child: AppBar(
+                backgroundColor: isDark 
+                    ? Colors.black.withValues(alpha: _appBarOpacity * 0.75)
+                    : Colors.white.withValues(alpha: _appBarOpacity * 0.75),
+                elevation: 0,
+                centerTitle: true,
+                title: Opacity(
+                  opacity: _appBarOpacity,
+                  child: Text(
+                    "MissNet", 
+                    style: GoogleFonts.playfairDisplay(
+                      color: Colors.red, 
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    )
+                  ),
+                ),
+                actions: [
+                  IconButton(
+                    icon: Icon(Icons.search, color: _appBarOpacity > 0.5 ? theme.iconTheme.color : Colors.white),
+                    onPressed: () {
+                      final searchBloc = sl<SearchBloc>();
+                      showSearch(context: context, delegate: VideoSearchDelegate(searchBloc))
+                          .then((_) => searchBloc.close());
+                    },
+                  )
+                ],
               ),
-              actions: [
-                IconButton(
-                  icon: Icon(Icons.search, color: _appBarOpacity > 0.5 ? theme.iconTheme.color : Colors.white),
-                  onPressed: () {
-                    final searchBloc = sl<SearchBloc>();
-                    showSearch(context: context, delegate: VideoSearchDelegate(searchBloc))
-                        .then((_) => searchBloc.close());
-                  },
-                )
-              ],
             ),
           ),
         ),
-      ),
-      body: BlocBuilder<HomeBloc, HomeState>(
-        builder: (context, state) {
-          if (state is HomeLoading) {
-            return _buildLoading(theme);
-          } else if (state is HomeError) {
-            return Center(child: Text(state.message, style: TextStyle(color: theme.colorScheme.error)));
-          } else if (state is HomeLoaded) {
-            return RefreshIndicator(
-              onRefresh: () async {
-                context.read<HomeBloc>().add(LoadRecentVideos());
-              },
-              child: CustomScrollView(
-                controller: _scrollController,
-                slivers: [
-                  // 1. Hero Banner
-                  if (state.featuredVideo != null)
-                    SliverToBoxAdapter(
-                      child: _buildImmersiveHero(state.featuredVideo!),
-                    ),
+        body: BlocBuilder<HomeBloc, HomeState>(
+          builder: (context, state) {
+            if (state is HomeLoading) {
+              return _buildLoading(theme);
+            } else if (state is HomeError) {
+              return Center(child: Text(state.message, style: TextStyle(color: theme.colorScheme.error)));
+            } else if (state is HomeLoaded) {
+              return RefreshIndicator(
+                onRefresh: () async {
+                  context.read<HomeBloc>().add(LoadRecentVideos());
+                },
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  slivers: [
+                    // 1. Hero Banner
+                    if (state.featuredVideo != null)
+                      SliverToBoxAdapter(
+                        child: _buildImmersiveHero(state.featuredVideo!),
+                      ),
 
-                  // 2. Content Sections with slight negative overlap
-                  SliverToBoxAdapter(
-                    child: Transform.translate(
-                      offset: const Offset(0, -30),
-                      child: Column(
-                        children: [
-                          if (state.continueWatching.isNotEmpty)
-                            _buildContinueWatching(context, state.continueWatching),
-                          ...state.sections.map((section) => _buildSection(context, section)),
-                        ],
+                    // 2. Content Sections with Editorial Rhythm
+                    SliverToBoxAdapter(
+                      child: Transform.translate(
+                        offset: const Offset(0, -40),
+                        child: Column(
+                          children: [
+                            if (state.continueWatching.isNotEmpty)
+                              _buildContinueWatching(context, state.continueWatching),
+                            
+                            // Use different scales for different sections
+                            ...state.sections.asMap().entries.map((entry) {
+                              final idx = entry.key;
+                              final section = entry.value;
+                              // Magazine Rhythm: alternate between landscape and portrait
+                              final bool isLandscape = idx % 2 == 0;
+                              return _buildEditorialSection(context, section, isLandscape);
+                            }),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  
-                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
-                ],
-              ),
-            );
-          }
-          return const SizedBox.shrink();
-        },
+                    
+                    const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildLoading(ThemeData theme) {
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          title: const Text("MissNet", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-        ),
-        SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) => const SectionSkeleton(title: ""),
-            childCount: 3,
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 32, 16, 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            title, 
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 26, 
+              fontWeight: FontWeight.w900, 
+              letterSpacing: -0.5
+            )
+          ),
+          const Spacer(),
+          Text(
+            "View All", 
+            style: TextStyle(
+              color: Colors.redAccent, 
+              fontSize: 12, 
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1
+            )
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditorialSection(BuildContext context, HomeSection section, bool isLandscape) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(section.title),
+        SizedBox(
+          height: isLandscape ? 180 : 260, // Vary height
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: section.videos.length,
+            itemBuilder: (context, index) {
+              final video = section.videos[index];
+              final hTag = "${video.id}_${section.title}_$index";
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: SizedBox(
+                  width: isLandscape ? 280 : 170, // Vary width
+                  child: OpenContainer(
+                    transitionDuration: const Duration(milliseconds: 600),
+                    openBuilder: (context, _) => PlayerPage(video: video, heroTag: hTag),
+                    closedElevation: 0,
+                    closedColor: Colors.transparent,
+                    closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    closedBuilder: (context, openContainer) => VideoCard(
+                      video: video,
+                      heroTag: hTag,
+                      onTap: openContainer,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ],
@@ -151,7 +227,7 @@ class _HomePageState extends State<HomePage> {
     final theme = Theme.of(context);
     
     return OpenContainer(
-      transitionDuration: const Duration(milliseconds: 500),
+      transitionDuration: const Duration(milliseconds: 800),
       openBuilder: (context, _) => PlayerPage(video: video, heroTag: heroTag),
       closedElevation: 0,
       closedColor: theme.scaffoldBackgroundColor,
@@ -160,18 +236,19 @@ class _HomePageState extends State<HomePage> {
         child: Stack(
           children: [
             Container(
-              height: MediaQuery.of(context).size.height * 0.65,
+              height: MediaQuery.of(context).size.height * 0.7,
               width: double.infinity,
               foregroundDecoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.95),
+                    Colors.black.withValues(alpha: 0.98),
                     Colors.black.withValues(alpha: 0.4),
                     Colors.transparent,
+                    Colors.black.withValues(alpha: 0.1),
                   ],
-                  stops: const [0.0, 0.4, 0.7],
+                  stops: const [0.0, 0.45, 0.7, 1.0],
                 ),
               ),
               child: Hero(
@@ -182,49 +259,51 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             Positioned(
-              bottom: 60,
-              left: 20,
-              right: 20,
+              bottom: 80,
+              left: 24,
+              right: 24,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, // Left aligned
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     video.title,
                     maxLines: 2,
-                    style: const TextStyle(
+                    style: GoogleFonts.playfairDisplay(
                       color: Colors.white, 
-                      fontSize: 32, // Large Titles
-                      fontWeight: FontWeight.w900, // Heavy
-                      height: 1.1,
-                      shadows: [Shadow(color: Colors.black45, blurRadius: 15, offset: Offset(0, 5))],
+                      fontSize: 38, // Massive Editorial Title
+                      fontWeight: FontWeight.w900,
+                      height: 1.0,
+                      letterSpacing: -1,
+                      shadows: [Shadow(color: Colors.black45, blurRadius: 20, offset: Offset(0, 10))],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
+                  const SizedBox(height: 16),
+                  Row(
                     children: [
-                      _heroBadge("4K"),
-                      _heroBadge("HDR"),
-                      Text(video.duration ?? "", style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+                      _heroBadge("ULTRA HD"),
+                      const SizedBox(width: 8),
+                      Text(video.duration ?? "", style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1)),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   Row(
                     children: [
                       Expanded(
+                        flex: 2,
                         child: _heroButton(
                           onPressed: openContainer,
                           icon: Icons.play_arrow_rounded,
-                          label: "Play",
+                          label: "Watch Now",
                           isPrimary: true,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
+                        flex: 1,
                         child: _heroButton(
                           onPressed: () {},
                           icon: Icons.add,
-                          label: "My List",
+                          label: "List",
                           isPrimary: false,
                         ),
                       ),

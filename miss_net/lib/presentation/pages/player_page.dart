@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui'; 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/services/video_resolver.dart';
@@ -117,7 +118,6 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
       await _videoPlayerController!.initialize();
 
-      // Load progress
       final savedPos = await _repository.getProgress(widget.video.id);
       if (savedPos > 0) {
         await _videoPlayerController!.seekTo(Duration(milliseconds: savedPos));
@@ -155,7 +155,6 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   void _toggleLock() {
     setState(() {
       _isLocked = !_isLocked;
-      // Update controls visibility
       if (_chewieController != null) {
         final oldController = _chewieController!;
         _chewieController = ChewieController(
@@ -179,7 +178,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     _progressTimer?.cancel();
-    _saveProgress(); // Final save
+    _saveProgress(); 
     _castService.stop();
     WidgetsBinding.instance.removeObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
@@ -217,21 +216,13 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     try {
       final streamInfo = await _resolver.resolveStreamUrl(widget.video.sourceUrl);
       final url = streamInfo.streamUrl;
-      
       final filename = "${widget.video.title.replaceAll(RegExp(r'[\/:*?"<>|]'), '_')}.mp4";
       final id = await _downloadService.downloadVideo(url, filename, headers: streamInfo.headers);
-      
       if (id != null) {
         if (mounted) {
-          if (id.startsWith("ffmpeg_")) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("HLS Download started (FFmpeg)"))
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Download started"))
-            );
-          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(id.startsWith("ffmpeg_") ? "HLS Download started (FFmpeg)" : "Download started"))
+          );
         }
       }
     } catch (e) {
@@ -245,7 +236,6 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No DLNA devices found")));
       return;
     }
-    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -294,9 +284,9 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text("Playback Speed", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text("Playback Speed", style: GoogleFonts.playfairDisplay(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               ),
               ...speeds.map((speed) => ListTile(
                 title: Text("${speed}x", style: const TextStyle(color: Colors.white)),
@@ -345,44 +335,51 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          if (widget.video.coverUrl != null)
-            Positioned.fill(
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: CachedNetworkImage(
-                  imageUrl: ImageProxy.getUrl(widget.video.coverUrl!),
-                  fit: BoxFit.cover,
-                  color: theme.scaffoldBackgroundColor.withValues(alpha: 0.6),
-                  colorBlendMode: isDark ? BlendMode.darken : BlendMode.lighten,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        body: Stack(
+          children: [
+            if (widget.video.coverUrl != null)
+              Positioned.fill(
+                child: ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                  child: CachedNetworkImage(
+                    imageUrl: ImageProxy.getUrl(widget.video.coverUrl!),
+                    fit: BoxFit.cover,
+                    color: isDark 
+                        ? Colors.black.withValues(alpha: 0.7) 
+                        : Colors.white.withValues(alpha: 0.85),
+                    colorBlendMode: isDark ? BlendMode.darken : BlendMode.lighten,
+                  ),
                 ),
               ),
+            Positioned.fill(child: Container(color: theme.scaffoldBackgroundColor.withValues(alpha: 0.3))),
+            SafeArea(
+              child: Column(
+                children: [
+                  _buildAppBar(context),
+                  Expanded(
+                    child: kIsWeb 
+                      ? _buildWebPlaceholder()
+                      : _isLoading
+                        ? _buildLoading(context)
+                        : _errorMessage != null
+                            ? _buildError(context)
+                            : _buildFullDetailView(context),
+                  ),
+                ],
+              ),
             ),
-          Positioned.fill(child: Container(color: theme.scaffoldBackgroundColor.withValues(alpha: 0.4))),
-          SafeArea(
-            child: Column(
-              children: [
-                _buildAppBar(context),
-                Expanded(
-                  child: kIsWeb 
-                    ? _buildWebPlaceholder()
-                    : _isLoading
-                      ? _buildLoading(context)
-                      : _errorMessage != null
-                          ? _buildError(context)
-                          : _buildFullDetailView(context),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _toggleFavorite,
-        backgroundColor: Colors.red,
-        child: Icon(_isFavorite ? Icons.favorite : Icons.favorite_border, color: Colors.white),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _toggleFavorite,
+          backgroundColor: Colors.red,
+          elevation: 10,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          child: Icon(_isFavorite ? Icons.favorite : Icons.favorite_border, color: Colors.white),
+        ),
       ),
     );
   }
@@ -461,40 +458,44 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
           Stack(
             alignment: Alignment.center,
             children: [
-              // 1. Ambient Glow (Environmental Light)
               if (widget.video.coverUrl != null)
                 Positioned(
-                  top: 20,
+                  top: 0,
                   child: Opacity(
-                    opacity: 0.6,
+                    opacity: 0.8,
                     child: ImageFiltered(
-                      imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                      imageFilter: ImageFilter.blur(sigmaX: 100, sigmaY: 100),
                       child: CachedNetworkImage(
                         imageUrl: ImageProxy.getUrl(widget.video.coverUrl!),
-                        width: MediaQuery.of(context).size.width * 0.9,
-                        height: 200,
+                        width: MediaQuery.of(context).size.width,
+                        height: 300,
                         fit: BoxFit.cover,
                       ),
                     ),
                   ),
                 ),
-
-              // 2. Video Player
               Hero(
                 tag: widget.heroTag ?? widget.video.id,
                 createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: AspectRatio(
-                      aspectRatio: _videoPlayerController?.value.aspectRatio ?? 16 / 9,
-                      child: VideoGestureWrapper(
-                        controller: _videoPlayerController!,
-                        isLocked: _isLocked,
-                        child: _chewieController != null 
-                            ? Chewie(controller: _chewieController!)
-                            : const Center(child: CircularProgressIndicator()),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 30, offset: const Offset(0, 10))
+                      ],
+                    ],
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: AspectRatio(
+                        aspectRatio: _videoPlayerController?.value.aspectRatio ?? 16 / 9,
+                        child: VideoGestureWrapper(
+                          controller: _videoPlayerController!,
+                          isLocked: _isLocked,
+                          child: _chewieController != null 
+                              ? Chewie(controller: _chewieController!)
+                              : const Center(child: CircularProgressIndicator()),
+                        ),
                       ),
                     ),
                   ),
@@ -505,110 +506,70 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                   right: 20,
                   bottom: 10,
                   child: IconButton(
-                    icon: Icon(
-                      _isLocked ? Icons.lock : Icons.lock_open,
-                      color: Colors.white.withValues(alpha: 0.5),
-                      size: 20,
-                    ),
+                    icon: Icon(_isLocked ? Icons.lock : Icons.lock_open, color: Colors.white.withValues(alpha: 0.5), size: 20),
                     onPressed: _toggleLock,
                   ),
                 ),
             ],
           ),
           Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.video.title, style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-                const SizedBox(height: 16),
-                
-                // Floating Action Capsule
+                Text(
+                  widget.video.title, 
+                  style: GoogleFonts.playfairDisplay(
+                    color: theme.colorScheme.onSurface, 
+                    fontSize: 28, 
+                    fontWeight: FontWeight.w900, 
+                    height: 1.1,
+                    letterSpacing: -0.5
+                  )
+                ),
+                const SizedBox(height: 24),
                 Center(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(35),
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(30),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(35),
                           border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            _playerActionButton(context, Icons.download_rounded, "Download", _handleDownload),
-                            _playerActionButton(context, Icons.speed_rounded, "Speed", _showSpeedDialog),
-                            _playerActionButton(context, Icons.cast_connected_rounded, "Cast", _handleCast),
-                            _playerActionButton(context, Icons.share_rounded, "Share", () {}),
+                            _playerActionButton(context, Icons.download_rounded, "SAVE", _handleDownload),
+                            _playerActionButton(context, Icons.speed_rounded, "SPEED", _showSpeedDialog),
+                            _playerActionButton(context, Icons.cast_connected_rounded, "CAST", _handleCast),
+                            _playerActionButton(context, Icons.share_rounded, "SHARE", () {}),
                           ],
                         ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-
+                const SizedBox(height: 32),
                 Row(
                   children: [
-                    if (widget.video.duration != null) _infoBadge(context, Icons.timer_outlined, widget.video.duration!),
-                    const SizedBox(width: 12),
-                    if (widget.video.releaseDate != null) _infoBadge(context, Icons.calendar_month_outlined, widget.video.releaseDate!),
+                    _infoBadge(context, Icons.timer_outlined, widget.video.duration ?? "Unknown"),
+                    const SizedBox(width: 16),
+                    _infoBadge(context, Icons.calendar_month_outlined, widget.video.releaseDate ?? "Recent"),
                   ],
                 ),
                 if (widget.video.categories != null && widget.video.categories!.isNotEmpty) ...[
                   const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          color: Colors.redAccent,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        "CATEGORIES", 
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6), 
-                          fontSize: 13, 
-                          fontWeight: FontWeight.w900, 
-                          letterSpacing: 1.2
-                        )
-                      ),
-                    ],
-                  ),
+                  _buildVisualHeader("CATEGORIES"),
                   const SizedBox(height: 16),
-                  Wrap(spacing: 10, runSpacing: 10, children: widget.video.categories!.map((cat) => _tagChip(context, cat, Colors.transparent)).toList()),
+                  Wrap(spacing: 10, runSpacing: 10, children: widget.video.categories!.map((cat) => _tagChip(context, cat)).toList()),
                 ],
                 if (widget.video.actors != null && widget.video.actors!.isNotEmpty) ...[
                   const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        "ACTRESSES", 
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6), 
-                          fontSize: 13, 
-                          fontWeight: FontWeight.w900, 
-                          letterSpacing: 1.2
-                        )
-                      ),
-                    ],
-                  ),
+                  _buildVisualHeader("ACTRESSES"),
                   const SizedBox(height: 16),
                   Wrap(
                     spacing: 10,
@@ -627,10 +588,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
                           ),
-                          child: Text(
-                            actor, 
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)
-                          ),
+                          child: Text(actor, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                         ),
                       );
                     }).toList(),
@@ -638,10 +596,10 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                 ],
                 if (_relatedVideos.isNotEmpty) ...[
                   const SizedBox(height: 40),
-                  Text("Related Content", style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text("Related Content", style: GoogleFonts.playfairDisplay(color: theme.colorScheme.onSurface, fontSize: 22, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
                   SizedBox(
-                    height: 150,
+                    height: 160,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       itemCount: _relatedVideos.length,
@@ -653,10 +611,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                              width: 220, 
                              child: VideoCard(
                                video: rv, 
-                               onTap: () => Navigator.push(
-                                 context, 
-                                 MaterialPageRoute(builder: (_) => PlayerPage(video: rv))
-                               ),
+                               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: rv))),
                              ),
                            ),
                          );
@@ -673,16 +628,13 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildWebPlaceholder() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text("Embedded playback not supported on Web."),
-          const SizedBox(height: 20),
-          ElevatedButton(onPressed: () => launchUrl(Uri.parse(widget.video.sourceUrl)), child: const Text("Watch on Source")),
-        ],
-      ),
+  Widget _buildVisualHeader(String title) {
+    return Row(
+      children: [
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 8),
+        Text(title, style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+      ],
     );
   }
 
@@ -690,10 +642,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
-      ),
+      decoration: BoxDecoration(color: theme.colorScheme.onSurface.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -705,44 +654,33 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     );
   }
 
-  bool _hasSubtitles(Video video) {
-    final title = video.title.toLowerCase();
-    final categories = video.categories?.map((e) => e.toLowerCase()).toList() ?? [];
-    return title.contains("中文字幕") || title.contains("中文") || categories.contains("subtitled");
-  }
-
-  Widget _tagChip(BuildContext context, String label, Color color) {
+  Widget _tagChip(BuildContext context, String label) {
     final theme = Theme.of(context);
     final isImportant = label.toUpperCase() == "SUBTITLED" || label.contains("中文");
-
     return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CategoryDetailPage(title: label, category: label),
-          ),
-        );
-      },
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryDetailPage(title: label, category: label))),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: isImportant ? Colors.red.withValues(alpha: 0.12) : theme.colorScheme.onSurface.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isImportant ? Colors.red.withValues(alpha: 0.25) : theme.dividerColor.withValues(alpha: 0.15),
-            width: 0.8,
-          ),
+          border: Border.all(color: isImportant ? Colors.red.withValues(alpha: 0.25) : theme.dividerColor.withValues(alpha: 0.15), width: 0.8),
         ),
-        child: Text(
-          label, 
-          style: TextStyle(
-            color: isImportant ? Colors.redAccent : theme.colorScheme.onSurface.withValues(alpha: 0.8), 
-            fontSize: 12, 
-            fontWeight: FontWeight.w600
-          )
-        ),
+        child: Text(label, style: TextStyle(color: isImportant ? Colors.redAccent : theme.colorScheme.onSurface.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600)),
+      ),
+    );
+  }
+
+  Widget _buildWebPlaceholder() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text("Embedded playback not supported on Web."),
+          const SizedBox(height: 20),
+          ElevatedButton(onPressed: () => launchUrl(Uri.parse(widget.video.sourceUrl)), child: const Text("Watch on Source")),
+        ],
       ),
     );
   }
