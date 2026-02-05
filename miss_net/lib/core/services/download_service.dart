@@ -2,6 +2,7 @@ import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -31,7 +32,9 @@ class DownloadService {
   Stream<List<FFmpegTask>> get ffmpegTaskStream => _controller.stream;
 
   Future<void> init() async {
-    await FlutterDownloader.initialize(debug: true, ignoreSsl: true);
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      await FlutterDownloader.initialize(debug: true, ignoreSsl: true);
+    }
   }
 
   List<FFmpegTask> getActiveFFmpegTasks() => _ffmpegTasks.values.toList();

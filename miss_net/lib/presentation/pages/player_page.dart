@@ -407,29 +407,35 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   }
 
   Widget _buildLoading(BuildContext context) {
-    return Column(
-      children: [
-        Hero(
-          tag: widget.heroTag ?? widget.video.id,
-          createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
-          child: AspectRatio(aspectRatio: 16 / 9, child: _buildCoverImage()),
-        ),
-        const Expanded(child: Center(child: CircularProgressIndicator(color: Colors.red))),
-      ],
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Hero(
+            tag: widget.heroTag ?? widget.video.id,
+            createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
+            child: AspectRatio(aspectRatio: 16 / 9, child: _buildCoverImage()),
+          ),
+          const SizedBox(height: 100),
+          const Center(child: CircularProgressIndicator(color: Colors.red)),
+        ],
+      ),
     );
   }
 
   Widget _buildError(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      children: [
-        Hero(
-          tag: widget.heroTag ?? widget.video.id,
-          createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
-          child: AspectRatio(aspectRatio: 16 / 9, child: _buildCoverImage()),
-        ),
-        Expanded(child: Center(child: Text(_errorMessage!, style: TextStyle(color: theme.colorScheme.error)))),
-      ],
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Hero(
+            tag: widget.heroTag ?? widget.video.id,
+            createRectTween: (begin, end) => MaterialRectArcTween(begin: begin, end: end),
+            child: AspectRatio(aspectRatio: 16 / 9, child: _buildCoverImage()),
+          ),
+          const SizedBox(height: 50),
+          Center(child: Text(_errorMessage!, style: TextStyle(color: theme.colorScheme.error))),
+        ],
+      ),
     );
   }
 
