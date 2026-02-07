@@ -17,6 +17,7 @@ import '../../domain/entities/video.dart';
 import '../../domain/repositories/video_repository.dart';
 import '../../injection_container.dart';
 import '../../core/utils/image_proxy.dart';
+import '../../core/theme/app_motion.dart';
 import 'category/category_detail_page.dart';
 import 'player/widgets/video_gesture_wrapper.dart';
 import '../widgets/video_card.dart';
@@ -535,105 +536,126 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  widget.video.title, 
-                  style: GoogleFonts.playfairDisplay(
-                    color: theme.colorScheme.onSurface, 
-                    fontSize: 28, 
-                    fontWeight: FontWeight.w900, 
-                    height: 1.1,
-                    letterSpacing: -0.5
-                  )
+                _FadeSlideIn(
+                  index: 0,
+                  child: Text(
+                    widget.video.title, 
+                    style: GoogleFonts.playfairDisplay(
+                      color: theme.colorScheme.onSurface, 
+                      fontSize: 28, 
+                      fontWeight: FontWeight.w900, 
+                      height: 1.1,
+                      letterSpacing: -0.5
+                    )
+                  ),
                 ),
                 const SizedBox(height: 24),
-                Center(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(35),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(35),
-                          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _playerActionButton(context, Icons.download_rounded, "SAVE", _handleDownload),
-                            _playerActionButton(context, Icons.speed_rounded, "SPEED", _showSpeedDialog),
-                            _playerActionButton(context, Icons.cast_connected_rounded, "CAST", _handleCast),
-                            _playerActionButton(context, Icons.share_rounded, "SHARE", () {}),
-                          ],
+                _FadeSlideIn(
+                  index: 1,
+                  child: Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(35),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(35),
+                            border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _playerActionButton(context, Icons.download_rounded, "SAVE", _handleDownload),
+                              _playerActionButton(context, Icons.speed_rounded, "SPEED", _showSpeedDialog),
+                              _playerActionButton(context, Icons.cast_connected_rounded, "CAST", _handleCast),
+                              _playerActionButton(context, Icons.share_rounded, "SHARE", () {}),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 32),
-                Row(
-                  children: [
-                    _infoBadge(context, Icons.timer_outlined, widget.video.duration ?? "Unknown"),
-                    const SizedBox(width: 16),
-                    _infoBadge(context, Icons.calendar_month_outlined, widget.video.releaseDate ?? "Recent"),
-                  ],
+                _FadeSlideIn(
+                  index: 2,
+                  child: Row(
+                    children: [
+                      _infoBadge(context, Icons.timer_outlined, widget.video.duration ?? "Unknown"),
+                      const SizedBox(width: 16),
+                      _infoBadge(context, Icons.calendar_month_outlined, widget.video.releaseDate ?? "Recent"),
+                    ],
+                  ),
                 ),
                 if (widget.video.categories != null && widget.video.categories!.isNotEmpty) ...[
                   const SizedBox(height: 32),
-                  _buildVisualHeader("CATEGORIES"),
+                  _FadeSlideIn(index: 3, child: _buildVisualHeader("CATEGORIES")),
                   const SizedBox(height: 16),
-                  Wrap(spacing: 10, runSpacing: 10, children: widget.video.categories!.map((cat) => _tagChip(context, cat)).toList()),
+                  _FadeSlideIn(
+                    index: 4,
+                    child: Wrap(spacing: 10, runSpacing: 10, children: widget.video.categories!.map((cat) => _tagChip(context, cat)).toList()),
+                  ),
                 ],
                 if (widget.video.actors != null && widget.video.actors!.isNotEmpty) ...[
                   const SizedBox(height: 32),
-                  _buildVisualHeader("ACTRESSES"),
+                  _FadeSlideIn(index: 5, child: _buildVisualHeader("ACTRESSES")),
                   const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: widget.video.actors!.map((actor) {
-                      return InkWell(
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryDetailPage(title: actor, actor: actor)));
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
+                  _FadeSlideIn(
+                    index: 6,
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: widget.video.actors!.map((actor) {
+                        return InkWell(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryDetailPage(title: actor, actor: actor)));
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
+                            ),
+                            child: Text(actor, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                           ),
-                          child: Text(actor, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ],
                 if (_relatedVideos.isNotEmpty) ...[
                   const SizedBox(height: 40),
-                  Text("Related Content", style: GoogleFonts.playfairDisplay(color: theme.colorScheme.onSurface, fontSize: 22, fontWeight: FontWeight.bold)),
+                  _FadeSlideIn(
+                    index: 7,
+                    child: Text("Related Content", style: GoogleFonts.playfairDisplay(color: theme.colorScheme.onSurface, fontSize: 22, fontWeight: FontWeight.bold)),
+                  ),
                   const SizedBox(height: 16),
-                  SizedBox(
-                    height: 160,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _relatedVideos.length,
-                      itemBuilder: (context, index) {
-                         final rv = _relatedVideos[index];
-                         return Padding(
-                           padding: const EdgeInsets.only(right: 16),
-                           child: SizedBox(
-                             width: 220, 
-                             child: VideoCard(
-                               video: rv, 
-                               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: rv))),
+                  _FadeSlideIn(
+                    index: 8,
+                    child: SizedBox(
+                      height: 160,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _relatedVideos.length,
+                        itemBuilder: (context, index) {
+                           final rv = _relatedVideos[index];
+                           return Padding(
+                             padding: const EdgeInsets.only(right: 16),
+                             child: SizedBox(
+                               width: 220, 
+                               child: VideoCard(
+                                 video: rv, 
+                                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerPage(video: rv))),
+                               ),
                              ),
-                           ),
-                         );
-                      }
+                           );
+                        }
+                      ),
                     ),
                   ),
                 ],
@@ -700,6 +722,32 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
           ElevatedButton(onPressed: () => launchUrl(Uri.parse(widget.video.sourceUrl)), child: const Text("Watch on Source")),
         ],
       ),
+    );
+  }
+}
+
+class _FadeSlideIn extends StatelessWidget {
+  final Widget child;
+  final int index;
+
+  const _FadeSlideIn({required this.child, required this.index});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: AppMotion.medium2,
+      curve: AppMotion.emphasizedDecelerate,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 30 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }
