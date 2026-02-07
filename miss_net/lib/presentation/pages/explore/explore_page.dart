@@ -68,16 +68,21 @@ class _ExplorePageState extends State<ExplorePage> {
         slivers: [
           SliverAppBar.large(
             expandedHeight: 140,
-            backgroundColor: Colors.transparent,
-            stretch: true,
-            title: Text(
-              "Explore", 
-              style: GoogleFonts.playfairDisplay(
-                color: theme.colorScheme.onSurface, 
-                fontWeight: FontWeight.w900, 
-                letterSpacing: -1.5,
-                fontSize: 32
-              )
+            backgroundColor: isDark ? Colors.black.withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.8),
+            pinned: true,
+            elevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+              centerTitle: false,
+              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 16),
+              title: Text(
+                "Explore", 
+                style: GoogleFonts.playfairDisplay(
+                  color: isDark ? Colors.white : Colors.black, 
+                  fontWeight: FontWeight.w900, 
+                  fontSize: 28,
+                  letterSpacing: -1
+                )
+              ),
             ),
             actions: [
               IconButton(
@@ -87,6 +92,7 @@ class _ExplorePageState extends State<ExplorePage> {
                   showSearch(context: context, delegate: VideoSearchDelegate(searchBloc)).then((_) => searchBloc.close());
                 },
               ),
+              const SizedBox(width: 8),
             ],
           ),
           SliverToBoxAdapter(

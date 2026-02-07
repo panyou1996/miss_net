@@ -61,9 +61,23 @@ class _FavoritesPageState extends State<FavoritesPage> {
           : CustomScrollView(
               slivers: [
                 SliverAppBar.large(
-                  expandedHeight: 120,
-                  backgroundColor: Colors.transparent,
-                  title: Text("My Favorites", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold, letterSpacing: -1)),
+                  expandedHeight: 140,
+                  backgroundColor: isDark ? Colors.black.withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.8),
+                  pinned: true,
+                  elevation: 0,
+                  flexibleSpace: FlexibleSpaceBar(
+                    centerTitle: false,
+                    titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 16),
+                    title: Text(
+                      "My Favorites", 
+                      style: GoogleFonts.playfairDisplay(
+                        color: isDark ? Colors.white : Colors.black, 
+                        fontWeight: FontWeight.w900, 
+                        fontSize: 28,
+                        letterSpacing: -1
+                      )
+                    ),
+                  ),
                 ),
                 if (_videos.isEmpty)
                   SliverFillRemaining(

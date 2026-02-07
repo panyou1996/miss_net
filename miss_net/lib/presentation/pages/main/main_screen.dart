@@ -93,109 +93,81 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final borderColor = isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05);
     final shadowColor = Colors.black.withValues(alpha: 0.45);
 
-    return Scaffold(
-      extendBody: true,
-      body: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          if (notification is ScrollUpdateNotification) {
-            if (notification.scrollDelta! > 15 && _isNavbarVisible.value) {
-              _isNavbarVisible.value = false;
-            } else if (notification.scrollDelta! < -15 && !_isNavbarVisible.value) {
-              _isNavbarVisible.value = true;
+    return PopScope(
+      canPop: _selectedIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _selectedIndex != 0) {
+          setState(() => _selectedIndex = 0);
+        }
+      },
+      child: Scaffold(
+        extendBody: true,
+        body: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (notification is ScrollUpdateNotification) {
+              if (notification.scrollDelta! > 15 && _isNavbarVisible.value) {
+                _isNavbarVisible.value = false;
+              } else if (notification.scrollDelta! < -15 && !_isNavbarVisible.value) {
+                _isNavbarVisible.value = true;
+              }
             }
-          }
-          return false;
-        },
-        child: Stack(
-          children: [
-            FadeIndexedStack(
-              index: _selectedIndex,
-              children: _pages,
-            ),
-            
-            // The Refined Floating Island
-            ValueListenableBuilder<bool>(
-              valueListenable: _isNavbarVisible,
-              builder: (context, isVisible, child) {
-                return AnimatedPositioned(
-                  duration: const Duration(milliseconds: 600),
-                  curve: Curves.easeInOutCubic,
-                  left: 28,
-                  right: 24,
-                  bottom: isVisible ? 36 : -100,
-                  child: child!,
-                );
-              },
-              child: Container(
-                height: 70,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(35),
-                  boxShadow: [
-                    BoxShadow(color: shadowColor, blurRadius: 40, offset: const Offset(0, 20)),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(35),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      decoration: BoxDecoration(
-                        color: glassColor, 
-                        borderRadius: BorderRadius.circular(35),
-                        border: Border.all(color: borderColor, width: 0.5),
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // Fluid "Liquid Mercury" Indicator
-                          _buildFluidIndicator(context),
-                          
-                          // Nav Items
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              _buildNavItem(Icons.home_rounded, Icons.home_outlined, 0),
-                              _buildNavItem(Icons.explore_rounded, Icons.explore_outlined, 1),
-                              _buildNavItem(Icons.favorite_rounded, Icons.favorite_border_rounded, 2),
-                              _buildNavItem(Icons.settings_rounded, Icons.settings_outlined, 3),
-                            ],
-                          ),
-                        ],
+            return false;
+          },
+          child: Stack(
+            children: [
+              FadeIndexedStack(
+                index: _selectedIndex,
+                children: _pages,
+              ),
+              
+              // Refined Minimalist Island (No Background Selection Box)
+              ValueListenableBuilder<bool>(
+                valueListenable: _isNavbarVisible,
+                builder: (context, isVisible, child) {
+                  return AnimatedPositioned(
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.easeInOutCubic,
+                    left: 32,
+                    right: 32,
+                    bottom: isVisible ? 36 : -100,
+                    child: child!,
+                  );
+                },
+                child: Container(
+                  height: 64,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(32),
+                    boxShadow: [
+                      BoxShadow(color: shadowColor, blurRadius: 40, offset: const Offset(0, 20)),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(32),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: glassColor, 
+                          borderRadius: BorderRadius.circular(32),
+                          border: Border.all(color: borderColor, width: 0.5),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildNavItem(Icons.home_rounded, Icons.home_outlined, 0),
+                            _buildNavItem(Icons.explore_rounded, Icons.explore_outlined, 1),
+                            _buildNavItem(Icons.favorite_rounded, Icons.favorite_border_rounded, 2),
+                            _buildNavItem(Icons.settings_rounded, Icons.settings_outlined, 3),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFluidIndicator(BuildContext context) {
-    final double width = MediaQuery.of(context).size.width - 64; 
-    final double itemWidth = width / 4;
-    
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 550),
-      curve: Curves.easeOutQuart, // Much smoother than elastic
-      left: _selectedIndex * itemWidth + (itemWidth - 56) / 2,
-      child: Container(
-        width: 56,
-        height: 48,
-        decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.08), // Lower saturation
-          borderRadius: BorderRadius.circular(20), // Squircle-like
-          boxShadow: [
-            BoxShadow(
-              color: Colors.red.withValues(alpha: 0.1),
-              blurRadius: 20,
-              spreadRadius: 2,
-            )
-          ],
-          border: Border.all(color: Colors.red.withValues(alpha: 0.15), width: 0.5),
+            ],
+          ),
         ),
       ),
     );
@@ -208,65 +180,38 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     return GestureDetector(
       onTap: () {
         if (_selectedIndex != index) {
-          HapticFeedback.mediumImpact(); // Stronger but concise haptic
+          HapticFeedback.mediumImpact();
           setState(() => _selectedIndex = index);
         }
       },
       behavior: HitTestBehavior.opaque,
       child: Container(
-        width: 60,
-        height: 60,
+        width: 50,
+        height: 50,
         alignment: Alignment.center,
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Active Soft Glow
-            if (isSelected)
-              TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 500),
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value * 0.35,
-                    child: Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.redAccent.withValues(alpha: 0.4), 
-                            blurRadius: 25 * value, 
-                            spreadRadius: 8 * value
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            
-            // Animated Icon
+            // Simplified: Just Color and Scale
             AnimatedScale(
-              scale: isSelected ? 1.15 : 1.0,
+              scale: isSelected ? 1.25 : 1.0,
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeOutBack,
               child: Icon(
                 isSelected ? activeIcon : inactiveIcon,
                 color: isSelected ? Colors.redAccent : (isDark ? Colors.white38 : Colors.black38),
-                size: 24,
+                size: 26,
               ),
             ),
             
-            // Indicator Breathing Dot
             if (isSelected)
               Positioned(
-                bottom: 10,
+                bottom: 4,
                 child: Container(
-                  width: 3,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: Colors.redAccent.withValues(alpha: 0.8),
+                  width: 4,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    color: Colors.redAccent,
                     shape: BoxShape.circle,
                   ),
                 ),
