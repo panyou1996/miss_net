@@ -163,7 +163,6 @@ class _ExplorePageState extends State<ExplorePage> {
 
   Widget _buildCategoryCard(BuildContext context, Map<String, dynamic> item) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final Color color = item['color'];
 
     return InkWell(
@@ -173,7 +172,7 @@ class _ExplorePageState extends State<ExplorePage> {
       borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+          color: theme.colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: theme.dividerColor.withValues(alpha: 0.08)),
           boxShadow: [

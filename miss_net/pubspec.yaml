@@ -27,6 +27,7 @@ dependencies:
   transparent_image: ^2.0.1
   device_info_plus: ^11.3.0
   flutter_displaymode: ^0.6.0
+  dynamic_color: ^1.7.0
   rxdart: ^0.28.0
   shared_preferences: ^2.5.4
   shimmer: ^3.0.0

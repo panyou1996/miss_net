@@ -211,13 +211,14 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final groupBg = isDark ? const Color(0xFF1C1C1E) : Colors.grey[100];
+    // Use M3 Surface Containers for better hierarchy
+    final groupBg = theme.colorScheme.surfaceContainerLow;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : Colors.grey[50],
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: const Text("Settings", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text("Settings", style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold)),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.red))

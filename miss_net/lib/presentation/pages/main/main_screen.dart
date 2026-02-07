@@ -88,9 +88,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
-    // iOS 26 High-End Glass Palette
-    final glassColor = isDark ? Colors.black.withValues(alpha: 0.78) : Colors.white.withValues(alpha: 0.88);
-    final borderColor = isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05);
+    // M3 Dynamic Glass Palette
+    final glassColor = theme.colorScheme.surfaceContainer.withValues(alpha: 0.8);
+    final borderColor = theme.colorScheme.onSurface.withValues(alpha: 0.1);
     final shadowColor = Colors.black.withValues(alpha: 0.45);
 
     return PopScope(
