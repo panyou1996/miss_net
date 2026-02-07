@@ -1,9 +1,9 @@
 import 'dart:ui';
+import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/services/privacy_service.dart';
 import '../../../injection_container.dart';
-import '../../widgets/fade_indexed_stack.dart';
 import '../home_page.dart';
 import '../explore/explore_page.dart';
 import '../favorites/favorites_page.dart';
@@ -88,9 +88,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
-    // M3 Dynamic Glass Palette
-    final glassColor = theme.colorScheme.surfaceContainer.withValues(alpha: 0.8);
-    final borderColor = theme.colorScheme.onSurface.withValues(alpha: 0.1);
+    final glassColor = isDark ? Colors.black.withValues(alpha: 0.78) : Colors.white.withValues(alpha: 0.88);
+    final borderColor = isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05);
     final shadowColor = Colors.black.withValues(alpha: 0.45);
 
     return PopScope(
@@ -115,12 +114,22 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           },
           child: Stack(
             children: [
-              FadeIndexedStack(
-                index: _selectedIndex,
-                children: _pages,
+              // Spatial Choreography: Shared Axis Transition
+              PageTransitionSwitcher(
+                duration: const Duration(milliseconds: 600),
+                reverse: false, // Optional: logic to detect direction
+                transitionBuilder: (child, animation, secondaryAnimation) {
+                  return SharedAxisTransition(
+                    animation: animation,
+                    secondaryAnimation: secondaryAnimation,
+                    transitionType: SharedAxisTransitionType.horizontal,
+                    fillColor: Colors.transparent,
+                    child: child,
+                  );
+                },
+                child: _pages[_selectedIndex],
               ),
               
-              // Refined Minimalist Island (No Background Selection Box)
               ValueListenableBuilder<bool>(
                 valueListenable: _isNavbarVisible,
                 builder: (context, isVisible, child) {
@@ -192,7 +201,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Simplified: Just Color and Scale
             AnimatedScale(
               scale: isSelected ? 1.25 : 1.0,
               duration: const Duration(milliseconds: 400),
@@ -203,7 +211,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 size: 26,
               ),
             ),
-            
             if (isSelected)
               Positioned(
                 bottom: 4,

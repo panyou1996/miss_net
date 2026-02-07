@@ -212,22 +212,23 @@ class _HomePageState extends State<HomePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader(section.title, section.category),
+        _buildSectionHeader(section.title),
         SizedBox(
-          height: isLandscape ? 180 : 260,
+          height: 200, // Fixed height for 16:9 cards including text
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 12),
             itemCount: section.videos.length,
             itemBuilder: (context, index) {
               final video = section.videos[index];
               final hTag = "${video.id}_${section.title}_$index";
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                padding: const EdgeInsets.symmetric(horizontal: 10.0),
                 child: SizedBox(
-                  width: isLandscape ? 280 : 170,
+                  width: 260, // Fixed width for 16:9 aspect ratio
                   child: OpenContainer(
-                    transitionDuration: const Duration(milliseconds: 600),
+                    transitionDuration: const Duration(milliseconds: 700),
                     openBuilder: (context, _) => PlayerPage(video: video, heroTag: hTag),
                     closedElevation: 0,
                     closedColor: Colors.transparent,
