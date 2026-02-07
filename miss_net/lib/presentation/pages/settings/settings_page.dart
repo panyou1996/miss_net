@@ -94,8 +94,9 @@ class _SettingsPageState extends State<SettingsPage> {
           child: StatefulBuilder(
             builder: (context, setState) {
               return AlertDialog(
-                backgroundColor: theme.cardColor.withValues(alpha: 0.8),
-                title: Text(isLogin ? "Login" : "Register", style: TextStyle(color: theme.colorScheme.onSurface)),
+                backgroundColor: theme.cardColor.withValues(alpha: 0.9),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                title: Text(isLogin ? "Login" : "Register", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold)),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -105,9 +106,10 @@ class _SettingsPageState extends State<SettingsPage> {
                       decoration: InputDecoration(
                         labelText: "Email", 
                         labelStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: passwordController,
                       obscureText: true,
@@ -115,7 +117,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       decoration: InputDecoration(
                         labelText: "Password", 
                         labelStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -128,7 +130,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 actions: [
                   TextButton(child: Text("Cancel", style: TextStyle(color: theme.colorScheme.onSurface)), onPressed: () => Navigator.pop(context)),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     onPressed: () async {
                       Navigator.pop(context);
                       _processAuth(emailController.text, passwordController.text, isLogin);
@@ -191,8 +193,9 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (context) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: AlertDialog(
-          backgroundColor: theme.cardColor.withValues(alpha: 0.8),
-          title: Text("Clear History?", style: TextStyle(color: theme.colorScheme.onSurface)),
+          backgroundColor: theme.cardColor.withValues(alpha: 0.9),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text("Clear History?", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold)),
           content: Text("This cannot be undone.", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.7))),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context, false), child: Text("Cancel", style: TextStyle(color: theme.colorScheme.onSurface))),
@@ -212,114 +215,135 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    // Use M3 Surface Containers for better hierarchy
     final groupBg = theme.colorScheme.surfaceContainerLow;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        title: Text("Settings", style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold)),
-      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.red))
-          : ListView(
-              children: [
-                _buildSectionHeader("Account"),
-                _buildGroup(theme, groupBg, [
-                  ListTile(
-                    leading: Icon(_user == null ? Icons.account_circle_outlined : Icons.check_circle, color: theme.iconTheme.color),
-                    title: Text(_user == null ? "Login / Register" : "Logged in as ${_user!.email}", style: TextStyle(color: theme.colorScheme.onSurface)),
-                    subtitle: _user == null ? Text("Sync your favorites to cloud", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))) : null,
-                    trailing: _user != null ? IconButton(icon: Icon(Icons.logout, color: theme.iconTheme.color), onPressed: _logout) : Icon(Icons.arrow_forward_ios, color: theme.iconTheme.color?.withValues(alpha: 0.5), size: 16),
-                    onTap: _user == null ? _handleAuth : null,
-                  ),
-                  if (_user != null)
-                    ListTile(
-                      leading: Icon(Icons.sync, color: theme.iconTheme.color),
-                      title: Text("Sync Now", style: TextStyle(color: theme.colorScheme.onSurface)),
-                      onTap: _sync,
+          : CustomScrollView(
+              slivers: [
+                SliverAppBar.large(
+                  expandedHeight: 140,
+                  backgroundColor: isDark ? Colors.black.withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.8),
+                  pinned: true,
+                  elevation: 0,
+                  flexibleSpace: FlexibleSpaceBar(
+                    centerTitle: false,
+                    titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 16),
+                    title: Text(
+                      "Settings", 
+                      style: GoogleFonts.playfairDisplay(
+                        color: theme.colorScheme.onSurface, 
+                        fontWeight: FontWeight.w900, 
+                        fontSize: 28,
+                        letterSpacing: -1
+                      )
                     ),
-                ]),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionHeader("Account"),
+                      _buildGroup(theme, groupBg, [
+                        ListTile(
+                          leading: Icon(_user == null ? Icons.account_circle_outlined : Icons.check_circle, color: theme.iconTheme.color),
+                          title: Text(_user == null ? "Login / Register" : "Logged in as ${_user!.email}", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w600)),
+                          subtitle: _user == null ? Text("Sync your favorites to cloud", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))) : null,
+                          trailing: _user != null ? IconButton(icon: Icon(Icons.logout, color: theme.iconTheme.color), onPressed: _logout) : Icon(Icons.arrow_forward_ios, color: theme.iconTheme.color?.withValues(alpha: 0.5), size: 16),
+                          onTap: _user == null ? _handleAuth : null,
+                        ),
+                        if (_user != null)
+                          ListTile(
+                            leading: Icon(Icons.sync, color: theme.iconTheme.color),
+                            title: Text("Sync Now", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w600)),
+                            onTap: _sync,
+                          ),
+                      ]),
 
-                _buildSectionHeader("Appearance"),
-                _buildGroup(theme, groupBg, [
-                  SwitchListTile(
-                    activeColor: Colors.red,
-                    secondary: Icon(isDark ? Icons.dark_mode : Icons.light_mode, color: theme.iconTheme.color),
-                    title: Text("Dark Mode", style: TextStyle(color: theme.colorScheme.onSurface)),
-                    value: isDark,
-                    onChanged: (val) => context.read<ThemeBloc>().add(ToggleTheme()),
-                  ),
-                ]),
-                
-                _buildSectionHeader("Privacy & Security"),
-                _buildGroup(theme, groupBg, [
-                  SwitchListTile(
-                    activeColor: Colors.red,
-                    secondary: Icon(Icons.visibility_off, color: theme.iconTheme.color),
-                    title: Text("Incognito Mode", style: TextStyle(color: theme.colorScheme.onSurface)),
-                    subtitle: Text("Don't save watch history", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
-                    value: _incognito,
-                    onChanged: _toggleIncognito,
-                  ),
-                  SwitchListTile(
-                    activeColor: Colors.red,
-                    secondary: Icon(Icons.fingerprint, color: theme.iconTheme.color),
-                    title: Text("App Lock", style: TextStyle(color: theme.colorScheme.onSurface)),
-                    subtitle: Text("Require authentication on start", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
-                    value: _appLock,
-                    onChanged: _toggleAppLock,
-                  ),
-                ]),
-                
-                _buildSectionHeader("Playback"),
-                _buildGroup(theme, groupBg, [
-                  SwitchListTile(
-                    activeColor: Colors.red,
-                    secondary: Icon(Icons.play_circle_outline, color: theme.iconTheme.color),
-                    title: Text("Autoplay Next Video", style: TextStyle(color: theme.colorScheme.onSurface)),
-                    value: _autoplayNext,
-                    onChanged: _toggleAutoplay,
-                  ),
-                ]),
+                      _buildSectionHeader("Appearance"),
+                      _buildGroup(theme, groupBg, [
+                        SwitchListTile(
+                          activeColor: Colors.red,
+                          secondary: Icon(isDark ? Icons.dark_mode : Icons.light_mode, color: theme.iconTheme.color),
+                          title: Text("Dark Mode", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w600)),
+                          value: isDark,
+                          onChanged: (val) => context.read<ThemeBloc>().add(ToggleTheme()),
+                        ),
+                      ]),
+                      
+                      _buildSectionHeader("Privacy & Security"),
+                      _buildGroup(theme, groupBg, [
+                        SwitchListTile(
+                          activeColor: Colors.red,
+                          secondary: Icon(Icons.visibility_off, color: theme.iconTheme.color),
+                          title: Text("Incognito Mode", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w600)),
+                          subtitle: Text("Don't save watch history", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
+                          value: _incognito,
+                          onChanged: _toggleIncognito,
+                        ),
+                        SwitchListTile(
+                          activeColor: Colors.red,
+                          secondary: Icon(Icons.fingerprint, color: theme.iconTheme.color),
+                          title: Text("App Lock", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w600)),
+                          subtitle: Text("Require authentication on start", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12)),
+                          value: _appLock,
+                          onChanged: _toggleAppLock,
+                        ),
+                      ]),
+                      
+                      _buildSectionHeader("Playback"),
+                      _buildGroup(theme, groupBg, [
+                        SwitchListTile(
+                          activeColor: Colors.red,
+                          secondary: Icon(Icons.play_circle_outline, color: theme.iconTheme.color),
+                          title: Text("Autoplay Next Video", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w600)),
+                          value: _autoplayNext,
+                          onChanged: _toggleAutoplay,
+                        ),
+                      ]),
 
-                _buildSectionHeader("Storage & Data"),
-                _buildGroup(theme, groupBg, [
-                  ListTile(
-                    leading: Icon(Icons.download_done, color: theme.iconTheme.color),
-                    title: Text("Downloads", style: TextStyle(color: theme.colorScheme.onSurface)),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DownloadsPage())),
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.image, color: theme.iconTheme.color),
-                    title: Text("Clear Image Cache", style: TextStyle(color: theme.colorScheme.onSurface)),
-                    subtitle: Text("Free up space used by thumbnails", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
-                    onTap: _clearImageCache,
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.history, color: theme.iconTheme.color),
-                    title: Text("Clear Watch History", style: TextStyle(color: theme.colorScheme.onSurface)),
-                    onTap: _clearHistory,
-                  ),
-                ]),
+                      _buildSectionHeader("Storage & Data"),
+                      _buildGroup(theme, groupBg, [
+                        ListTile(
+                          leading: Icon(Icons.download_done, color: theme.iconTheme.color),
+                          title: Text("Downloads", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w600)),
+                          trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DownloadsPage())),
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.image, color: theme.iconTheme.color),
+                          title: Text("Clear Image Cache", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w600)),
+                          subtitle: Text("Free up space used by thumbnails", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+                          onTap: _clearImageCache,
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.history, color: theme.iconTheme.color),
+                          title: Text("Clear Watch History", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w600)),
+                          onTap: _clearHistory,
+                        ),
+                      ]),
 
-                _buildSectionHeader("About"),
-                _buildGroup(theme, groupBg, [
-                  ListTile(
-                    leading: Icon(Icons.info_outline, color: theme.iconTheme.color),
-                    title: Text("Version", style: TextStyle(color: theme.colorScheme.onSurface)),
-                    trailing: Text(_version.isNotEmpty ? _version : "Loading...", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+                      _buildSectionHeader("About"),
+                      _buildGroup(theme, groupBg, [
+                        ListTile(
+                          leading: Icon(Icons.info_outline, color: theme.iconTheme.color),
+                          title: Text("Version", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w600)),
+                          trailing: Text(_version.isNotEmpty ? _version : "Loading...", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.code, color: theme.iconTheme.color),
+                          title: Text("Source Code", style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w600)),
+                          trailing: Icon(Icons.open_in_new, color: theme.iconTheme.color?.withValues(alpha: 0.5), size: 16),
+                          onTap: () => launchUrl(Uri.parse("https://github.com/panyou1996/miss_net")),
+                        ),
+                      ]),
+                      const SizedBox(height: 100),
+                    ],
                   ),
-                  ListTile(
-                    leading: Icon(Icons.code, color: theme.iconTheme.color),
-                    title: Text("Source Code", style: TextStyle(color: theme.colorScheme.onSurface)),
-                    trailing: Icon(Icons.open_in_new, color: theme.iconTheme.color?.withValues(alpha: 0.5), size: 16),
-                    onTap: () => launchUrl(Uri.parse("https://github.com/panyou1996/miss_net")),
-                  ),
-                ]),
-                const SizedBox(height: 100),
+                ),
               ],
             ),
     );
@@ -330,7 +354,8 @@ class _SettingsPageState extends State<SettingsPage> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16), // Consistent with other pages
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.05)),
       ),
       child: Column(
         children: children.asMap().entries.map((entry) {
@@ -343,8 +368,8 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               widget,
               Padding(
-                padding: const EdgeInsets.only(left: 60),
-                child: Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.05)),
+                padding: const EdgeInsets.only(left: 56), // Aligned divider
+                child: Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.08)),
               ),
             ],
           );
@@ -355,10 +380,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(32, 24, 16, 8),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+        style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.2),
       ),
     );
   }

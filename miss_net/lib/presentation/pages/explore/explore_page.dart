@@ -19,24 +19,25 @@ class _ExplorePageState extends State<ExplorePage> {
   List<String> _popularActors = [];
   List<String> _popularTags = [];
 
+  // Unified Monochrome Icons (Brand Tinted)
   final List<Map<String, dynamic>> categories = const [
-    {'title': '51 Eating Melon', 'category': '51cg', 'icon': FontAwesomeIcons.fire, 'color': Colors.red},
-    {'title': 'School', 'category': 'School', 'icon': FontAwesomeIcons.graduationCap, 'color': Colors.blue},
-    {'title': 'Office', 'category': 'Office', 'icon': FontAwesomeIcons.briefcase, 'color': Colors.blueGrey},
-    {'title': 'Mature', 'category': 'Mature', 'icon': FontAwesomeIcons.wineGlass, 'color': Colors.purple},
-    {'title': 'Exclusive', 'category': 'Exclusive', 'icon': FontAwesomeIcons.gem, 'color': Colors.amber},
-    {'title': 'Nympho', 'category': 'Nympho', 'icon': FontAwesomeIcons.heartPulse, 'color': Colors.pink},
-    {'title': 'Voyeur', 'category': 'Voyeur', 'icon': FontAwesomeIcons.camera, 'color': Colors.teal},
-    {'title': 'Sister', 'category': 'Sister', 'icon': FontAwesomeIcons.userGroup, 'color': Colors.orange},
-    {'title': 'Story', 'category': 'Story', 'icon': FontAwesomeIcons.bookOpen, 'color': Colors.indigo},
-    {'title': 'Subtitled', 'category': 'Subtitled', 'icon': FontAwesomeIcons.language, 'color': Colors.green},
-    {'title': 'Uncensored', 'category': 'uncensored', 'icon': FontAwesomeIcons.fire, 'color': Colors.deepOrange},
-    {'title': 'Amateur', 'category': 'Amateur', 'icon': FontAwesomeIcons.userNinja, 'color': Colors.brown},
-    {'title': 'Big Tits', 'category': 'BigTits', 'icon': FontAwesomeIcons.circleExclamation, 'color': Colors.lime},
-    {'title': 'Creampie', 'category': 'Creampie', 'icon': FontAwesomeIcons.droplet, 'color': Colors.lightBlue},
-    {'title': 'Beautiful', 'category': 'Beautiful', 'icon': FontAwesomeIcons.wandMagicSparkles, 'color': Colors.deepPurple},
-    {'title': 'Oral', 'category': 'Oral', 'icon': FontAwesomeIcons.faceKiss, 'color': Colors.pinkAccent},
-    {'title': 'Group', 'category': 'Group', 'icon': FontAwesomeIcons.users, 'color': Colors.cyan},
+    {'title': '51 Eating Melon', 'category': '51cg', 'icon': FontAwesomeIcons.fire},
+    {'title': 'School', 'category': 'School', 'icon': FontAwesomeIcons.graduationCap},
+    {'title': 'Office', 'category': 'Office', 'icon': FontAwesomeIcons.briefcase},
+    {'title': 'Mature', 'category': 'Mature', 'icon': FontAwesomeIcons.wineGlass},
+    {'title': 'Exclusive', 'category': 'Exclusive', 'icon': FontAwesomeIcons.gem},
+    {'title': 'Nympho', 'category': 'Nympho', 'icon': FontAwesomeIcons.heartPulse},
+    {'title': 'Voyeur', 'category': 'Voyeur', 'icon': FontAwesomeIcons.camera},
+    {'title': 'Sister', 'category': 'Sister', 'icon': FontAwesomeIcons.userGroup},
+    {'title': 'Story', 'category': 'Story', 'icon': FontAwesomeIcons.bookOpen},
+    {'title': 'Subtitled', 'category': 'Subtitled', 'icon': FontAwesomeIcons.language},
+    {'title': 'Uncensored', 'category': 'uncensored', 'icon': FontAwesomeIcons.fire},
+    {'title': 'Amateur', 'category': 'Amateur', 'icon': FontAwesomeIcons.userNinja},
+    {'title': 'Big Tits', 'category': 'BigTits', 'icon': FontAwesomeIcons.circleExclamation},
+    {'title': 'Creampie', 'category': 'Creampie', 'icon': FontAwesomeIcons.droplet},
+    {'title': 'Beautiful', 'category': 'Beautiful', 'icon': FontAwesomeIcons.wandMagicSparkles},
+    {'title': 'Oral', 'category': 'Oral', 'icon': FontAwesomeIcons.faceKiss},
+    {'title': 'Group', 'category': 'Group', 'icon': FontAwesomeIcons.users},
   ];
 
   @override
@@ -63,7 +64,7 @@ class _ExplorePageState extends State<ExplorePage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : Colors.grey[50],
+      backgroundColor: theme.colorScheme.surface,
       body: CustomScrollView(
         slivers: [
           SliverAppBar.large(
@@ -77,7 +78,7 @@ class _ExplorePageState extends State<ExplorePage> {
               title: Text(
                 "Explore", 
                 style: GoogleFonts.playfairDisplay(
-                  color: isDark ? Colors.white : Colors.black, 
+                  color: theme.colorScheme.onSurface, 
                   fontWeight: FontWeight.w900, 
                   fontSize: 28,
                   letterSpacing: -1
@@ -131,8 +132,8 @@ class _ExplorePageState extends State<ExplorePage> {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    crossAxisSpacing: 14,
-                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 16, // Consistent 16.0 spacing
+                    mainAxisSpacing: 16,
                     childAspectRatio: 2.0,
                   ),
                   itemCount: categories.length,
@@ -155,7 +156,8 @@ class _ExplorePageState extends State<ExplorePage> {
           fontSize: 13, 
           fontWeight: FontWeight.w900, 
           letterSpacing: 2.0,
-          color: Colors.redAccent.withValues(alpha: 0.8)
+          // Use dynamic brand color instead of hardcoded Red
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8)
         )
       ),
     );
@@ -163,7 +165,9 @@ class _ExplorePageState extends State<ExplorePage> {
 
   Widget _buildCategoryCard(BuildContext context, Map<String, dynamic> item) {
     final theme = Theme.of(context);
-    final Color color = item['color'];
+    final isDark = theme.brightness == Brightness.dark;
+    // Use dynamic theme primary color
+    final Color color = theme.colorScheme.primary;
 
     return InkWell(
       onTap: () {
@@ -172,11 +176,11 @@ class _ExplorePageState extends State<ExplorePage> {
       borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLow,
+          color: theme.colorScheme.surfaceContainerLow, // Use Semantic Surface
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: theme.dividerColor.withValues(alpha: 0.08)),
           boxShadow: [
-            BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 8)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 8)),
           ],
         ),
         child: Stack(
@@ -210,7 +214,7 @@ class _ExplorePageState extends State<ExplorePage> {
 
   Widget _buildActorAvatar(BuildContext context, String name) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final color = theme.colorScheme.primary;
     
     return Padding(
       padding: const EdgeInsets.only(right: 24),
@@ -224,17 +228,17 @@ class _ExplorePageState extends State<ExplorePage> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: [Colors.redAccent, Colors.redAccent.withValues(alpha: 0.2)],
+                  colors: [color, color.withValues(alpha: 0.2)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
               ),
               child: CircleAvatar(
                 radius: 36,
-                backgroundColor: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+                backgroundColor: theme.colorScheme.surfaceContainer,
                 child: Text(
                   name[0], 
-                  style: GoogleFonts.playfairDisplay(color: Colors.redAccent, fontSize: 28, fontWeight: FontWeight.w900)
+                  style: GoogleFonts.playfairDisplay(color: color, fontSize: 28, fontWeight: FontWeight.w900)
                 ),
               ),
             ),
@@ -257,7 +261,6 @@ class _ExplorePageState extends State<ExplorePage> {
 
   Widget _buildTagChip(BuildContext context, String tag) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     
     return InkWell(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CategoryDetailPage(title: tag, category: tag))),
@@ -265,7 +268,7 @@ class _ExplorePageState extends State<ExplorePage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+          color: theme.colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
         ),
