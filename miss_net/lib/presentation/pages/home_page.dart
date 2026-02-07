@@ -27,14 +27,19 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ScrollController _scrollController = ScrollController();
-  final PageController _heroController = PageController();
+  late PageController _heroController;
   double _appBarOpacity = 0.0;
+  double _heroPage = 0.0;
 
   @override
   void initState() {
     super.initState();
     context.read<HomeBloc>().add(LoadRecentVideos());
     _scrollController.addListener(_onScroll);
+    _heroController = PageController(viewportFraction: 0.9);
+    _heroController.addListener(() {
+      setState(() => _heroPage = _heroController.page ?? 0.0);
+    });
   }
 
   @override
@@ -72,7 +77,7 @@ class _HomePageState extends State<HomePage> {
               return _buildLoading(theme);
             } else if (state is HomeError) {
               return Center(child: Text(state.message, style: TextStyle(color: theme.colorScheme.error)));
-            if (state is HomeLoaded) {
+            } else if (state is HomeLoaded) {
               final featuredVideos = state.sections.isNotEmpty 
                   ? state.sections.first.videos.take(5).toList().cast<Video>()
                   : <Video>[];
@@ -85,7 +90,6 @@ class _HomePageState extends State<HomePage> {
                   controller: _scrollController,
                   physics: const BouncingScrollPhysics(),
                   slivers: [
-                    // 1. Unified Sliver AppBar (Matching Settings)
                     SliverAppBar.large(
                       expandedHeight: 140,
                       backgroundColor: isDark ? Colors.black.withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.8),
@@ -118,13 +122,11 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
 
-                    // 2. Hero Carousel (Top 5 Recommendations)
                     if (featuredVideos.isNotEmpty)
                       SliverToBoxAdapter(
-                        child: _buildHeroCarousel(featuredVideos),
+                        child: _buildM3Carousel(featuredVideos),
                       ),
 
-                    // 3. Content Sections
                     SliverToBoxAdapter(
                       child: Column(
                         children: [
@@ -168,103 +170,20 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildHeroCarousel(List<Video> videos) {
+  Widget _buildM3Carousel(List<Video> videos) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.6,
-      margin: const EdgeInsets.fromLTRB(16, 10, 16, 20),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: PageView.builder(
-          controller: _heroController,
-          itemCount: videos.length,
-          itemBuilder: (context, index) => _buildHeroItem(videos[index]),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeroItem(Video video) {
-    final heroTag = "${video.id}_hero";
-    return OpenContainer(
-      transitionDuration: const Duration(milliseconds: 800),
-      openBuilder: (context, _) => PlayerPage(video: video, heroTag: heroTag),
-      closedElevation: 0,
-      closedColor: Colors.black,
-      closedBuilder: (context, openContainer) => Stack(
-        fit: StackFit.expand,
-        children: [
-          CachedNetworkImage(
-            imageUrl: ImageProxy.getUrl(video.coverUrl ?? ""),
-            fit: BoxFit.cover,
-          ),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-                colors: [Colors.black.withValues(alpha: 0.9), Colors.black.withValues(alpha: 0.2), Colors.transparent],
-                stops: const [0.0, 0.4, 0.7],
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 30,
-            left: 20,
-            right: 20,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  video.title,
-                  maxLines: 2,
-                  style: GoogleFonts.playfairDisplay(
-                    color: Colors.white, 
-                    fontSize: 28, 
-                    fontWeight: FontWeight.w900,
-                    shadows: [const Shadow(blurRadius: 10, offset: Offset(0, 5))],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    _heroButton(onPressed: openContainer, icon: Icons.play_arrow_rounded, label: "PLAY", isPrimary: true),
-                    const SizedBox(width: 12),
-                    _heroButton(onPressed: () {}, icon: Icons.add, label: "MY LIST", isPrimary: false),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _heroButton({required VoidCallback onPressed, required IconData icon, required String label, required bool isPrimary}) {
-    return Expanded(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: InkWell(
-            onTap: onPressed,
-            child: Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: isPrimary ? Colors.white : Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, color: isPrimary ? Colors.black : Colors.white, size: 20),
-                  const SizedBox(width: 6),
-                  Text(label, style: TextStyle(color: isPrimary ? Colors.black : Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                ],
-              ),
-            ),
-          ),
-        ),
+      height: MediaQuery.of(context).size.height * 0.65,
+      margin: const EdgeInsets.only(bottom: 20),
+      child: PageView.builder(
+        controller: _heroController,
+        itemCount: videos.length,
+        itemBuilder: (context, index) {
+          final double relativePosition = index - _heroPage;
+          return _ParallaxCard(
+            video: videos[index],
+            offset: relativePosition,
+          );
+        },
       ),
     );
   }
@@ -355,6 +274,120 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ParallaxCard extends StatelessWidget {
+  final Video video;
+  final double offset;
+
+  const _ParallaxCard({required this.video, required this.offset});
+
+  @override
+  Widget build(BuildContext context) {
+    final double scale = 1.0 - (offset.abs() * 0.1); // Scale from 1.0 to 0.9
+    final double parallaxOffset = offset * 100; // Image moves 100px relative to container
+
+    final heroTag = "${video.id}_hero_parallax";
+
+    return Transform.scale(
+      scale: scale,
+      child: OpenContainer(
+        transitionDuration: const Duration(milliseconds: 800),
+        openBuilder: (context, _) => PlayerPage(video: video, heroTag: heroTag),
+        closedElevation: 10,
+        closedColor: Colors.transparent,
+        closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        closedBuilder: (context, openContainer) => ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Parallax Image Layer
+              Transform.translate(
+                offset: Offset(parallaxOffset, 0),
+                child: Transform.scale(
+                  scale: 1.2, // Zoom in image to allow for parallax movement without gaps
+                  child: CachedNetworkImage(
+                    imageUrl: ImageProxy.getUrl(video.coverUrl ?? ""),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              
+              // Gradient Overlay
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Colors.black.withValues(alpha: 0.9), Colors.black.withValues(alpha: 0.2), Colors.transparent],
+                    stops: const [0.0, 0.5, 0.8],
+                  ),
+                ),
+              ),
+
+              // Content Layer (Static relative to card)
+              Positioned(
+                bottom: 30,
+                left: 20,
+                right: 20,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      video.title,
+                      maxLines: 2,
+                      style: GoogleFonts.playfairDisplay(
+                        color: Colors.white, 
+                        fontSize: 28, 
+                        fontWeight: FontWeight.w900,
+                        shadows: [const Shadow(blurRadius: 10, offset: Offset(0, 5))],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(child: _heroButton(onPressed: openContainer, icon: Icons.play_arrow_rounded, label: "PLAY", isPrimary: true)),
+                        const SizedBox(width: 12),
+                        Expanded(child: _heroButton(onPressed: () {}, icon: Icons.add, label: "LIST", isPrimary: false)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _heroButton({required VoidCallback onPressed, required IconData icon, required String label, required bool isPrimary}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: InkWell(
+          onTap: onPressed,
+          child: Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: isPrimary ? Colors.white : Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: isPrimary ? Colors.black : Colors.white, size: 20),
+                const SizedBox(width: 6),
+                Text(label, style: TextStyle(color: isPrimary ? Colors.black : Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1)),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
