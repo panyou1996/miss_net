@@ -49,9 +49,56 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  TextTheme _buildTextTheme(TextTheme base) {
+    return GoogleFonts.interTextTheme(base).copyWith(
+      displayLarge: GoogleFonts.playfairDisplay(
+        fontSize: 57,
+        fontWeight: FontWeight.w900, // Extra Bold for impact
+        letterSpacing: -0.25,
+        height: 1.1,
+      ),
+      displayMedium: GoogleFonts.playfairDisplay(
+        fontSize: 45,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.0,
+        height: 1.15,
+      ),
+      displaySmall: GoogleFonts.playfairDisplay(
+        fontSize: 36,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 0.0,
+        height: 1.2,
+      ),
+      headlineLarge: GoogleFonts.playfairDisplay(
+        fontSize: 32,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.0,
+        height: 1.25,
+      ),
+      // Body text uses Inter (Clean, modern sans-serif)
+      bodyLarge: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.5,
+        height: 1.5,
+      ),
+      bodyMedium: GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.25,
+        height: 1.43,
+      ),
+      labelLarge: GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w600, // Semi-bold for buttons
+        letterSpacing: 0.1,
+        height: 1.43,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 1. Defined Brand Colors (Netflix Red base)
     const brandRed = Color(0xFFE50914);
 
     return MultiBlocProvider(
@@ -61,7 +108,6 @@ class MyApp extends StatelessWidget {
       ],
       child: DynamicColorBuilder(
         builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
-          // 2. Harmonize Dynamic Colors with Brand Colors
           ColorScheme lightScheme;
           ColorScheme darkScheme;
 
@@ -73,7 +119,6 @@ class MyApp extends StatelessWidget {
             darkScheme = ColorScheme.fromSeed(seedColor: brandRed, brightness: Brightness.dark);
           }
 
-          // 3. Force Pure OLED Black for Dark Theme (Optional, but very iOS 26)
           darkScheme = darkScheme.copyWith(
             surface: Colors.black,
             onSurface: Colors.white,
@@ -88,12 +133,11 @@ class MyApp extends StatelessWidget {
                 debugShowCheckedModeBanner: false,
                 themeMode: state.themeMode,
                 
-                // M3 Light Theme
                 theme: ThemeData(
                   useMaterial3: true,
                   colorScheme: lightScheme,
                   scaffoldBackgroundColor: lightScheme.surface,
-                  textTheme: GoogleFonts.poppinsTextTheme(ThemeData.light().textTheme),
+                  textTheme: _buildTextTheme(ThemeData.light().textTheme),
                   appBarTheme: const AppBarTheme(
                     backgroundColor: Colors.transparent,
                     elevation: 0,
@@ -101,12 +145,11 @@ class MyApp extends StatelessWidget {
                   ),
                 ),
 
-                // M3 Dark Theme
                 darkTheme: ThemeData(
                   useMaterial3: true,
                   colorScheme: darkScheme,
                   scaffoldBackgroundColor: Colors.black,
-                  textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+                  textTheme: _buildTextTheme(ThemeData.dark().textTheme),
                   appBarTheme: const AppBarTheme(
                     backgroundColor: Colors.transparent,
                     elevation: 0,
