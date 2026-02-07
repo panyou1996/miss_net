@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../domain/entities/video.dart';
 import '../../../domain/repositories/video_repository.dart';
 import '../../../injection_container.dart';

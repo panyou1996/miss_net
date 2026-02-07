@@ -72,10 +72,10 @@ class _HomePageState extends State<HomePage> {
               return _buildLoading(theme);
             } else if (state is HomeError) {
               return Center(child: Text(state.message, style: TextStyle(color: theme.colorScheme.error)));
-            } else if (state is HomeLoaded) {
+            if (state is HomeLoaded) {
               final featuredVideos = state.sections.isNotEmpty 
-                  ? state.sections.first.videos.take(5).toList() 
-                  : [];
+                  ? state.sections.first.videos.take(5).toList().cast<Video>()
+                  : <Video>[];
 
               return RefreshIndicator(
                 onRefresh: () async {
@@ -191,7 +191,7 @@ class _HomePageState extends State<HomePage> {
       closedElevation: 0,
       closedColor: Colors.black,
       closedBuilder: (context, openContainer) => Stack(
-        fit: StackSource.expand,
+        fit: StackFit.expand,
         children: [
           CachedNetworkImage(
             imageUrl: ImageProxy.getUrl(video.coverUrl ?? ""),
