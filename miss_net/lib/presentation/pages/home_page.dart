@@ -127,7 +127,9 @@ class _HomePageState extends State<HomePage> {
                         child: _buildM3Carousel(featuredVideos),
                       ),
 
-                    SliverToBoxAdapter(
+                  SliverToBoxAdapter(
+                    child: Transform.translate(
+                      offset: const Offset(0, -20),
                       child: Column(
                         children: [
                           if (state.continueWatching.isNotEmpty)
@@ -142,6 +144,7 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                     ),
+                  ),
                     const SliverToBoxAdapter(child: SizedBox(height: 120)),
                   ],
                 ),
@@ -171,9 +174,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildM3Carousel(List<Video> videos) {
+    final double width = MediaQuery.of(context).size.width;
+    // Calculate height for 16:9 ratio based on 90% width viewport
+    final double carouselHeight = (width * 0.9) / (16 / 9);
+    
     return Container(
-      height: MediaQuery.of(context).size.height * 0.65,
-      margin: const EdgeInsets.only(bottom: 20),
+      height: carouselHeight,
+      margin: const EdgeInsets.only(top: 10, bottom: 30),
       child: PageView.builder(
         controller: _heroController,
         itemCount: videos.length,
@@ -331,7 +338,7 @@ class _ParallaxCard extends StatelessWidget {
 
               // Content Layer (Static relative to card)
               Positioned(
-                bottom: 30,
+                bottom: 20,
                 left: 20,
                 right: 20,
                 child: Column(
@@ -339,15 +346,15 @@ class _ParallaxCard extends StatelessWidget {
                   children: [
                     Text(
                       video.title,
-                      maxLines: 2,
+                      maxLines: 1, // Single line for horizontal banner
                       style: GoogleFonts.playfairDisplay(
                         color: Colors.white, 
-                        fontSize: 28, 
+                        fontSize: 22, 
                         fontWeight: FontWeight.w900,
                         shadows: [const Shadow(blurRadius: 10, offset: Offset(0, 5))],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(child: _heroButton(onPressed: openContainer, icon: Icons.play_arrow_rounded, label: "PLAY", isPrimary: true)),
