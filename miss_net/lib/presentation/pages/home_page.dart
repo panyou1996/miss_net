@@ -212,7 +212,7 @@ class _HomePageState extends State<HomePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader(section.title),
+        _buildSectionHeader(section.title, section.category),
         SizedBox(
           height: 200, // Fixed height for 16:9 cards including text
           child: ListView.builder(
