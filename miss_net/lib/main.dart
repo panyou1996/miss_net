@@ -16,10 +16,11 @@ import 'core/services/download_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // M3 Status Bar
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    statusBarBrightness: Brightness.dark,
+    statusBarIconBrightness: Brightness.dark, 
+    statusBarBrightness: Brightness.light,
   ));
 
   try {
@@ -50,56 +51,43 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   TextTheme _buildTextTheme(TextTheme base) {
-    return GoogleFonts.interTextTheme(base).copyWith(
-      displayLarge: GoogleFonts.playfairDisplay(
+    return GoogleFonts.robotoTextTheme(base).copyWith(
+      displayLarge: GoogleFonts.robotoSerif( // Use Serif for Headlines
         fontSize: 57,
-        fontWeight: FontWeight.w900, // Extra Bold for impact
+        fontWeight: FontWeight.w700,
         letterSpacing: -0.25,
-        height: 1.1,
       ),
-      displayMedium: GoogleFonts.playfairDisplay(
+      displayMedium: GoogleFonts.robotoSerif(
         fontSize: 45,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 0.0,
-        height: 1.15,
-      ),
-      displaySmall: GoogleFonts.playfairDisplay(
-        fontSize: 36,
         fontWeight: FontWeight.bold,
         letterSpacing: 0.0,
-        height: 1.2,
       ),
-      headlineLarge: GoogleFonts.playfairDisplay(
+      headlineLarge: GoogleFonts.robotoSerif(
         fontSize: 32,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 0.0,
-        height: 1.25,
+        fontWeight: FontWeight.bold,
+        letterSpacing: -0.5, // tracking-tight
       ),
-      // Body text uses Inter (Clean, modern sans-serif)
-      bodyLarge: GoogleFonts.inter(
+      // Body text uses Roboto
+      bodyLarge: GoogleFonts.roboto(
         fontSize: 16,
         fontWeight: FontWeight.w400,
         letterSpacing: 0.5,
-        height: 1.5,
       ),
-      bodyMedium: GoogleFonts.inter(
+      labelLarge: GoogleFonts.roboto(
         fontSize: 14,
-        fontWeight: FontWeight.w400,
-        letterSpacing: 0.25,
-        height: 1.43,
-      ),
-      labelLarge: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600, // Semi-bold for buttons
-        letterSpacing: 0.1,
-        height: 1.43,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 1.25, // tracking-wider for buttons/tags
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    const brandRed = Color(0xFFE50914);
+    // HTML Prototype Palette
+    const brandRed = Color(0xFFFF5A5F); // HTML Primary
+    const lightBg = Color(0xFFF7F2FA);  // HTML Light BG
+    const darkBg = Color(0xFF111111);   // HTML Dark BG
+    const darkSurface = Color(0xFF1C1B1F); // HTML Dark Card
 
     return MultiBlocProvider(
       providers: [
@@ -112,19 +100,30 @@ class MyApp extends StatelessWidget {
           ColorScheme darkScheme;
 
           if (lightDynamic != null && darkDynamic != null) {
-            lightScheme = lightDynamic.harmonized().copyWith(primary: brandRed);
-            darkScheme = darkDynamic.harmonized().copyWith(primary: brandRed);
+            lightScheme = lightDynamic.harmonized().copyWith(
+              primary: brandRed,
+              surface: lightBg,
+              surfaceContainerLow: Colors.white, // Card Light
+            );
+            darkScheme = darkDynamic.harmonized().copyWith(
+              primary: brandRed,
+              surface: darkBg,
+              surfaceContainerLow: darkSurface, // Card Dark
+            );
           } else {
-            lightScheme = ColorScheme.fromSeed(seedColor: brandRed);
-            darkScheme = ColorScheme.fromSeed(seedColor: brandRed, brightness: Brightness.dark);
+            lightScheme = ColorScheme.fromSeed(
+              seedColor: brandRed, 
+              brightness: Brightness.light,
+              surface: lightBg,
+              surfaceContainerLow: Colors.white,
+            );
+            darkScheme = ColorScheme.fromSeed(
+              seedColor: brandRed, 
+              brightness: Brightness.dark,
+              surface: darkBg,
+              surfaceContainerLow: darkSurface,
+            );
           }
-
-          darkScheme = darkScheme.copyWith(
-            surface: Colors.black,
-            onSurface: Colors.white,
-            surfaceContainer: const Color(0xFF121212),
-            surfaceContainerLow: const Color(0xFF1C1C1E),
-          );
 
           return BlocBuilder<ThemeBloc, ThemeState>(
             builder: (context, state) {
@@ -138,6 +137,11 @@ class MyApp extends StatelessWidget {
                   colorScheme: lightScheme,
                   scaffoldBackgroundColor: lightScheme.surface,
                   textTheme: _buildTextTheme(ThemeData.light().textTheme),
+                  cardTheme: CardTheme(
+                    color: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                  ),
                   appBarTheme: const AppBarTheme(
                     backgroundColor: Colors.transparent,
                     elevation: 0,
@@ -148,8 +152,13 @@ class MyApp extends StatelessWidget {
                 darkTheme: ThemeData(
                   useMaterial3: true,
                   colorScheme: darkScheme,
-                  scaffoldBackgroundColor: Colors.black,
+                  scaffoldBackgroundColor: darkBg,
                   textTheme: _buildTextTheme(ThemeData.dark().textTheme),
+                  cardTheme: CardTheme(
+                    color: darkSurface,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                  ),
                   appBarTheme: const AppBarTheme(
                     backgroundColor: Colors.transparent,
                     elevation: 0,

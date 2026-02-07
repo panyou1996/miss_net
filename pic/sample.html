@@ -1,0 +1,933 @@
+<!-- MissNet Home - Variant 2 -->
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MissNet Home - Unified M3 Experience</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;family=Playfair+Display:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        :root {
+            --md-sys-color-primary: #ef4444;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-surface: #ffffff;
+            --md-sys-color-on-surface: #1d1b20;
+            --md-sys-color-surface-variant: #f3f4f6;
+            --md-sys-color-on-surface-variant: #49454f;
+            --md-sys-color-secondary-container: #ffd9d9;
+            --md-sys-color-on-secondary-container: #3d0002;
+            --md-sys-color-outline: #79747e;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --md-sys-color-primary: #ffb4ab;
+                --md-sys-color-on-primary: #690005;
+                --md-sys-color-surface: #141218;
+                --md-sys-color-on-surface: #e6e1e5;
+                --md-sys-color-surface-variant: #49454f;
+                --md-sys-color-on-surface-variant: #cac4d0;
+                --md-sys-color-secondary-container: #4a4458;
+                --md-sys-color-on-secondary-container: #e8def8;
+                --md-sys-color-outline: #938f99;
+            }
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            -webkit-tap-highlight-color: transparent;
+        }
+        h1, h2, .brand-title {
+            font-family: 'Playfair Display', serif;
+        }
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .card-gradient {
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0) 100%);
+        }
+        .m3-nav-pill {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 32px;
+            border-radius: 16px;
+            transition: background-color 0.2s;
+        }
+        .m3-nav-item.active .m3-nav-pill {
+            background-color: var(--md-sys-color-secondary-container);
+        }
+        .m3-nav-item.active .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+            color: var(--md-sys-color-on-secondary-container);
+        }
+        .m3-nav-item .material-symbols-outlined {
+            font-variation-settings: 'wght' 400;
+        }
+        .section-header-icon {
+            font-variation-settings: 'wght' 400;
+        }
+        .video-card-radius {
+            border-radius: 16px;
+        }
+    </style>
+<script>
+        tailwind.config = {
+            darkMode: "media",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "var(--md-sys-color-primary)",
+                        surface: "var(--md-sys-color-surface)",
+                        "on-surface": "var(--md-sys-color-on-surface)",
+                        "surface-variant": "var(--md-sys-color-surface-variant)",
+                        "on-surface-variant": "var(--md-sys-color-on-surface-variant)",
+                        "secondary-container": "var(--md-sys-color-secondary-container)",
+                    }
+                },
+            },
+        };
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="antialiased pb-24">
+<header class="sticky top-0 z-50 bg-surface/90 backdrop-blur-xl px-4 h-16 flex justify-between items-center border-b border-surface-variant/30">
+<div class="brand-title text-2xl text-primary font-extrabold tracking-tight">MissNet</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-[24px]">search</span>
+</button>
+</header>
+<main class="flex flex-col space-y-8 pt-4">
+<section class="px-4">
+<div class="relative w-full aspect-video video-card-radius overflow-hidden shadow-lg group">
+<img alt="Featured Video" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_9HAhynZ9AUOkEJHh82MqEqLaecdwhimpYZDiGQRlkdavnR3HgK3R0fak6i-2-9uzdpebpj_IpmPxiZfWPSsNdeUQGFpovnAwDahhO5MAWbh0IRyPEulqtCZGO-xhQiLUlFBI5Qx1m8Z-f2rY1onc8JhaHTT0Ho3DaWqdwMyUw45YjLyPWEadhrgCupfW6SdAkGG9xsEE1Oz5BlywgcpnqwTM-RbIGL7j64aDo7dq8wC7xSy9b1J8Ao1Lgo1SzC1jYBnrakJZkrM"/>
+<div class="absolute inset-0 card-gradient flex flex-col justify-end p-5">
+<div class="flex space-x-2 mb-3">
+<span class="bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">New</span>
+<span class="bg-black/40 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border border-white/10">4K Ultra HD</span>
+</div>
+<h2 class="text-white font-bold text-2xl leading-tight mb-4 line-clamp-2 italic">
+                        個人拍攝：與滿嘴髒話的蕩婦進行變態遊戲
+                    </h2>
+<div class="flex space-x-3">
+<button class="flex-1 bg-white text-black h-10 rounded-full font-bold flex items-center justify-center space-x-2 active:scale-95 transition-transform">
+<span class="material-symbols-outlined fill-1">play_arrow</span>
+<span class="text-sm">Play</span>
+</button>
+<button class="flex-1 bg-white/20 backdrop-blur-md text-white h-10 rounded-full font-medium flex items-center justify-center space-x-2 border border-white/20 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">add</span>
+<span class="text-sm">My List</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<section>
+<div class="flex justify-between items-center px-4 mb-4">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined section-header-icon text-primary text-[22px]">trending_up</span>
+<h3 class="text-lg font-bold tracking-tight">Trending Now</h3>
+</div>
+<button class="text-sm font-semibold text-primary px-3 py-1 rounded-full active:bg-primary/10 transition-colors">See all</button>
+</div>
+<div class="flex space-x-4 overflow-x-auto hide-scroll px-4">
+<div class="flex-none w-[260px] relative video-card-radius overflow-hidden aspect-video bg-surface-variant shadow-sm">
+<img alt="Trending" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCE2E_mkoGJ1T4LC1gWTfq81D7wWvO3N6CFhRLqdWuE7oTsm89FMpG4Ia2U2qBcv5X4fXW_HM3z_KEDoyl78z-iPnoyM3CHggmKe2-3HkGXphNZdMq9fpLQEdCW6TNKXJHxp0cRy12Pf6lo5MyFDAr6vSVli2pButXPlSQJRlkH-9a261eZ1jvBVi5QBWSE8VhOwt_y21SAEzjzwmGRy1TDj9jOXib5tyFUs_8uUNKCMsaBMi5JD_J93HjvEhiNmw_JRymR5QCtFlw"/>
+<div class="absolute inset-0 card-gradient flex flex-col justify-end p-3">
+<h4 class="text-white text-xs font-medium line-clamp-1">Nonchalant Office Lady Secret Life Revealed</h4>
+</div>
+</div>
+<div class="flex-none w-[260px] relative video-card-radius overflow-hidden aspect-video bg-surface-variant shadow-sm">
+<img alt="Trending" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJkGeMQPrimARIPliioYDS4D_FfWyBOOo-mK9qaOWpLf6sHVrJZi4XeHTxfkEA9j-What8j9nPEs6BFYsbBPZHQpfoK9nY_a3OO0iICO11xZPk8OVSBeJq-eQSBXRh8riG7z-yXBp1DwdIoMgsoj9w_X245cQJ8XcIvofXoZK4W55M7_f7nYakd10bGSorxErEZv_TJeoWMMtNhvTdq4CMCW_bUByuzRKxTju9JQ4_FK0pPqyMATpp-GuY-AtnlzQchYpBwv6rWtc"/>
+<div class="absolute inset-0 card-gradient flex flex-col justify-end p-3">
+<h4 class="text-white text-xs font-medium line-clamp-1">堅強美麗的母親，與杜鵑花助孕...</h4>
+</div>
+</div>
+</div>
+</section>
+<section>
+<div class="flex justify-between items-center px-4 mb-4">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined section-header-icon text-primary text-[22px]">play_circle</span>
+<h3 class="text-lg font-bold tracking-tight">Continue Watching</h3>
+</div>
+<button class="text-sm font-semibold text-primary px-3 py-1 rounded-full active:bg-primary/10 transition-colors">See all</button>
+</div>
+<div class="flex space-x-4 overflow-x-auto hide-scroll px-4">
+<div class="flex-none w-[260px] relative video-card-radius overflow-hidden aspect-video bg-surface-variant shadow-sm">
+<img alt="Thumbnail" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCK5ja5DKt87-EOc9KTdgfuVNGzPVZVRDIxo1ljvq6eUqxggk9wFP_FrWEl2KgJlCkyFNVA9YYUUkHLcN8rqDcCz_V4SMmyk6XnBck-wkNE2_eUAXjDKVhAILMPdfjGKHXwlXE1mZu3vhLnG_zyjQAU6pGrUmz1U7gflgIrgiqS_fUafVWTNUqkhaUsEhbaOF5jNDFqDniiFLDQABcv7QBWN6hnW7CtuagNbSotNDXZCquT-YrcjmjpyJEzttP5AC_7GFyU9uWNRBk"/>
+<div class="absolute inset-0 card-gradient flex flex-col justify-end p-3">
+<h4 class="text-white text-xs font-medium line-clamp-1">同學會那天晚上，我喝得酩酊大醉...</h4>
+<div class="mt-2 w-full h-1 bg-white/20 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-2/3"></div>
+</div>
+</div>
+</div>
+<div class="flex-none w-[260px] relative video-card-radius overflow-hidden aspect-video bg-surface-variant shadow-sm">
+<img alt="Thumbnail" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-oV8wSP_nbdBFVJLBAKznbctotzEWKjZIP3HixGvXMBNiLfYwynNJP0PVMn1c1vbRK6UzY9olatOWtZdzbrzp8cpGArFX8XSMSsjIXnLfJwDnOSXM9gVpdb9LmwjoJ6D_enDfAFSrg03PShO8kjYwMnxOH0QIH8D2TCAHLB-eZeXhJyjiaBrqmzea1PL3Mykr2VOR47sheXisVUhO34qeAB4SZ5Sm4oFmoiGV2qcSckJTsEuCHqSuBUEdnkZlELwZShzJTlZWHrM"/>
+<div class="absolute inset-0 card-gradient flex flex-col justify-end p-3">
+<h4 class="text-white text-xs font-medium line-clamp-1">我們都是員工...CEO對那個愛又有才華...</h4>
+<div class="mt-2 w-full h-1 bg-white/20 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-1/4"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section>
+<div class="flex justify-between items-center px-4 mb-4">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined section-header-icon text-primary text-[22px]">new_releases</span>
+<h3 class="text-lg font-bold tracking-tight">New Releases</h3>
+</div>
+<button class="text-sm font-semibold text-primary px-3 py-1 rounded-full active:bg-primary/10 transition-colors">See all</button>
+</div>
+<div class="flex space-x-4 overflow-x-auto hide-scroll px-4">
+<div class="flex-none w-[260px] relative video-card-radius overflow-hidden aspect-video bg-surface-variant shadow-sm">
+<img alt="New Release" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCym8lT4qPLuyQLPKBlBhO6sI0rj2pd0XLtZ17IxWar52KvDYTKtWElwWUA2L39LBPA4HB5-yTWYlOfURW8UNSI4ewlN3eX68WGz6-UxM2OoC3B_y7YmS7mPAEx_W8dsOuLZFUCghIF0WO513fP2ymMejHVe8AkvwcyWbbUmpIXvn9LRW_b7PQ8RwKVYLHupIZn7z-n0eHc8AL1rdg0wpgdGqo0YfTs1ua-jBRf3C5crZOgD0hBvkSrNX5N2BLTTn47Tv0OguX6BfY"/>
+<div class="absolute inset-0 card-gradient flex flex-col justify-end p-3">
+<h4 class="text-white text-xs font-medium line-clamp-1">與滿嘴髒話的蕩婦進行變態遊戲</h4>
+</div>
+</div>
+<div class="flex-none w-[260px] relative video-card-radius overflow-hidden aspect-video bg-surface-variant shadow-sm">
+<img alt="New Release" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpEGXeUwEK4SO8pmmIc8iyd48Ol-pqBrXQBLB6mQax6fZILrptQZJdCd1-ijOZqJJYv8EtqhtqLPknEpYUgcAt-8RJl_txoLUcMn1Ribw0MYdQcfJmNLbDry_bD5h0ZYUxSn0Yu99HC1V9EEe8vulixXFUeJy0IVPNhwsfZ7b84g9LFvSogY34osnCgVKMUs2YKQSSjJRxU1gP3K8oZIfXqWYjbkiY5lNDRGoUemr3-dsOmkUBkxWDeHgpYi4O7bu8PCOzxj5VKXw"/>
+<div class="absolute inset-0 card-gradient flex flex-col justify-end p-3">
+<h4 class="text-white text-xs font-medium line-clamp-1">[VR] [8K] 偷拍女同事, 但性格...</h4>
+</div>
+</div>
+</div>
+</section>
+<section class="pb-16">
+<div class="flex justify-between items-center px-4 mb-4">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined section-header-icon text-primary text-[22px]">workspace_premium</span>
+<h3 class="text-lg font-bold tracking-tight">Premium Uncensored</h3>
+</div>
+<button class="text-sm font-semibold text-primary px-3 py-1 rounded-full active:bg-primary/10 transition-colors">See all</button>
+</div>
+<div class="flex space-x-4 overflow-x-auto hide-scroll px-4">
+<div class="flex-none w-[260px] relative video-card-radius overflow-hidden aspect-video bg-surface-variant shadow-sm">
+<img alt="Premium" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKZ7I4aEWnJwZATfPfcxTub2WhCGfLooLH88yeh-aARffghtg0bQu2MUCwSQGneeENOy7wu1b_hKy23NxKQMRdgpt-1BPrCbuoKIcA8aL8sjmSkPqcWOc-m5KiYhWEWyXOSauKifK_uHfN0QQaKtoM6CgUqY99GslngWGPKzF9Y3aAWe3GTQGOoDd8P-xrsg1Te_vivynZTQbshuGIux4ahwLc7YBKepUFZNLDZ65KI9xB1IFmU_EzUyW9T2XWT-KHlY6VGxx_jJg"/>
+<div class="absolute inset-0 card-gradient flex flex-col justify-end p-3">
+<h4 class="text-white text-xs font-medium line-clamp-1">全身沾滿了精液的紀錄...</h4>
+</div>
+</div>
+<div class="flex-none w-[260px] relative video-card-radius overflow-hidden aspect-video bg-surface-variant shadow-sm">
+<img alt="Premium" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeQy-ETdfH2unPECF5YfVyr1vy8fUqAeKXlQSGBZ6y6RkwO4rKhPCVnztIuAz9WKAh2Fb6t8tTmoNZvc1WhCg5wuL7dsgvVXOH4q8jDSMkH9BROw_hXIjyf_Y3rIhISNCE8LSaCy5eyMndLp1WK4ezDQuK9887cX2xjPyd7poHLALIU4t2qsvJaxHvb9xDKuUsCy9gKx-_cUR0WGQsZGRR2bxhrmWOReoox0htoY0BWabshGNuDoGepC4MAx43ZYy-Qo9uvewlnRo"/>
+<div class="absolute inset-0 card-gradient flex flex-col justify-end p-3">
+<h4 class="text-white text-xs font-medium line-clamp-1">水濑明里專屬紀錄...</h4>
+</div>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 h-20 bg-surface/95 backdrop-blur-md border-t border-surface-variant flex justify-around items-center px-4 z-50">
+<a class="m3-nav-item active flex flex-col items-center group flex-1" href="#">
+<div class="m3-nav-pill mb-1">
+<span class="material-symbols-outlined text-2xl">home</span>
+</div>
+<span class="text-[11px] font-medium text-on-surface">Home</span>
+</a>
+<a class="m3-nav-item flex flex-col items-center group flex-1" href="#">
+<div class="m3-nav-pill mb-1">
+<span class="material-symbols-outlined text-2xl">explore</span>
+</div>
+<span class="text-[11px] font-medium text-on-surface-variant">Explore</span>
+</a>
+<a class="m3-nav-item flex flex-col items-center group flex-1" href="#">
+<div class="m3-nav-pill mb-1">
+<span class="material-symbols-outlined text-2xl">favorite</span>
+</div>
+<span class="text-[11px] font-medium text-on-surface-variant">Favorites</span>
+</a>
+<a class="m3-nav-item flex flex-col items-center group flex-1" href="#">
+<div class="m3-nav-pill mb-1">
+<span class="material-symbols-outlined text-2xl">settings</span>
+</div>
+<span class="text-[11px] font-medium text-on-surface-variant">Settings</span>
+</a>
+</nav>
+
+</body></html>
+
+<!-- MissNet Explore -->
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MissNet Explore</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#F87171",
+                        "background-light": "#FAFAFA",
+                        "background-dark": "#000000",
+                        "card-light": "#FFFFFF",
+                        "card-dark": "#121212",
+                        "text-light": "#111827",
+                        "text-dark": "#E3E3E3",
+                        "subtext-light": "#6B7280",
+                        "subtext-dark": "#938F99",
+                        "border-light": "#E5E7EB",
+                        "border-dark": "#444746",
+                    },
+                    fontFamily: {
+                        sans: ["Roboto", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.75rem",
+                        'xl': '1rem',
+                        '2xl': '1.5rem',
+                        '3xl': '1.75rem',
+                    },
+                    boxShadow: {
+                        'm3': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+                    }
+                },
+            },
+        };
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            min-height: 100dvh;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .m3-card {
+            @apply bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark shadow-m3 transition-all duration-200;
+        }
+        .m3-nav-indicator {
+            @apply absolute inset-x-0 -top-1 mx-auto w-12 h-8 bg-primary/20 rounded-full -z-10 opacity-0 transition-opacity;
+        }
+        .active .m3-nav-indicator {
+            @apply opacity-100;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-sans antialiased pb-32">
+<header class="sticky top-0 z-30 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-xl px-6 pt-12 pb-4">
+<div class="flex items-center justify-between mb-4">
+<h1 class="text-4xl font-bold tracking-tight text-text-light dark:text-text-dark">Explore</h1>
+<button class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-2xl">search</span>
+</button>
+</div>
+</header>
+<main class="px-6 space-y-8 mt-2">
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-sm font-medium text-primary uppercase tracking-widest">Popular Actresses</h2>
+</div>
+<div class="flex space-x-4 overflow-x-auto no-scrollbar pb-2">
+<div class="flex flex-col items-center space-y-3 flex-shrink-0 w-20">
+<div class="w-20 h-20 rounded-full m3-card flex items-center justify-center overflow-hidden">
+<span class="text-primary text-2xl font-bold">北</span>
+</div>
+<span class="text-xs font-medium text-center w-full truncate dark:text-subtext-dark">北岡果林</span>
+</div>
+<div class="flex flex-col items-center space-y-3 flex-shrink-0 w-20">
+<div class="w-20 h-20 rounded-full m3-card flex items-center justify-center overflow-hidden">
+<span class="text-primary text-2xl font-bold">小</span>
+</div>
+<span class="text-xs font-medium text-center w-full truncate dark:text-subtext-dark">小野坂ゆいか</span>
+</div>
+<div class="flex flex-col items-center space-y-3 flex-shrink-0 w-20">
+<div class="w-20 h-20 rounded-full m3-card flex items-center justify-center overflow-hidden">
+<span class="text-primary text-2xl font-bold">北</span>
+</div>
+<span class="text-xs font-medium text-center w-full truncate dark:text-subtext-dark">北野未奈</span>
+</div>
+<div class="flex flex-col items-center space-y-3 flex-shrink-0 w-20">
+<div class="w-20 h-20 rounded-full m3-card flex items-center justify-center overflow-hidden">
+<span class="text-primary text-2xl font-bold">宍</span>
+</div>
+<span class="text-xs font-medium text-center w-full truncate dark:text-subtext-dark">宍戸里帆</span>
+</div>
+<div class="flex flex-col items-center space-y-3 flex-shrink-0 w-20">
+<div class="w-20 h-20 rounded-full m3-card flex items-center justify-center overflow-hidden">
+<span class="text-primary text-2xl font-bold">鈴</span>
+</div>
+<span class="text-xs font-medium text-center w-full truncate dark:text-subtext-dark">鈴木ふみ奈</span>
+</div>
+</div>
+</section>
+<section>
+<h2 class="text-sm font-medium text-primary uppercase tracking-widest mb-4">Trending Topics</h2>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-2 rounded-lg m3-card text-xs font-medium hover:bg-primary/5 active:scale-95">#高清</button>
+<button class="px-4 py-2 rounded-lg m3-card text-xs font-medium hover:bg-primary/5 active:scale-95">#單體作品</button>
+<button class="px-4 py-2 rounded-lg m3-card text-xs font-medium hover:bg-primary/5 active:scale-95">#獨家</button>
+<button class="px-4 py-2 rounded-lg m3-card text-xs font-medium hover:bg-primary/5 active:scale-95">#中出</button>
+<button class="px-4 py-2 rounded-lg m3-card text-xs font-medium hover:bg-primary/5 active:scale-95">#4K</button>
+<button class="px-4 py-2 rounded-lg m3-card text-xs font-medium hover:bg-primary/5 active:scale-95">#巨乳</button>
+<button class="px-4 py-2 rounded-lg m3-card text-xs font-medium hover:bg-primary/5 active:scale-95">#無碼流出</button>
+</div>
+</section>
+<section>
+<h2 class="text-sm font-medium text-primary uppercase tracking-widest mb-4">Browse Categories</h2>
+<div class="grid grid-cols-2 gap-3">
+<div class="group relative flex items-center p-3 rounded-xl m3-card h-14 cursor-pointer overflow-hidden hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.98]">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">
+<span class="material-symbols-outlined text-xl">local_fire_department</span>
+</div>
+<span class="text-xs font-bold uppercase tracking-tight truncate">Hot Melon</span>
+</div>
+</div>
+<div class="group relative flex items-center p-3 rounded-xl m3-card h-14 cursor-pointer overflow-hidden hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.98]">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+<span class="material-symbols-outlined text-xl">school</span>
+</div>
+<span class="text-xs font-bold uppercase tracking-tight truncate">School</span>
+</div>
+</div>
+<div class="group relative flex items-center p-3 rounded-xl m3-card h-14 cursor-pointer overflow-hidden hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.98]">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+<span class="material-symbols-outlined text-xl">work</span>
+</div>
+<span class="text-xs font-bold uppercase tracking-tight truncate">Office</span>
+</div>
+</div>
+<div class="group relative flex items-center p-3 rounded-xl m3-card h-14 cursor-pointer overflow-hidden hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.98]">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 flex items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+<span class="material-symbols-outlined text-xl">wine_bar</span>
+</div>
+<span class="text-xs font-bold uppercase tracking-tight truncate">Mature</span>
+</div>
+</div>
+<div class="group relative flex items-center p-3 rounded-xl m3-card h-14 cursor-pointer overflow-hidden hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.98]">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+<span class="material-symbols-outlined text-xl">diamond</span>
+</div>
+<span class="text-xs font-bold uppercase tracking-tight truncate">Exclusive</span>
+</div>
+</div>
+<div class="group relative flex items-center p-3 rounded-xl m3-card h-14 cursor-pointer overflow-hidden hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.98]">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 flex items-center justify-center rounded-lg bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400">
+<span class="material-symbols-outlined text-xl">favorite</span>
+</div>
+<span class="text-xs font-bold uppercase tracking-tight truncate">Nympho</span>
+</div>
+</div>
+<div class="group relative flex items-center p-3 rounded-xl m3-card h-14 cursor-pointer overflow-hidden hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.98]">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 flex items-center justify-center rounded-lg bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400">
+<span class="material-symbols-outlined text-xl">photo_camera</span>
+</div>
+<span class="text-xs font-bold uppercase tracking-tight truncate">Voyeur</span>
+</div>
+</div>
+<div class="group relative flex items-center p-3 rounded-xl m3-card h-14 cursor-pointer overflow-hidden hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.98]">
+<div class="flex items-center space-x-3">
+<div class="w-8 h-8 flex items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
+<span class="material-symbols-outlined text-xl">people</span>
+</div>
+<span class="text-xs font-bold uppercase tracking-tight truncate">Sister</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 inset-x-0 bg-white/80 dark:bg-[#1C1B1F]/80 backdrop-blur-2xl border-t border-border-light dark:border-white/5 flex justify-around items-center px-4 pb-8 pt-3 z-50">
+<a class="flex flex-col items-center justify-center w-20 relative text-subtext-light dark:text-subtext-dark" href="#">
+<div class="m3-nav-indicator"></div>
+<span class="material-symbols-outlined text-[24px]">home</span>
+<span class="text-[11px] mt-1 font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center w-20 relative active text-primary" href="#">
+<div class="m3-nav-indicator opacity-100"></div>
+<span class="material-symbols-outlined text-[24px] font-bold">explore</span>
+<span class="text-[11px] mt-1 font-bold">Explore</span>
+</a>
+<a class="flex flex-col items-center justify-center w-20 relative text-subtext-light dark:text-subtext-dark" href="#">
+<div class="m3-nav-indicator"></div>
+<span class="material-symbols-outlined text-[24px]">favorite</span>
+<span class="text-[11px] mt-1 font-medium">Likes</span>
+</a>
+<a class="flex flex-col items-center justify-center w-20 relative text-subtext-light dark:text-subtext-dark" href="#">
+<div class="m3-nav-indicator"></div>
+<span class="material-symbols-outlined text-[24px]">settings</span>
+<span class="text-[11px] mt-1 font-medium">Settings</span>
+</a>
+</nav>
+
+</body></html>
+
+<!-- MissNet Video Player -->
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MissNet Unified Player Screen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#FF5E5E",
+                        "background-dark": "#0A0A0A",
+                        "surface-dark": "#1C1B1F",
+                        "surface-variant": "#49454F",
+                        "on-surface-variant": "#CAC4D0",
+                        "outline": "#938F99"
+                    },
+                    fontFamily: {
+                        sans: ["Roboto", "sans-serif"],
+                    },
+                    borderRadius: {
+                        'm3-sm': '8px',
+                        'm3-md': '12px',
+                        'm3-lg': '16px',
+                        'm3-xl': '28px',
+                    },
+                },
+            },
+        };
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&amp;display=swap" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            min-height: 100dvh;
+            background-color: #0A0A0A;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-gray-100 font-sans antialiased pb-28">
+<div class="relative w-full aspect-video bg-black sticky top-0 z-50">
+<img alt="High resolution video content" class="w-full h-full object-cover opacity-90" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnPCq_xS3-8Doz6bvLp9gEehVw0pvxp2gzKc-H5bIfXee4L8DC0Gu2HDjmZPHllqoGbkYhL1nceAHmwdH76_qcywd2rz6HDtHGw3iP1OIv3pVnfAaNlMC0gJjmggjrnAExk3IR4c7cT8uikn4E4OjH-Scz2Dt1kWxHq2wPeRo27B06m0a2JQLfd3UhXr7kvnfFuEELpHyqhxIk2o0ut9TcymMlsUDe1qq8UQVOR465TAltSFDMFcM2WqyhgbLZo8jeo1KjZDuyMJM"/>
+<div class="absolute inset-0 flex flex-col justify-between p-4 bg-gradient-to-b from-black/80 via-transparent to-black/80">
+<div class="flex justify-between items-center">
+<button class="p-2 rounded-full hover:bg-white/10 transition">
+<span class="material-symbols-outlined text-white text-2xl">expand_more</span>
+</button>
+<div class="flex space-x-2">
+<button class="p-2 rounded-full hover:bg-white/10 transition">
+<span class="material-symbols-outlined text-white text-2xl">subtitles</span>
+</button>
+<button class="p-2 rounded-full hover:bg-white/10 transition">
+<span class="material-symbols-outlined text-white text-2xl">settings</span>
+</button>
+</div>
+</div>
+<div class="absolute inset-0 flex items-center justify-center space-x-10 pointer-events-none">
+<button class="pointer-events-auto p-3 rounded-full bg-black/20 backdrop-blur-md hover:bg-black/40 transition active:scale-90">
+<span class="material-symbols-outlined text-white text-3xl">replay_10</span>
+</button>
+<button class="pointer-events-auto w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white shadow-xl hover:scale-105 transition active:scale-95">
+<span class="material-symbols-outlined text-4xl filled-icon">play_arrow</span>
+</button>
+<button class="pointer-events-auto p-3 rounded-full bg-black/20 backdrop-blur-md hover:bg-black/40 transition active:scale-90">
+<span class="material-symbols-outlined text-white text-3xl">forward_10</span>
+</button>
+</div>
+<div class="w-full space-y-2">
+<div class="relative w-full h-1.5 bg-white/20 rounded-full cursor-pointer group">
+<div class="absolute top-0 left-0 h-full w-1/3 bg-primary rounded-full"></div>
+<div class="absolute top-1/2 left-1/3 -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-primary rounded-full shadow-lg scale-0 group-hover:scale-100 transition-transform"></div>
+</div>
+<div class="flex justify-between items-center text-white text-[11px] font-medium tracking-wide">
+<span>12:45 / 45:30</span>
+<button class="p-1">
+<span class="material-symbols-outlined text-xl">fullscreen</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="px-5 pt-6">
+<div class="mb-6">
+<h1 class="text-xl font-bold text-white leading-snug mb-3">
+                個人拍攝：與滿嘴髒話的蕩婦進行變態遊戲 - 在酒店進行變態的陰莖訓練 綾瀬舞奈
+            </h1>
+<div class="flex items-center text-on-surface-variant text-xs space-x-3 font-medium">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">visibility</span> 1.2M views</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">schedule</span> 2 days ago</span>
+</div>
+</div>
+<div class="flex justify-between items-center mb-8 overflow-x-auto no-scrollbar py-2">
+<button class="flex flex-col items-center min-w-[72px] gap-1.5 transition active:opacity-60">
+<div class="w-12 h-12 rounded-full border border-outline/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-white">download</span>
+</div>
+<span class="text-[11px] font-medium text-on-surface-variant tracking-tight">Download</span>
+</button>
+<button class="flex flex-col items-center min-w-[72px] gap-1.5 transition active:opacity-60">
+<div class="w-12 h-12 rounded-full border border-outline/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[22px]">slow_motion_video</span>
+</div>
+<span class="text-[11px] font-medium text-on-surface-variant tracking-tight">Speed</span>
+</button>
+<button class="flex flex-col items-center min-w-[72px] gap-1.5 transition active:opacity-60">
+<div class="w-12 h-12 rounded-full border border-outline/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[22px]">cast</span>
+</div>
+<span class="text-[11px] font-medium text-on-surface-variant tracking-tight">Cast</span>
+</button>
+<button class="flex flex-col items-center min-w-[72px] gap-1.5 transition active:opacity-60">
+<div class="w-12 h-12 rounded-full border border-outline/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[22px]">share</span>
+</div>
+<span class="text-[11px] font-medium text-on-surface-variant tracking-tight">Share</span>
+</button>
+<button class="flex flex-col items-center min-w-[72px] gap-1.5 transition active:opacity-60">
+<div class="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[22px] filled-icon">favorite</span>
+</div>
+<span class="text-[11px] font-medium text-primary tracking-tight">Saved</span>
+</button>
+</div>
+<div class="mb-8">
+<h3 class="text-xs font-bold text-on-surface-variant mb-4 uppercase tracking-[0.1em]">Cast Members</h3>
+<div class="flex space-x-5 overflow-x-auto no-scrollbar">
+<div class="flex flex-col items-center gap-2 min-w-[64px]">
+<div class="w-[60px] h-[60px] rounded-full ring-2 ring-primary ring-offset-2 ring-offset-[#0A0A0A] overflow-hidden">
+<img alt="Actress" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4tezC1VcQ70QfgLEBAw30L5QyOUnzccyV6h_I8tDIF6DmBz_IBnw2yjKMYFE2o-mmJqeALGqp1nd8fpZhdxF9DQpQXwWiAsL-4i7EO_t--jJDI_Lx5zB6p5EEFMQPCe7y2MbGuH9VKQY5ohywyXx7F2u0k0kC9umHiXLFcGN49yE8XlCwJAK2UEAPoO1FagrdSk473a2JTB_3Dqm3UQHi83iFL8wGdHteYhFqfPT8vaQYw-EiJgAtH1S1Ub-eTnD9Q8lq51nDQXs"/>
+</div>
+<span class="text-[11px] font-medium text-white text-center truncate w-full">綾瀬舞奈</span>
+</div>
+<div class="flex flex-col items-center gap-2 min-w-[64px]">
+<div class="w-[60px] h-[60px] rounded-full overflow-hidden grayscale opacity-80">
+<img alt="Actress" class="w-full h-full object-cover bg-surface-dark" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvJQy4CVmH-BYMUpGUNFnLjwq7KOSogH8fvvP9xg7o0IGkPYG9WQDinrz0FXqpbjPjCPz0tiX0ebEQkqSf3xLXwTLZYlUBDAiwzS6vyuKDN6SYiwIj9qdVqm5NOfEGiNHrGz68T6VZU0ix7BP-ZolTngc4pOXvq3_zcIy5Br3GgLkLnAP40Pa829je3KC38COvzy2hMybbYtvjHMqoNzJxePkhAcqsQNQ-Q_CBItJexbK4wKaIDqf9yklpxI5dVwLIyaxS4AYDL9I"/>
+</div>
+<span class="text-[11px] font-medium text-on-surface-variant text-center truncate w-full">Yui Hatano</span>
+</div>
+<div class="flex flex-col items-center gap-2 min-w-[64px]">
+<div class="w-[60px] h-[60px] rounded-full overflow-hidden grayscale opacity-80">
+<img alt="Actress" class="w-full h-full object-cover bg-surface-dark" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAG1zxF5zfZOZWjYGT2hk3y15mu0MbREZJwfSTBWA2lAOcxpLK2bmJepkqsGNiT97WJJKw-Irr8ODfH3gW7rIXAxndSiF-S1tFueFwUzO1WVOFmg1Wgt4-1KNvcnnk_UlZ8QytC9HDUpxvhGdO_KKjBhXxiXvDVz_lNbzTYEPdd_M_r_HU5VPCzByyqufawjYE1tAIBpgnz1gDHeCAQyAE7YuDUhY3qRxanE2fSj9xzo5cUQLPm5vZ7siMTev9JZ08QVnycvsO3DM0"/>
+</div>
+<span class="text-[11px] font-medium text-on-surface-variant text-center truncate w-full">Mikami Yua</span>
+</div>
+</div>
+</div>
+<div class="mb-10">
+<h3 class="text-xs font-bold text-on-surface-variant mb-4 uppercase tracking-[0.1em]">Tags</h3>
+<div class="flex flex-wrap gap-2">
+<span class="px-4 py-1.5 rounded-m3-sm text-[12px] font-medium bg-surface-dark text-on-surface-variant border border-outline/20 hover:border-primary/50 transition cursor-pointer">#高清</span>
+<span class="px-4 py-1.5 rounded-m3-sm text-[12px] font-medium bg-surface-dark text-on-surface-variant border border-outline/20 hover:border-primary/50 transition cursor-pointer">#4K</span>
+<span class="px-4 py-1.5 rounded-m3-sm text-[12px] font-medium bg-surface-dark text-on-surface-variant border border-outline/20 hover:border-primary/50 transition cursor-pointer">#獨家</span>
+<span class="px-4 py-1.5 rounded-m3-sm text-[12px] font-medium bg-surface-dark text-on-surface-variant border border-outline/20 hover:border-primary/50 transition cursor-pointer">#Subtitled</span>
+<span class="px-4 py-1.5 rounded-m3-sm text-[12px] font-medium bg-surface-dark text-on-surface-variant border border-outline/20 hover:border-primary/50 transition cursor-pointer">#POV</span>
+</div>
+</div>
+<div class="flex justify-between items-center mb-5">
+<h2 class="text-lg font-bold text-white tracking-tight">Related Videos</h2>
+<button class="text-[11px] font-bold text-primary uppercase tracking-widest">View All</button>
+</div>
+<div class="space-y-4">
+<div class="flex gap-4 p-1 rounded-m3-lg bg-surface-dark/40 hover:bg-surface-dark transition">
+<div class="relative w-36 aspect-video shrink-0 rounded-m3-md overflow-hidden">
+<img alt="Thumbnail" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjY-eM1JCcpwRwqStNguHvd719w62obONEAR1MWtAp9eNUDELKkAHJRxTSdiTUFygkjP6WCLl6-jUCjF7lTSkrm-hijorOjJyWt5aeAsw7ZE231A1V3zU7a2txOnDoXw1ILIJHiDq0wH_S3bcxv_VzwZ2XsmikBtoK9DJZ7iPI5bujyBTFyGOw-RJavTCtbywwjohUl1KmWlPHjSM3aghFPXnFd_-zkgGVoSAO4g0QyaiD-DsKS5mKwSe2X1SVZZTeUVyJCCu7ZCU"/>
+<span class="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1.5 py-0.5 rounded-sm font-bold">24:10</span>
+</div>
+<div class="flex flex-col justify-between py-0.5 pr-2">
+<h4 class="text-[13px] font-bold text-white line-clamp-2 leading-[1.3]">
+                        同學會那天晚上，我喝得酩酊大醉，去了以前的...
+                    </h4>
+<div class="flex justify-between items-center mt-1">
+<span class="text-[10px] font-medium text-on-surface-variant">156k views</span>
+<span class="material-symbols-outlined text-outline text-[18px]">more_vert</span>
+</div>
+</div>
+</div>
+<div class="flex gap-4 p-1 rounded-m3-lg bg-surface-dark/40 hover:bg-surface-dark transition">
+<div class="relative w-36 aspect-video shrink-0 rounded-m3-md overflow-hidden">
+<img alt="Thumbnail" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKrOBLW5sFNxlUixjnZJnDmrjI6Vdo1Pmu59ydaEoEjg6-oKQYMfdx-rKwmgKlqa5C9GIyP4VQiZKFWOEFTXBl9_ubkchcSbNG0e_n3CPXTy9OYPyMTLXgVFlyjjEOaPe0ihSWALdTKzlQoIXjeQE80FKMPnpwy9V6aVZf8Ct2q4HkUA1yAxknfCRqnvu26WzMfFyLQNCH56bS5qMol6BcgFegq0d45LxcFQPpY0J1V0hnOKvpxa57sAYXE8xbIEgXkBC4chv4Q4k"/>
+<span class="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] px-1.5 py-0.5 rounded-sm font-bold">48:02</span>
+<span class="absolute top-1 left-1 bg-primary text-white text-[9px] font-black px-1 rounded-sm shadow-sm">SUB</span>
+</div>
+<div class="flex flex-col justify-between py-0.5 pr-2">
+<h4 class="text-[13px] font-bold text-white line-clamp-2 leading-[1.3]">
+                        性騷擾！性慾滿足！顏射！害羞善良、什麼都...
+                    </h4>
+<div class="flex justify-between items-center mt-1">
+<span class="text-[10px] font-medium text-on-surface-variant">890k views</span>
+<span class="material-symbols-outlined text-outline text-[18px]">more_vert</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<nav class="fixed bottom-0 left-0 right-0 bg-[#1C1B1F] border-t border-white/5 pt-3 pb-8 px-6 z-50">
+<div class="flex justify-around items-center max-w-md mx-auto">
+<button class="flex flex-col items-center gap-1 group">
+<div class="px-5 py-1 rounded-full group-active:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant text-[24px]">home</span>
+</div>
+<span class="text-[11px] font-medium text-on-surface-variant">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 group">
+<div class="px-5 py-1 rounded-full group-active:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant text-[24px]">explore</span>
+</div>
+<span class="text-[11px] font-medium text-on-surface-variant">Explore</span>
+</button>
+<button class="flex flex-col items-center gap-1 group">
+<div class="px-5 py-1 rounded-full bg-primary/20 text-primary">
+<span class="material-symbols-outlined text-[24px] filled-icon">play_circle</span>
+</div>
+<span class="text-[11px] font-bold text-primary">Playing</span>
+</button>
+<button class="flex flex-col items-center gap-1 group">
+<div class="px-5 py-1 rounded-full group-active:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant text-[24px]">person</span>
+</div>
+<span class="text-[11px] font-medium text-on-surface-variant">Profile</span>
+</button>
+</div>
+</nav>
+
+</body></html>
+
+<!-- MissNet Settings -->
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MissNet Unified Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Serif:opsz,wght@8..144,400;700&amp;family=Roboto:wght@300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-25..0&amp;display=swap" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        :root {
+            --primary: #FF5A5F;
+            --surface-light: #FFFFFF;
+            --surface-dark: #1C1B1F;
+            --background-light: #F7F2FA;
+            --background-dark: #111111;
+            --on-surface-light: #1D1B20;
+            --on-surface-dark: #E6E1E5;
+            --on-surface-variant-light: #49454F;
+            --on-surface-variant-dark: #CAC4D0;
+            --outline-light: #79747E;
+            --outline-dark: #938F99;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .font-display {
+            font-family: 'Roboto Serif', serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }.m3-switch {
+            @apply relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-200 focus:outline-none;
+        }
+        .m3-switch-thumb {
+            @apply inline-block h-6 w-6 transform rounded-full bg-white transition duration-200 ease-in-out;
+        }
+        input:checked + .m3-switch {
+            @apply bg-[var(--primary)];
+        }
+        input:checked + .m3-switch .m3-switch-thumb {
+            @apply translate-x-7;
+        }
+        input:not(:checked) + .m3-switch {
+            @apply bg-[var(--outline-light)] dark:bg-[var(--outline-dark)];
+        }
+        input:not(:checked) + .m3-switch .m3-switch-thumb {
+            @apply translate-x-1;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[var(--background-light)] dark:bg-[var(--background-dark)] text-[var(--on-surface-light)] dark:text-[var(--on-surface-dark)] min-h-screen">
+<div class="max-w-[430px] mx-auto min-h-screen relative pb-32">
+<header class="sticky top-0 z-40 bg-[var(--background-light)]/80 dark:bg-[var(--background-dark)]/80 backdrop-blur-md px-6 pt-12 pb-6">
+<h1 class="text-4xl font-display font-bold text-[var(--on-surface-light)] dark:text-[var(--on-surface-dark)] tracking-tight">Settings</h1>
+</header>
+<main class="px-4 space-y-6">
+<section>
+<h2 class="px-4 mb-3 text-sm font-medium tracking-wider text-[var(--primary)] uppercase">Account</h2>
+<div class="bg-[var(--surface-light)] dark:bg-[var(--surface-dark)] rounded-[28px] overflow-hidden shadow-sm border border-[var(--on-surface-variant-light)]/5 dark:border-[var(--on-surface-variant-dark)]/5">
+<div class="flex items-center justify-between p-5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)]">
+<span class="material-symbols-outlined text-2xl">account_circle</span>
+</div>
+<div class="flex flex-col">
+<span class="text-base font-medium">MissNet Premium</span>
+<span class="text-sm text-[var(--on-surface-variant-light)] dark:text-[var(--on-surface-variant-dark)]">panyouxg@163.com</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-[var(--on-surface-variant-light)] dark:text-[var(--on-surface-variant-dark)]">logout</span>
+</div>
+</div>
+</section>
+<section>
+<h2 class="px-4 mb-3 text-sm font-medium tracking-wider text-[var(--primary)] uppercase">Appearance</h2>
+<div class="bg-[var(--surface-light)] dark:bg-[var(--surface-dark)] rounded-[28px] overflow-hidden shadow-sm border border-[var(--on-surface-variant-light)]/5">
+<div class="flex items-center justify-between p-5">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-2xl">dark_mode</span>
+<span class="text-base font-medium">Dark Mode</span>
+</div>
+<label class="relative cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="m3-switch peer-checked:bg-[var(--primary)]">
+<span class="m3-switch-thumb"></span>
+</div>
+</label>
+</div>
+</div>
+</section>
+<section>
+<h2 class="px-4 mb-3 text-sm font-medium tracking-wider text-[var(--primary)] uppercase">Privacy</h2>
+<div class="bg-[var(--surface-light)] dark:bg-[var(--surface-dark)] rounded-[28px] overflow-hidden shadow-sm">
+<div class="flex items-center justify-between p-5 border-b border-[var(--on-surface-variant-light)]/10 dark:border-[var(--on-surface-variant-dark)]/10">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-2xl">visibility_off</span>
+<div class="flex flex-col">
+<span class="text-base font-medium">Incognito Mode</span>
+<span class="text-sm text-[var(--on-surface-variant-light)] dark:text-[var(--on-surface-variant-dark)]">History is not saved</span>
+</div>
+</div>
+<label class="relative cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="m3-switch">
+<span class="m3-switch-thumb"></span>
+</div>
+</label>
+</div>
+<div class="flex items-center justify-between p-5">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-2xl">fingerprint</span>
+<div class="flex flex-col">
+<span class="text-base font-medium">App Lock</span>
+<span class="text-sm text-[var(--on-surface-variant-light)] dark:text-[var(--on-surface-variant-dark)]">Biometric authentication</span>
+</div>
+</div>
+<label class="relative cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="m3-switch">
+<span class="m3-switch-thumb"></span>
+</div>
+</label>
+</div>
+</div>
+</section>
+<section>
+<h2 class="px-4 mb-3 text-sm font-medium tracking-wider text-[var(--primary)] uppercase">Storage</h2>
+<div class="bg-[var(--surface-light)] dark:bg-[var(--surface-dark)] rounded-[28px] overflow-hidden shadow-sm">
+<div class="p-5 border-b border-[var(--on-surface-variant-light)]/10 dark:border-[var(--on-surface-variant-dark)]/10">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-2xl">database</span>
+<span class="text-base font-medium">Device Storage</span>
+</div>
+<span class="text-sm font-medium">12.4 GB of 64 GB used</span>
+</div>
+<div class="w-full bg-[var(--background-light)] dark:bg-[var(--background-dark)] h-2 rounded-full overflow-hidden">
+<div class="bg-[var(--primary)] h-full w-[19.3%] rounded-full"></div>
+</div>
+</div>
+<div class="flex items-center justify-between p-5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-2xl">download_for_offline</span>
+<span class="text-base font-medium">Download Quality</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="text-sm text-[var(--on-surface-variant-light)] dark:text-[var(--on-surface-variant-dark)]">Full HD (1080p)</span>
+<span class="material-symbols-outlined text-[var(--on-surface-variant-light)] dark:text-[var(--on-surface-variant-dark)] text-lg">chevron_right</span>
+</div>
+</div>
+</div>
+</section>
+<section>
+<h2 class="px-4 mb-3 text-sm font-medium tracking-wider text-[var(--primary)] uppercase">About</h2>
+<div class="bg-[var(--surface-light)] dark:bg-[var(--surface-dark)] rounded-[28px] overflow-hidden shadow-sm mb-4">
+<div class="flex items-center justify-between p-5 border-b border-[var(--on-surface-variant-light)]/10 dark:border-[var(--on-surface-variant-dark)]/10">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-2xl">info</span>
+<span class="text-base font-medium">Version</span>
+</div>
+<span class="text-sm text-[var(--on-surface-variant-light)] dark:text-[var(--on-surface-variant-dark)]">4.12.0</span>
+</div>
+<div class="flex items-center justify-between p-5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-2xl">policy</span>
+<span class="text-base font-medium">Privacy Policy</span>
+</div>
+<span class="material-symbols-outlined text-[var(--on-surface-variant-light)] dark:text-[var(--on-surface-variant-dark)]">open_in_new</span>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] max-w-[400px] z-50">
+<div class="bg-[var(--surface-dark)]/90 backdrop-blur-xl rounded-[32px] shadow-2xl px-8 py-4 flex justify-between items-center border border-white/10">
+<button class="flex items-center justify-center text-white/50 hover:text-[var(--primary)] transition-all transform active:scale-90">
+<span class="material-symbols-outlined text-[28px]">home</span>
+</button>
+<button class="flex items-center justify-center text-white/50 hover:text-[var(--primary)] transition-all transform active:scale-90">
+<span class="material-symbols-outlined text-[28px]">explore</span>
+</button>
+<button class="flex items-center justify-center text-white/50 hover:text-[var(--primary)] transition-all transform active:scale-90">
+<span class="material-symbols-outlined text-[28px]">subscriptions</span>
+</button>
+<button class="flex items-center justify-center text-[var(--primary)] transition-all transform active:scale-90 relative">
+<span class="material-symbols-outlined text-[28px] font-fill-1">settings</span>
+<span class="absolute -bottom-1 w-1 h-1 bg-[var(--primary)] rounded-full"></span>
+</button>
+</div>
+</nav>
+</div>
+
+</body></html>
