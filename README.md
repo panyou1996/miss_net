@@ -1,97 +1,77 @@
-Project: MissNet-Flutter (Serverless Streaming App)
+# MissNet
 
-1. Project Overview
+This repository is now split into two app clients:
 
-We are building a Full-Stack Video Streaming Application similar to Netflix.
+- `android-native/`: the active Android-native rewrite built with Kotlin, Jetpack Compose, Material 3, Room, and Media3.
+- `miss_net/`: the legacy Flutter client kept intact as reference only.
 
-Target Platform: Flutter (Android/iOS) and Web.
+The backend/data shape is still serverless:
 
-Content Source: missav.ws (Japanese Video Content).
+- video metadata comes from Supabase
+- the scraper lives under `scraper/`
+- runtime playback resolves the real stream URL from each `source_url`
 
-Architecture: Serverless. No dedicated backend server.
+## Android Native App
 
-Infrastructure:
+Location: `android-native/`
 
-Database: Supabase (PostgreSQL).
+### Stack
 
-Scraper: Python + Playwright (Hosted on GitHub Actions).
+- Kotlin
+- Jetpack Compose
+- Material 3
+- Navigation Compose
+- ViewModel + StateFlow
+- Room
+- Media3 ExoPlayer + Media3 download service
+- DataStore
+- OkHttp + Kotlin serialization
+- Android WebView stream resolver fallback for Cloudflare-protected pages
 
-Hosting: Vercel (for Flutter Web).
+### Implemented flows
 
-2. Technology Stack
+- home feed sections from Supabase
+- explore with popular actors, tags, and category shortcuts
+- search with local history + remote suggestions/results
+- favorites persisted locally in Room
+- player with network playback, offline playback, related videos, favorites, progress save, and PiP entry
+- downloads page backed by Media3 download state
+- settings with dynamic color, autoplay, incognito, Wi-Fi-only downloads, keep-screen-awake, and storage cleanup actions
 
-Frontend: Flutter (Latest Stable).
+## Build Requirements
 
-Architecture: Clean Architecture (Domain, Data, Presentation layers).
+- JDK 17
+- Android SDK installed locally
+- Android platform 36 available
 
-State Management: BLoC or Riverpod.
+If `android-native/local.properties` does not exist, create it with:
 
-Networking: Supabase Flutter SDK.
+```properties
+sdk.dir=/path/to/Android/Sdk
+```
 
-Video Strategy: flutter_inappwebview (Headless) + chewie/video_player.
+## Build And Run
 
-Backend (Data Ingestion):
+```bash
+cd android-native
+./gradlew :app:assembleDebug
+```
 
-Language: Python 3.10+.
+Debug APK output:
 
-Libs: playwright (stealth mode), supabase.
+```text
+android-native/app/build/outputs/apk/debug/app-debug.apk
+```
 
-Automation: GitHub Actions (Cron Job).
+To install on a connected device:
 
-3. Core Architecture & Constraints (CRITICAL)
+```bash
+cd android-native
+./gradlew :app:installDebug
+```
 
-A. The "No-Backend" Policy
+## Notes
 
-We do not have a server to run FFmpeg or proxies.
-
-Do NOT try to stream video bytes through a middleman.
-
-Do NOT store .m3u8 links in the database (they expire/rotate).
-
-DO store static metadata (Title, Cover URL, Source Page URL, ID).
-
-B. The Playback Strategy (Bypass Cloudflare)
-
-Mobile App:
-
-Use a Headless InAppWebView to load the Source Page URL in the background.
-
-Intercept the network traffic to find the .m3u8 request.
-
-Extract the URL and HTTP Headers (User-Agent, Referer).
-
-Pass these to the native video player.
-
-Web Version:
-
-Due to CORS, we cannot intercept m3u8 easily.
-
-Action: Show "Open in Original Site" button or try to embed via Iframe (if allowed), otherwise redirect.
-
-C. Data Pipeline
-
-GitHub Action runs daily.
-
-Python Script uses Playwright (Stealth) to scrape missav.ws.
-
-Script upserts data into Supabase videos table.
-
-Flutter App queries Supabase directly.
-
-4. Database Schema (Supabase)
-
-Table: videos
-
-id (uuid, primary key)
-
-external_id (string, unique) - The ID from the website (e.g., 'dm221').
-
-title (text)
-
-cover_url (text)
-
-source_url (text) - The page URL to scrape m3u8 from later.
-
-created_at (timestamp)
-
-tags (array of strings)
+- The Android-native app currently embeds the public Supabase project URL and anon key from the legacy client so it can run without extra setup.
+- The Flutter app was not removed or refactored further.
+- The scraper and Supabase function folders are unchanged and remain shared infrastructure.
