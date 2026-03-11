@@ -45,7 +45,7 @@ class PlayerViewModel @Inject constructor(
         if (videoId != null) {
             loadVideoDetails(videoId)
         } else {
-            _uiState.value = PlayerUiState(isLoading = false, errorMessage = "No video ID provided")
+            _uiState.value = PlayerUiState(isLoading = false, errorMessage = "无法播放：缺少视频标识")
         }
     }
 
@@ -82,11 +82,11 @@ class PlayerViewModel @Inject constructor(
                     )
                 } else {
                     Log.e("PlayerViewModel", "Video not found in DB")
-                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = "Video not found")
+                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = "资源不存在或已不可用")
                 }
             } catch (e: Exception) {
                 Log.e("PlayerViewModel", "General error in loadVideoDetails", e)
-                _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = e.message ?: "播放页加载失败")
+                _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = e.message ?: "加载失败，请稍后重试")
             }
         }
     }

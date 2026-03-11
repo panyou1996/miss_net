@@ -90,6 +90,9 @@ private const val DOWNLOAD_QUEUED_WITHOUT_NOTIFICATION_MESSAGE =
     "通知权限未开启，任务仍已加入进行中的任务；请在 Library > Downloads 查看状态。"
 private const val DOWNLOAD_UNAVAILABLE_MESSAGE = "下载失败：当前没有可用的视频地址。"
 private const val SHARE_UNAVAILABLE_MESSAGE = "当前没有可分享的链接。"
+private const val CAST_NOT_READY_MESSAGE = "投屏暂未接入，后续补齐。"
+private const val PIP_NOT_SUPPORTED_MESSAGE = "当前系统版本不支持画中画（PiP）。"
+private const val PLAYBACK_FAILED_MESSAGE = "播放失败，请重试。"
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -196,7 +199,8 @@ fun PlayerScreen(
                     }
 
                     override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                        playbackError = error.localizedMessage ?: error.message ?: "Playback failed"
+                        val reason = error.localizedMessage?.takeIf { it.isNotBlank() }?.let { "（$it）" }.orEmpty()
+                        playbackError = "$PLAYBACK_FAILED_MESSAGE$reason"
                         isBuffering = false
                     }
 
@@ -332,7 +336,7 @@ fun PlayerScreen(
                                 pipRequested = true
                                 activity?.enterPictureInPictureMode(android.app.PictureInPictureParams.Builder().build())
                             } else {
-                                viewModel.showDownloadMessage("当前 Android 版本不支持 PiP")
+                                viewModel.showDownloadMessage(PIP_NOT_SUPPORTED_MESSAGE)
                             }
                         }) { Icon(Icons.Default.PictureInPicture, null) }
                     }
@@ -417,7 +421,7 @@ fun PlayerScreen(
                                 exitPlayer()
                             }
                         },
-                        onCast = { viewModel.showDownloadMessage("Cast 暂未接入，后续补齐") },
+                        onCast = { viewModel.showDownloadMessage(CAST_NOT_READY_MESSAGE) },
                         onSpeed = { showSpeedSheet = true }
                     )
                 }
@@ -505,7 +509,7 @@ fun PlayerScreen(
                                     }
                                 },
                                 onSpeed = { showSpeedSheet = true },
-                                onCast = { viewModel.showDownloadMessage("Cast 暂未接入，后续补齐") },
+                                onCast = { viewModel.showDownloadMessage(CAST_NOT_READY_MESSAGE) },
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
