@@ -508,10 +508,10 @@ private fun DownloadGlanceRow(
 @Composable
 private fun HomeStatusBadge(item: DownloadStatusEntry) {
     val (label, container, content) = when {
-        item.state == Download.STATE_FAILED || item.exportState == ExportState.EXPORT_FAILED -> Triple("待处理", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
+        item.state == Download.STATE_FAILED || item.exportState == ExportState.EXPORT_FAILED -> Triple("需要处理", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
         item.state == Download.STATE_COMPLETED && item.exportState == ExportState.EXPORTED -> Triple("已导出", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
         item.state == Download.STATE_COMPLETED -> Triple("已完成", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
-        else -> Triple("处理中", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+        else -> Triple("进行中", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
     }
     StatusBadge(text = label, containerColor = container, contentColor = content)
 }
