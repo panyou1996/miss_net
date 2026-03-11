@@ -11,7 +11,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,15 +21,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -171,13 +167,11 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
         ) {
             // ========== Home Tab ==========
             composable(Screen.Home.route) { 
-                MainTabScaffold(
+                MainTabRouteShell(
                     title = "MissNet",
                     navController = navController,
                     currentDestination = currentDestination,
-                    scrollBehavior = scrollBehavior,
-                    onSearchClick = { navController.navigate(Screen.Search.route) },
-                    onSettingsClick = { navController.navigate(Screen.Settings.route) }
+                    scrollBehavior = scrollBehavior
                 ) { innerPadding ->
                     HomeScreen(
                         onVideoClick = { id -> navController.navigate(Screen.Player.createRoute(id)) },
@@ -195,13 +189,11 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
             
             // ========== Actress Tab ==========
             composable(Screen.Actress.route) { 
-                MainTabScaffold(
+                MainTabRouteShell(
                     title = "Actress",
                     navController = navController,
                     currentDestination = currentDestination,
-                    scrollBehavior = scrollBehavior,
-                    onSearchClick = { navController.navigate(Screen.Search.route) },
-                    onSettingsClick = { navController.navigate(Screen.Settings.route) }
+                    scrollBehavior = scrollBehavior
                 ) { innerPadding ->
                     ActressScreen(
                         onActressClick = { name -> navController.navigate(Screen.CategoryDetail.createRoute(name, null, name)) },
@@ -213,13 +205,11 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
             
             // ========== Tags Tab ==========
             composable(Screen.Tags.route) { 
-                MainTabScaffold(
+                MainTabRouteShell(
                     title = "Tags",
                     navController = navController,
                     currentDestination = currentDestination,
-                    scrollBehavior = scrollBehavior,
-                    onSearchClick = { navController.navigate(Screen.Search.route) },
-                    onSettingsClick = { navController.navigate(Screen.Settings.route) }
+                    scrollBehavior = scrollBehavior
                 ) { innerPadding ->
                     TagsScreen(
                         onTagClick = { tag -> navController.navigate(Screen.CategoryDetail.createRoute(tag, tag, null)) },
@@ -231,13 +221,11 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
             
             // ========== Library Tab ==========
             composable(Screen.Library.route) { 
-                MainTabScaffold(
+                MainTabRouteShell(
                     title = "Library",
                     navController = navController,
                     currentDestination = currentDestination,
-                    scrollBehavior = scrollBehavior,
-                    onSearchClick = { navController.navigate(Screen.Search.route) },
-                    onSettingsClick = { navController.navigate(Screen.Settings.route) }
+                    scrollBehavior = scrollBehavior
                 ) { innerPadding ->
                     LibraryScreen(
                         onVideoClick = { id -> navController.navigate(Screen.Player.createRoute(id)) },
@@ -310,6 +298,26 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainTabRouteShell(
+    title: String,
+    navController: NavHostController,
+    currentDestination: androidx.navigation.NavDestination?,
+    scrollBehavior: TopAppBarScrollBehavior,
+    content: @Composable (PaddingValues) -> Unit
+) {
+    MainTabScaffold(
+        title = title,
+        navController = navController,
+        currentDestination = currentDestination,
+        scrollBehavior = scrollBehavior,
+        onSearchClick = { navController.navigate(Screen.Search.route) },
+        onSettingsClick = { navController.navigate(Screen.Settings.route) },
+        content = content
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
