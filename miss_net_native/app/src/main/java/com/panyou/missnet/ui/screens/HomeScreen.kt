@@ -161,8 +161,9 @@ fun HomeScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding, vertical = 4.dp),
-                            shape = MaterialTheme.shapes.extraLarge,
-                            color = MaterialTheme.colorScheme.surface
+                            shape = MaterialTheme.shapes.large,
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
                         ) {
                             Column(modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)) {
                                 HomeSection(title = "New Release", category = "new", videos = uiState.newVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
@@ -196,8 +197,9 @@ private fun TaskRecoverySection(
                 horizontal = ContainerTokens.ScreenCompactHorizontalPadding,
                 vertical = ContainerTokens.ScreenCompactVerticalPadding
             ),
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surface
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
     ) {
         Column(
             modifier = Modifier.padding(ContainerTokens.ScreenContentPadding),

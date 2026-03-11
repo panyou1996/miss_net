@@ -1,5 +1,6 @@
 package com.panyou.missnet.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -67,8 +68,9 @@ fun ActressScreen(
                             end = ContainerTokens.ScreenCompactHorizontalPadding,
                             bottom = ContainerTokens.ScreenContentPadding
                         ),
-                    shape = MaterialTheme.shapes.extraLarge,
-                    color = MaterialTheme.colorScheme.surface
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
                 ) {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),

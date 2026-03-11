@@ -109,6 +109,8 @@ fun LibraryScreen(
                     Tab(
                         selected = selectedTab == index,
                         onClick = { selectedTab = index },
+                        selectedContentColor = MaterialTheme.colorScheme.primary,
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         text = { Text(tab.title) }
                     )
                 }
@@ -199,8 +201,9 @@ private fun VideoGridPage(
                 end = ContainerTokens.ScreenCompactHorizontalPadding,
                 bottom = ContainerTokens.ScreenContentPadding
             ),
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surface
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
@@ -276,8 +279,9 @@ private fun DownloadsPage(
                 end = ContainerTokens.ScreenCompactHorizontalPadding,
                 bottom = ContainerTokens.ScreenContentPadding
             ),
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surface
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
