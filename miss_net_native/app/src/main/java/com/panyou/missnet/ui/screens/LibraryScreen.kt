@@ -558,7 +558,7 @@ private fun ExportStateBadge(item: DownloadStatusEntry) {
         ExportState.EXPORT_FAILED -> Triple("导出失败", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
         ExportState.EXPORTED -> Triple("已导出", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
         ExportState.EXPORTING, ExportState.EXPORT_QUEUED -> Triple("导出中", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
-        ExportState.EXPORT_UNSUPPORTED -> Triple("不可导出", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
+        ExportState.EXPORT_UNSUPPORTED -> Triple("不支持", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
         ExportState.NOT_EXPORTED -> Triple("未导出", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
     }
     StatusBadge(

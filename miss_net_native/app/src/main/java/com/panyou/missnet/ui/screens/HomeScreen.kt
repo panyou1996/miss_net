@@ -500,7 +500,7 @@ private fun DownloadGlanceRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "${item.stateLabel} · ${item.exportLabel}",
+                    text = homeTaskSummaryText(item),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -516,11 +516,29 @@ private fun DownloadGlanceRow(
 private fun HomeStatusBadge(item: DownloadStatusEntry) {
     val (label, container, content) = when {
         item.state == Download.STATE_FAILED || item.exportState == ExportState.EXPORT_FAILED -> Triple("需要处理", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
+        item.state == Download.STATE_COMPLETED && item.exportState == ExportState.EXPORT_UNSUPPORTED -> Triple("不支持", MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
         item.state == Download.STATE_COMPLETED && item.exportState == ExportState.EXPORTED -> Triple("已导出", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
-        item.state == Download.STATE_COMPLETED -> Triple("已完成", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
+        item.state == Download.STATE_COMPLETED -> Triple("最近完成", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
         else -> Triple("进行中", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
     }
     StatusBadge(text = label, containerColor = container, contentColor = content)
+}
+
+private fun homeTaskSummaryText(item: DownloadStatusEntry): String {
+    return when {
+        item.state == Download.STATE_FAILED || item.exportState == ExportState.EXPORT_FAILED ->
+            "需要处理 · 下载或导出失败"
+        item.state == Download.STATE_COMPLETED && item.exportState == ExportState.EXPORTED ->
+            "最近完成 · 已导出"
+        item.state == Download.STATE_COMPLETED && item.exportState == ExportState.EXPORT_UNSUPPORTED ->
+            "最近完成 · 不支持"
+        item.state == Download.STATE_COMPLETED && (item.exportState == ExportState.EXPORTING || item.exportState == ExportState.EXPORT_QUEUED) ->
+            "最近完成 · 导出中"
+        item.state == Download.STATE_COMPLETED ->
+            "最近完成 · 待导出"
+        else ->
+            "进行中 · ${item.stateLabel}"
+    }
 }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
