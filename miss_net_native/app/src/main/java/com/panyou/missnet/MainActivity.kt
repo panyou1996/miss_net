@@ -328,40 +328,59 @@ fun MissNetTopBar(
     showAvatar: Boolean = true
 ) {
     if (isMainTab) {
-        Surface(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .clickable { onSearchClick() },
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = 2.dp,
-            shadowElevation = 0.dp
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { /* Drawer or action */ }) {
-                    Icon(imageVector = Icons.Rounded.Menu, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                
-                Text(
-                    text = "Search in MissNet",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+            IconButton(onClick = { /* Drawer or action */ }) {
+                Icon(
+                    imageVector = Icons.Rounded.Menu,
+                    contentDescription = "Menu",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
-                if (showAvatar) {
-                    IconButton(onClick = onAvatarClick) {
-                        Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFFECF3FE)), contentAlignment = Alignment.Center) {
-                            Text("M", color = Color(0xFF1967D2), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
+            }
+
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onSearchClick() },
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = 1.dp,
+                shadowElevation = 0.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "在 MissNet 中搜索",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            IconButton(onClick = { /* Reserved for smart assistant entry */ }) {
+                Icon(
+                    imageVector = Icons.Rounded.AutoAwesome,
+                    contentDescription = "Assistant",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (showAvatar) {
+                IconButton(onClick = onAvatarClick) {
+                    Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0xFFECF3FE)), contentAlignment = Alignment.Center) {
+                        Text("M", color = Color(0xFF1967D2), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
                 }
+            } else {
+                Spacer(modifier = Modifier.size(48.dp))
             }
         }
     } else {
