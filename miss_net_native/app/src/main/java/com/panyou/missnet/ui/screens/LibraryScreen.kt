@@ -29,6 +29,7 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -583,117 +584,179 @@ private fun DownloadActionRow(
     ) {
         when {
             item.canPause -> {
-                FilledTonalButton(onClick = onPause, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.Pause, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("暂停")
-                }
-                FilledTonalButton(
+                TaskPrimaryActionButton(
+                    icon = Icons.Default.Pause,
+                    label = "暂停",
+                    onClick = onPause,
+                    modifier = Modifier.weight(1f)
+                )
+                TaskDestructiveActionButton(
+                    icon = Icons.Default.Delete,
+                    label = "取消",
                     onClick = onRemove,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("取消")
-                }
+                    modifier = Modifier.weight(1f)
+                )
             }
             item.canResume -> {
-                FilledTonalButton(onClick = onResume, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("继续")
-                }
-                FilledTonalButton(
+                TaskPrimaryActionButton(
+                    icon = Icons.Default.PlayArrow,
+                    label = "继续",
+                    onClick = onResume,
+                    modifier = Modifier.weight(1f)
+                )
+                TaskDestructiveActionButton(
+                    icon = Icons.Default.Delete,
+                    label = "取消",
                     onClick = onRemove,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("取消")
-                }
+                    modifier = Modifier.weight(1f)
+                )
             }
             item.state == Download.STATE_FAILED || item.exportState == ExportState.EXPORT_FAILED -> {
-                FilledTonalButton(onClick = onRetry, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.Refresh, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("重试")
-                }
-                FilledTonalButton(
+                TaskPrimaryActionButton(
+                    icon = Icons.Default.Refresh,
+                    label = "重试",
+                    onClick = onRetry,
+                    modifier = Modifier.weight(1f)
+                )
+                TaskDestructiveActionButton(
+                    icon = Icons.Default.Delete,
+                    label = "移除",
                     onClick = onRemove,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("移除")
-                }
+                    modifier = Modifier.weight(1f)
+                )
             }
             item.state == Download.STATE_COMPLETED -> {
                 when {
                     onOpenExport != null -> {
-                        FilledTonalButton(onClick = onOpenExport, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.DownloadDone, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("打开导出")
-                        }
-                        FilledTonalButton(onClick = onRemove, modifier = Modifier.weight(1f), colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                            Icon(Icons.Default.Delete, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("删除本地")
-                        }
+                        TaskPrimaryActionButton(
+                            icon = Icons.Default.DownloadDone,
+                            label = "打开导出",
+                            onClick = onOpenExport,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TaskDestructiveActionButton(
+                            icon = Icons.Default.Delete,
+                            label = "删除本地",
+                            onClick = onRemove,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                     item.exportState == ExportState.EXPORTING || item.exportState == ExportState.EXPORT_QUEUED -> {
-                        FilledTonalButton(onClick = {}, enabled = false, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.DownloadDone, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("导出中")
-                        }
-                        FilledTonalButton(onClick = onRemove, modifier = Modifier.weight(1f), colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                            Icon(Icons.Default.Delete, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("删除本地")
-                        }
+                        TaskSecondaryActionButton(
+                            icon = Icons.Default.DownloadDone,
+                            label = "导出中",
+                            onClick = {},
+                            enabled = false,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TaskDestructiveActionButton(
+                            icon = Icons.Default.Delete,
+                            label = "删除本地",
+                            onClick = onRemove,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                     item.exportState == ExportState.EXPORT_UNSUPPORTED -> {
-                        FilledTonalButton(onClick = onRetry, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.Refresh, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("重新下载")
-                        }
-                        FilledTonalButton(onClick = onRemove, modifier = Modifier.weight(1f), colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                            Icon(Icons.Default.Delete, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("删除本地")
-                        }
+                        TaskPrimaryActionButton(
+                            icon = Icons.Default.Refresh,
+                            label = "重新下载",
+                            onClick = onRetry,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TaskDestructiveActionButton(
+                            icon = Icons.Default.Delete,
+                            label = "删除本地",
+                            onClick = onRemove,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                     else -> {
-                        FilledTonalButton(onClick = onExport, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.DownloadDone, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(if (item.exportState == ExportState.EXPORT_FAILED) "重试导出" else "导出视频")
-                        }
-                        FilledTonalButton(onClick = onRemove, modifier = Modifier.weight(1f), colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                            Icon(Icons.Default.Delete, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("删除本地")
-                        }
+                        TaskPrimaryActionButton(
+                            icon = Icons.Default.DownloadDone,
+                            label = if (item.exportState == ExportState.EXPORT_FAILED) "重试导出" else "导出视频",
+                            onClick = onExport,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TaskDestructiveActionButton(
+                            icon = Icons.Default.Delete,
+                            label = "删除本地",
+                            onClick = onRemove,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }
             else -> {
-                FilledTonalButton(
+                TaskDestructiveActionButton(
+                    icon = Icons.Default.Delete,
+                    label = if (item.canRemove) "移除任务" else "处理中",
                     onClick = onRemove,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(if (item.canRemove) "移除任务" else "处理中")
-                }
+                    enabled = item.canRemove
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun TaskPrimaryActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+    ) {
+        Icon(icon, contentDescription = null)
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(label)
+    }
+}
+
+@Composable
+private fun TaskSecondaryActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    FilledTonalButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+    ) {
+        Icon(icon, contentDescription = null)
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(label)
+    }
+}
+
+@Composable
+private fun TaskDestructiveActionButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    FilledTonalButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier,
+        colors = ButtonDefaults.filledTonalButtonColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer
+        )
+    ) {
+        Icon(icon, contentDescription = null)
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(label)
     }
 }
 
