@@ -72,6 +72,7 @@ import com.panyou.missnet.service.MissNetDownloadService
 import com.panyou.missnet.service.PlaybackService
 import com.panyou.missnet.ui.components.DurationBadge
 import com.panyou.missnet.ui.components.StatusBadge
+import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.theme.ThumbnailShape
 import com.panyou.missnet.ui.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
@@ -434,138 +435,144 @@ fun PlayerScreen(
                 }
 
                 if (!isFullscreen) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(
+                                start = ContainerTokens.ScreenCompactHorizontalPadding,
+                                end = ContainerTokens.ScreenCompactHorizontalPadding,
+                                bottom = ContainerTokens.ScreenContentPadding
+                            ),
+                        shape = MaterialTheme.shapes.large,
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
                     ) {
-                        // 续看提示
-                        if (uiState.lastPositionMs > 0L && uiState.lastDurationMs > 0L) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+                            verticalArrangement = Arrangement.spacedBy(ContainerTokens.SectionVerticalSpacing)
+                        ) {
+                            // 续看提示
+                            if (uiState.lastPositionMs > 0L && uiState.lastDurationMs > 0L) {
+                                item {
+                                    ContinueWatchingCard(
+                                        lastPositionMs = uiState.lastPositionMs,
+                                        onContinue = {
+                                            player?.seekTo(uiState.lastPositionMs)
+                                            player?.playWhenReady = true
+                                            player?.play()
+                                            viewModel.showDownloadMessage(CONTINUE_PLAYBACK_MESSAGE)
+                                        }
+                                    )
+                                }
+                            }
+
+                            // 视频信息区
                             item {
-                                ContinueWatchingCard(
-                                    lastPositionMs = uiState.lastPositionMs,
-                                    onContinue = {
-                                        player?.seekTo(uiState.lastPositionMs)
-                                        player?.playWhenReady = true
-                                        player?.play()
-                                        viewModel.showDownloadMessage(CONTINUE_PLAYBACK_MESSAGE)
-                                    },
-                                    modifier = Modifier.padding(horizontal = 16.dp)
+                                VideoInfoSection(
+                                    title = uiState.video?.title ?: "Loading...",
+                                    createdAt = uiState.video?.createdAt,
+                                    tags = uiState.video?.tags ?: emptyList()
                                 )
                             }
-                        }
 
-                        // 视频信息区
-                        item {
-                            VideoInfoSection(
-                                title = uiState.video?.title ?: "Loading...",
-                                createdAt = uiState.video?.createdAt,
-                                tags = uiState.video?.tags ?: emptyList(),
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-                        }
-
-                        // 操作按钮区 - 主操作
-                        item {
-                            PrimaryActionsRow(
-                                onDownload = {
-                                    val url = uiState.streamUrl
-                                    val video = uiState.video
-                                    if (url.isNullOrBlank() || video == null) {
-                                        viewModel.showDownloadMessage(DOWNLOAD_UNAVAILABLE_MESSAGE)
-                                    } else {
-                                        val metadata = DownloadMetadata(
-                                            id = video.id,
-                                            title = video.title,
-                                            coverUrl = video.coverUrl,
-                                            sourceUrl = url,
-                                            requestUri = url,
-                                            mimeType = MediaSourceClassifier.inferDownloadMimeType(url)
-                                        )
-                                        val downloadRequest = DownloadRequest.Builder(video.id, android.net.Uri.parse(url))
-                                            .setMimeType(MediaSourceClassifier.inferDownloadMimeType(url))
-                                            .setData(metadata.toByteArray())
-                                            .build()
-
-                                        val requiresPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
-
-                                        if (requiresPermission) {
-                                            pendingDownload = PendingDownload(downloadRequest)
-                                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            // 操作按钮区 - 主操作
+                            item {
+                                PrimaryActionsRow(
+                                    onDownload = {
+                                        val url = uiState.streamUrl
+                                        val video = uiState.video
+                                        if (url.isNullOrBlank() || video == null) {
+                                            viewModel.showDownloadMessage(DOWNLOAD_UNAVAILABLE_MESSAGE)
                                         } else {
-                                            enqueueDownload(downloadRequest)
-                                            viewModel.showDownloadMessage(DOWNLOAD_QUEUED_MESSAGE)
+                                            val metadata = DownloadMetadata(
+                                                id = video.id,
+                                                title = video.title,
+                                                coverUrl = video.coverUrl,
+                                                sourceUrl = url,
+                                                requestUri = url,
+                                                mimeType = MediaSourceClassifier.inferDownloadMimeType(url)
+                                            )
+                                            val downloadRequest = DownloadRequest.Builder(video.id, android.net.Uri.parse(url))
+                                                .setMimeType(MediaSourceClassifier.inferDownloadMimeType(url))
+                                                .setData(metadata.toByteArray())
+                                                .build()
+
+                                            val requiresPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+
+                                            if (requiresPermission) {
+                                                pendingDownload = PendingDownload(downloadRequest)
+                                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                            } else {
+                                                enqueueDownload(downloadRequest)
+                                                viewModel.showDownloadMessage(DOWNLOAD_QUEUED_MESSAGE)
+                                            }
                                         }
+                                    },
+                                    onFavorite = {
+                                        viewModel.toggleFavorite()
+                                        viewModel.showDownloadMessage(
+                                            if (uiState.isFavorite) FAVORITE_REMOVED_MESSAGE else FAVORITE_ADDED_MESSAGE
+                                        )
+                                    },
+                                    isFavorite = uiState.isFavorite
+                                )
+                            }
+
+                            // 操作按钮区 - 次操作
+                            item {
+                                SecondaryActionsRow(
+                                    onShare = {
+                                        val shared = shareVideo(
+                                            context = context,
+                                            title = uiState.video?.title.orEmpty(),
+                                            url = uiState.streamUrl ?: uiState.video?.sourceUrl
+                                        )
+                                        if (!shared) {
+                                            viewModel.showDownloadMessage(SHARE_UNAVAILABLE_MESSAGE)
+                                        }
+                                    },
+                                    onSpeed = { showSpeedSheet = true },
+                                    onCast = { viewModel.showDownloadMessage(CAST_NOT_READY_MESSAGE) }
+                                )
+                            }
+
+                            // 状态区
+                            item {
+                                PlayerStatusSection(
+                                    isPlaying = isPlaying,
+                                    isBuffering = isBuffering,
+                                    errorMessage = effectiveError
+                                )
+                            }
+
+                            // 分割线
+                            item {
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                )
+                            }
+
+                            // 推荐区标题
+                            item {
+                                RecommendSectionHeader()
+                            }
+
+                            items(uiState.relatedVideos) { related ->
+                                RecommendItem(
+                                    video = related,
+                                    onClick = {
+                                        viewModel.updatePlaybackProgress(currentPos, duration)
+                                        viewModel.setVideo(related.id)
+                                        viewModel.showDownloadMessage(RELATED_SWITCH_MESSAGE)
                                     }
-                                },
-                                onFavorite = {
-                                    viewModel.toggleFavorite()
-                                    viewModel.showDownloadMessage(
-                                        if (uiState.isFavorite) FAVORITE_REMOVED_MESSAGE else FAVORITE_ADDED_MESSAGE
-                                    )
-                                },
-                                isFavorite = uiState.isFavorite,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-                        }
+                                )
+                            }
 
-                        // 操作按钮区 - 次操作
-                        item {
-                            SecondaryActionsRow(
-                                onShare = {
-                                    val shared = shareVideo(
-                                        context = context,
-                                        title = uiState.video?.title.orEmpty(),
-                                        url = uiState.streamUrl ?: uiState.video?.sourceUrl
-                                    )
-                                    if (!shared) {
-                                        viewModel.showDownloadMessage(SHARE_UNAVAILABLE_MESSAGE)
-                                    }
-                                },
-                                onSpeed = { showSpeedSheet = true },
-                                onCast = { viewModel.showDownloadMessage(CAST_NOT_READY_MESSAGE) },
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
+                            item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
                         }
-
-                        // 状态区
-                        item {
-                            PlayerStatusSection(
-                                isPlaying = isPlaying,
-                                isBuffering = isBuffering,
-                                errorMessage = effectiveError,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-                        }
-
-                        // 分割线
-                        item {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                            )
-                        }
-
-                        // 推荐区标题
-                        item {
-                            RecommendSectionHeader(
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-                        }
-
-                        items(uiState.relatedVideos) { related ->
-                            RecommendItem(
-                                video = related,
-                                onClick = {
-                                    viewModel.updatePlaybackProgress(currentPos, duration)
-                                    viewModel.setVideo(related.id)
-                                    viewModel.showDownloadMessage(RELATED_SWITCH_MESSAGE)
-                                },
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-                        }
-
-                        item { Spacer(modifier = Modifier.height(24.dp)) }
                     }
                 }
             }
@@ -674,7 +681,7 @@ private fun PlayerStatusSection(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 StatusBadge(
-                    text = "进行中的任务",
+                    text = "进行中",
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
