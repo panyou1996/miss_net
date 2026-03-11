@@ -229,7 +229,7 @@ private fun TaskRecoverySection(
             )
 
             if (continueWatching.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)) {
                     SectionTitleWithMeta(title = "继续播放", meta = "${continueWatching.size} 项")
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(continueWatching, key = { it.video.id }) { entry ->
@@ -240,7 +240,7 @@ private fun TaskRecoverySection(
             }
 
             if (recentDownloads.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -258,7 +258,7 @@ private fun TaskRecoverySection(
             }
 
             if (recentFavorites.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -286,7 +286,7 @@ private fun TaskSummaryStrip(
     downloadCount: Int,
     favoriteCount: Int
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)) {
         SummaryCard(modifier = Modifier.weight(1f), label = "继续看", value = continueCount.toString())
         SummaryCard(modifier = Modifier.weight(1f), label = "任务", value = downloadCount.toString())
         SummaryCard(modifier = Modifier.weight(1f), label = "收藏", value = favoriteCount.toString())
@@ -303,7 +303,12 @@ private fun SummaryCard(
         modifier = modifier,
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp)) {
+        Column(
+            modifier = Modifier.padding(
+                horizontal = ContainerTokens.ListRowHorizontalPadding,
+                vertical = ContainerTokens.ListRowVerticalPadding
+            )
+        ) {
             Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -381,7 +386,10 @@ private fun ContinueWatchingCard(
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Row(
-            modifier = Modifier.padding(ContainerTokens.ListItemVerticalPadding),
+            modifier = Modifier.padding(
+                horizontal = ContainerTokens.ListRowHorizontalPadding,
+                vertical = ContainerTokens.ListRowVerticalPadding
+            ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -399,9 +407,9 @@ private fun ContinueWatchingCard(
             }
             Column(
                 modifier = Modifier
-                    .padding(start = 12.dp)
+                    .padding(start = ContainerTokens.ListItemVerticalPadding)
                     .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(ActionTokens.ButtonContentGap)
             ) {
                 Text(
                     text = entry.video.title,
@@ -452,8 +460,11 @@ private fun FavoriteGlanceCard(
                 )
             }
             Column(
-                modifier = Modifier.padding(ContainerTokens.ListItemVerticalPadding),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                modifier = Modifier.padding(
+                    horizontal = ContainerTokens.ListRowHorizontalPadding,
+                    vertical = ContainerTokens.ListRowVerticalPadding
+                ),
+                verticalArrangement = Arrangement.spacedBy(ContainerTokens.ScreenCompactVerticalPadding)
             ) {
                 Text(
                     text = video.title,
@@ -487,9 +498,12 @@ private fun DownloadGlanceRow(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
     ) {
         Row(
-            modifier = Modifier.padding(ContainerTokens.ListItemVerticalPadding),
+            modifier = Modifier.padding(
+                horizontal = ContainerTokens.ListRowHorizontalPadding,
+                vertical = ContainerTokens.ListRowVerticalPadding
+            ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(ContainerTokens.ListItemVerticalPadding)
         ) {
             Icon(
                 imageVector = when {
@@ -502,7 +516,7 @@ private fun DownloadGlanceRow(
                     item.state == Download.STATE_FAILED || item.exportState == ExportState.EXPORT_FAILED -> MaterialTheme.colorScheme.error
                     else -> MaterialTheme.colorScheme.primary
                 },
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(ContainerTokens.ListLeadingIconSize)
             )
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
