@@ -283,11 +283,11 @@ data class DownloadStatusEntry(
 ) {
     val stateLabel: String
         get() = when (state) {
-            Download.STATE_QUEUED -> "排队中"
+            Download.STATE_QUEUED -> "等待开始"
             Download.STATE_STOPPED -> if (stopReason == DownloadCommands.STOP_REASON_NONE) "已停止" else "已暂停"
-            Download.STATE_DOWNLOADING -> "下载中"
-            Download.STATE_COMPLETED -> "已完成"
-            Download.STATE_FAILED -> "失败"
+            Download.STATE_DOWNLOADING -> "进行中"
+            Download.STATE_COMPLETED -> "最近完成"
+            Download.STATE_FAILED -> "需要处理"
             Download.STATE_REMOVING -> "移除中"
             Download.STATE_RESTARTING -> "重新开始中"
             else -> "未知"
@@ -314,12 +314,12 @@ data class DownloadStatusEntry(
 
     val exportLabel: String
         get() = when (exportState) {
-            ExportState.NOT_EXPORTED -> if (state == Download.STATE_COMPLETED) "等待导出视频" else "未导出"
-            ExportState.EXPORT_QUEUED -> "等待导出视频"
-            ExportState.EXPORTING -> "导出视频中"
-            ExportState.EXPORTED -> "已导出视频文件"
-            ExportState.EXPORT_FAILED -> "导出视频失败"
-            ExportState.EXPORT_UNSUPPORTED -> "不支持导出为视频文件"
+            ExportState.NOT_EXPORTED -> if (state == Download.STATE_COMPLETED) "待导出" else "未导出"
+            ExportState.EXPORT_QUEUED -> "待导出"
+            ExportState.EXPORTING -> "导出中"
+            ExportState.EXPORTED -> "已导出"
+            ExportState.EXPORT_FAILED -> "导出失败"
+            ExportState.EXPORT_UNSUPPORTED -> "不支持"
         }
 
     val exportLocationText: String?

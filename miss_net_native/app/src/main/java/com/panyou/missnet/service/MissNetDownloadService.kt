@@ -169,11 +169,11 @@ class MissNetDownloadService : DownloadService(
     }
 
     private fun stateLabel(download: Download): String = when (download.state) {
-        Download.STATE_QUEUED -> "排队中"
+        Download.STATE_QUEUED -> "等待开始"
         Download.STATE_STOPPED -> if (download.stopReason == DownloadCommands.STOP_REASON_PAUSED_BY_USER) "已暂停" else "已停止"
-        Download.STATE_DOWNLOADING -> "下载中"
-        Download.STATE_COMPLETED -> "已完成"
-        Download.STATE_FAILED -> "失败"
+        Download.STATE_DOWNLOADING -> "进行中"
+        Download.STATE_COMPLETED -> "最近完成"
+        Download.STATE_FAILED -> "需要处理"
         Download.STATE_REMOVING -> "移除中"
         Download.STATE_RESTARTING -> "重新开始中"
         else -> "处理中"
