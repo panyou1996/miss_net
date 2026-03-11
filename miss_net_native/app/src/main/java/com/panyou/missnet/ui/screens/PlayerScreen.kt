@@ -71,6 +71,7 @@ import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.service.MissNetDownloadService
 import com.panyou.missnet.service.PlaybackService
 import com.panyou.missnet.ui.components.DurationBadge
+import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.theme.ThumbnailShape
@@ -459,18 +460,11 @@ fun PlayerScreen(
                 }
 
                 if (!isFullscreen) {
-                    Surface(
+                    SecondaryPageSurface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f)
-                            .padding(
-                                start = ContainerTokens.ScreenCompactHorizontalPadding,
-                                end = ContainerTokens.ScreenCompactHorizontalPadding,
-                                bottom = ContainerTokens.ScreenContentPadding
-                            ),
-                        shape = MaterialTheme.shapes.large,
-                        color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
+                            .weight(1f),
+                        fillMaxSize = false
                     ) {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
@@ -828,8 +822,8 @@ private fun VideoInfoSection(
         // 标题
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface
         )
 

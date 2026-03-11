@@ -78,7 +78,7 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(contentPadding),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(ContainerTokens.SectionVerticalSpacing)
         ) {
             SettingsSectionTitle("账号")
             EliteSettingsCard {
@@ -299,8 +299,8 @@ fun SettingsSectionTitle(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(
-            start = ContainerTokens.ScreenContentPadding,
-            end = ContainerTokens.ScreenContentPadding,
+            start = ContainerTokens.ScreenCompactHorizontalPadding,
+            end = ContainerTokens.ScreenCompactHorizontalPadding,
             top = 8.dp
         )
     )

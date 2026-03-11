@@ -18,6 +18,7 @@ import com.panyou.missnet.ui.theme.ContainerTokens
 @Composable
 fun SecondaryPageSurface(
     modifier: Modifier = Modifier,
+    fillMaxSize: Boolean = true,
     outerPadding: PaddingValues = PaddingValues(
         start = ContainerTokens.ScreenCompactHorizontalPadding,
         end = ContainerTokens.ScreenCompactHorizontalPadding,
@@ -25,9 +26,14 @@ fun SecondaryPageSurface(
     ),
     content: @Composable () -> Unit
 ) {
+    val finalModifier = if (fillMaxSize) {
+        modifier.fillMaxSize()
+    } else {
+        modifier
+    }
+
     Surface(
-        modifier = modifier
-            .fillMaxSize()
+        modifier = finalModifier
             .padding(outerPadding),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surface,
