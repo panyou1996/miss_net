@@ -190,7 +190,11 @@ private fun VideoGridPage(
     Surface(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 12.dp, end = 12.dp, bottom = 16.dp),
+            .padding(
+                start = ContainerTokens.ScreenCompactHorizontalPadding,
+                end = ContainerTokens.ScreenCompactHorizontalPadding,
+                bottom = ContainerTokens.ScreenContentPadding
+            ),
         shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.surface
     ) {
@@ -198,7 +202,7 @@ private fun VideoGridPage(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(ContainerTokens.ScreenContentPadding),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -206,10 +210,10 @@ private fun VideoGridPage(
                 Text("${videos.size} 项", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                columns = GridCells.Fixed(ContainerTokens.GridColumns),
+                contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+                horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
+                verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(videos) { video ->
@@ -225,7 +229,7 @@ private fun VideoGridPage(
                         animatedVisibilityScope = animatedVisibilityScope
                     )
                 }
-                item { Spacer(modifier = Modifier.height(100.dp)) }
+                item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
             }
         }
     }
@@ -263,14 +267,18 @@ private fun DownloadsPage(
     Surface(
         modifier = Modifier
             .fillMaxSize()
-            .padding(start = 12.dp, end = 12.dp, bottom = 16.dp),
+            .padding(
+                start = ContainerTokens.ScreenCompactHorizontalPadding,
+                end = ContainerTokens.ScreenCompactHorizontalPadding,
+                bottom = ContainerTokens.ScreenContentPadding
+            ),
         shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.surface
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+            verticalArrangement = Arrangement.spacedBy(ContainerTokens.SectionVerticalSpacing)
         ) {
             item {
                 DownloadOverviewCard(
@@ -324,7 +332,7 @@ private fun DownloadsPage(
                     )
                 }
             }
-            item { Spacer(modifier = Modifier.height(100.dp)) }
+            item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
         }
     }
 }

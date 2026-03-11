@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.panyou.missnet.ui.components.MissNetLoading
+import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.viewmodel.TagsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,7 +50,7 @@ fun TagsScreen(
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     )
                 }
-                item { Spacer(modifier = Modifier.height(100.dp)) }
+                item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
             }
         }
     }

@@ -67,7 +67,9 @@ import com.panyou.missnet.ui.components.HeroCarouselItem
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
 import com.panyou.missnet.ui.components.SectionHeader
+import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.components.VerticalVideoCard
+import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.viewmodel.HomeViewModel
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
@@ -117,7 +119,7 @@ fun HomeScreen(
                             ElevatedCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp),
+                                    .padding(horizontal = ContainerTokens.ScreenContentPadding),
                                 colors = CardDefaults.elevatedCardColors(
                                     containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
                                 )
@@ -156,7 +158,7 @@ fun HomeScreen(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                                .padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding, vertical = 4.dp),
                             shape = MaterialTheme.shapes.extraLarge,
                             color = MaterialTheme.colorScheme.surface
                         ) {
@@ -170,7 +172,7 @@ fun HomeScreen(
                         }
                     }
 
-                    item { Spacer(modifier = Modifier.height(100.dp)) }
+                    item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
                 }
             }
         }
@@ -188,11 +190,17 @@ private fun TaskRecoverySection(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(
+                horizontal = ContainerTokens.ScreenCompactHorizontalPadding,
+                vertical = ContainerTokens.ScreenCompactVerticalPadding
+            ),
         shape = MaterialTheme.shapes.extraLarge,
         color = MaterialTheme.colorScheme.surface
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(
+            modifier = Modifier.padding(ContainerTokens.ScreenContentPadding),
+            verticalArrangement = Arrangement.spacedBy(ContainerTokens.ScreenContentPadding)
+        ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = "继续你的任务",
@@ -453,9 +461,9 @@ private fun DownloadGlanceRow(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Row(
@@ -505,14 +513,7 @@ private fun HomeStatusBadge(item: DownloadStatusEntry) {
         item.state == Download.STATE_COMPLETED -> Triple("已完成", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
         else -> Triple("处理中", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
     }
-    Surface(shape = MaterialTheme.shapes.small, color = container) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelMedium,
-            color = content
-        )
-    }
+    StatusBadge(text = label, containerColor = container, contentColor = content)
 }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -526,7 +527,7 @@ private fun CompactHeroSection(
     Column {
         SectionHeader(title = "发现内容")
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
+            contentPadding = PaddingValues(horizontal = ContainerTokens.ScreenContentPadding),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(videos) { video ->
@@ -558,7 +559,7 @@ fun HomeSection(
         Column {
             SectionHeader(title = title, onClick = { onCategoryClick(title, category) })
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
+                contentPadding = PaddingValues(horizontal = ContainerTokens.ScreenContentPadding),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(videos) { video ->
@@ -572,7 +573,7 @@ fun HomeSection(
             }
             Spacer(modifier = Modifier.height(8.dp))
             HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 16.dp),
+                modifier = Modifier.padding(horizontal = ContainerTokens.ScreenContentPadding),
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
             )
         }

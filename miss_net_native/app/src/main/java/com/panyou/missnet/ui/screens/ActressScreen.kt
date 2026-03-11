@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.panyou.missnet.data.model.ActorInfo
 import com.panyou.missnet.ui.components.MissNetLoading
+import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.util.bouncyClick
 import com.panyou.missnet.ui.viewmodel.ActressViewModel
 
@@ -45,7 +46,7 @@ fun ActressScreen(
                 // Alphabet Filter
                 LazyRow(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    contentPadding = PaddingValues(horizontal = ContainerTokens.ScreenContentPadding),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(alphabet) { letter ->
@@ -61,16 +62,20 @@ fun ActressScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(start = 12.dp, end = 12.dp, bottom = 16.dp),
+                        .padding(
+                            start = ContainerTokens.ScreenCompactHorizontalPadding,
+                            end = ContainerTokens.ScreenCompactHorizontalPadding,
+                            bottom = ContainerTokens.ScreenContentPadding
+                        ),
                     shape = MaterialTheme.shapes.extraLarge,
                     color = MaterialTheme.colorScheme.surface
                 ) {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                        contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+                        horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
+                        verticalArrangement = Arrangement.spacedBy(ContainerTokens.SectionPadding)
                     ) {
                         items(uiState.actresses) { actor ->
                             ActressItem(actor = actor, onClick = { onActressClick(actor.name) })

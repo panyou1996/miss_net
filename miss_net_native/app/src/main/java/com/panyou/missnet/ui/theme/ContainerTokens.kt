@@ -36,6 +36,10 @@ object ContainerTokens {
     // Content padding for full-screen containers
     val ScreenContentPadding = 16.dp
     val ScreenBottomPadding = 100.dp
+
+    // Compact container insets (used by Home/Library/Actress core cards)
+    val ScreenCompactHorizontalPadding = 12.dp
+    val ScreenCompactVerticalPadding = 8.dp
 }
 
 /**
