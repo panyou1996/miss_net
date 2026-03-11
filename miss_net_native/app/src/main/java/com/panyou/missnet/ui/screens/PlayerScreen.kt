@@ -26,7 +26,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -1060,7 +1059,7 @@ fun PlayerErrorOverlay(message: String, onRetry: () -> Unit, modifier: Modifier 
         modifier = modifier
             .padding(24.dp)
             .fillMaxWidth(0.88f),
-        shape = RoundedCornerShape(20.dp),
+        shape = MaterialTheme.shapes.large,
         color = Color.Black.copy(alpha = 0.82f)
     ) {
         Column(
