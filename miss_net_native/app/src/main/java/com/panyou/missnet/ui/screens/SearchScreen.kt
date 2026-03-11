@@ -17,10 +17,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
@@ -29,10 +29,12 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -74,42 +76,48 @@ fun SearchScreen(
                 .statusBarsPadding()
         ) {
             SearchBar(
-                query = uiState.query,
-                onQueryChange = { viewModel.onQueryChange(it) },
-                onSearch = { viewModel.search(it) },
-                active = uiState.active,
-                onActiveChange = { viewModel.onActiveChange(it) },
-                placeholder = { Text("搜索视频、演员、标签") },
-                leadingIcon = {
-                    if (uiState.active) {
-                        IconButton(onClick = {
-                            if (uiState.query.isNotEmpty()) {
-                                viewModel.onQueryChange("")
+                inputField = {
+                    SearchBarDefaults.InputField(
+                        query = uiState.query,
+                        onQueryChange = { viewModel.onQueryChange(it) },
+                        onSearch = { viewModel.search(it) },
+                        expanded = uiState.active,
+                        onExpandedChange = { viewModel.onActiveChange(it) },
+                        placeholder = { Text("搜索视频、演员、标签") },
+                        leadingIcon = {
+                            if (uiState.active) {
+                                IconButton(onClick = {
+                                    if (uiState.query.isNotEmpty()) {
+                                        viewModel.onQueryChange("")
+                                    } else {
+                                        viewModel.onActiveChange(false)
+                                        onBack()
+                                    }
+                                }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                                }
                             } else {
-                                viewModel.onActiveChange(false)
-                                onBack()
+                                Icon(Icons.Default.Search, contentDescription = "搜索")
                             }
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        },
+                        trailingIcon = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (uiState.history.isNotEmpty() && uiState.active) {
+                                    IconButton(onClick = viewModel::clearSearchHistory) {
+                                        Icon(Icons.Default.DeleteOutline, contentDescription = "清空历史")
+                                    }
+                                }
+                                if (uiState.query.isNotEmpty()) {
+                                    IconButton(onClick = { viewModel.onQueryChange("") }) {
+                                        Icon(Icons.Default.Close, contentDescription = "清空")
+                                    }
+                                }
+                            }
                         }
-                    } else {
-                        Icon(Icons.Default.Search, contentDescription = "搜索")
-                    }
+                    )
                 },
-                trailingIcon = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (uiState.history.isNotEmpty() && uiState.active) {
-                            IconButton(onClick = viewModel::clearSearchHistory) {
-                                Icon(Icons.Default.DeleteOutline, contentDescription = "清空历史")
-                            }
-                        }
-                        if (uiState.query.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.onQueryChange("") }) {
-                                Icon(Icons.Default.Close, contentDescription = "清空")
-                            }
-                        }
-                    }
-                },
+                expanded = uiState.active,
+                onExpandedChange = { viewModel.onActiveChange(it) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
@@ -118,7 +126,7 @@ fun SearchScreen(
                     )
             ) {
                 LazyColumn {
-                    items(uiState.history) { historyItem ->
+                    itemsIndexed(uiState.history) { index, historyItem ->
                         ListItem(
                             headlineContent = { Text(historyItem) },
                             leadingContent = { Icon(Icons.Default.History, null) },
@@ -132,6 +140,12 @@ fun SearchScreen(
                                 viewModel.search(historyItem)
                             }
                         )
+                        if (index < uiState.history.lastIndex) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(start = 56.dp, end = 16.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.36f)
+                            )
+                        }
                     }
                 }
             }

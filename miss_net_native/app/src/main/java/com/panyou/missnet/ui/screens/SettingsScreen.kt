@@ -58,6 +58,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.panyou.missnet.ui.theme.ContainerTokens
@@ -145,11 +146,7 @@ fun SettingsScreen(
                     checked = uiState.isDarkMode,
                     onCheckedChange = { viewModel.toggleDarkMode() }
                 )
-                HorizontalDivider(
-                    modifier = Modifier.padding(start = 64.dp),
-                    thickness = 0.5.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
+                SettingsItemDivider()
 
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("主题颜色", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
@@ -200,11 +197,7 @@ fun SettingsScreen(
                     subtitle = "浏览记录不写入历史",
                     onCheckedChange = { viewModel.toggleIncognito() }
                 )
-                HorizontalDivider(
-                    modifier = Modifier.padding(start = 64.dp),
-                    thickness = 0.5.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
+                SettingsItemDivider()
                 SettingsToggleItem(
                     icon = Icons.Rounded.Fingerprint,
                     title = "应用锁",
@@ -249,11 +242,7 @@ fun SettingsScreen(
                         trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                 }
-                HorizontalDivider(
-                    modifier = Modifier.padding(start = 64.dp),
-                    thickness = 0.5.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
+                SettingsItemDivider()
                 ListItem(
                     headlineContent = { Text("清理图片缓存") },
                     supportingContent = { Text("释放封面缓存占用空间") },
@@ -318,6 +307,15 @@ fun EliteSettingsCard(content: @Composable ColumnScope.() -> Unit) {
     ) {
         Column(content = content)
     }
+}
+
+@Composable
+private fun SettingsItemDivider(insetStart: Dp = 56.dp) {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = insetStart),
+        thickness = 0.5.dp,
+        color = MaterialTheme.colorScheme.outlineVariant
+    )
 }
 
 @Composable
