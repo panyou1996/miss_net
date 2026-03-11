@@ -22,6 +22,13 @@ object ContainerTokens {
     val ListItemPadding = 16.dp
     val ListItemVerticalPadding = 12.dp
     val ListItemThumbnailSize = 80.dp
+    val ListRowHorizontalPadding = 16.dp
+    val ListRowVerticalPadding = 12.dp
+    val ListLeadingIconSize = 22.dp
+    val ListLeadingContainerSize = 40.dp
+    val ListTrailingIconSize = 20.dp
+    val ListDividerInsetStart = 56.dp
+    val ListDividerInsetEnd = 16.dp
     
     // Section tokens
     val SectionPadding = 24.dp

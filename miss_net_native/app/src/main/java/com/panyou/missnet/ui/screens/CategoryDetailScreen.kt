@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -51,6 +50,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.ui.components.HeroCarouselItem
+import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
 import com.panyou.missnet.ui.components.SecondaryPageSurface
@@ -148,10 +148,7 @@ fun CategoryDetailScreen(
                                     sharedTransitionScope = sharedTransitionScope,
                                     animatedVisibilityScope = animatedVisibilityScope
                                 )
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = ContainerTokens.ScreenContentPadding),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f)
-                                )
+                                MissNetListDivider()
                             }
 
                             if (uiState.isMoreLoading) {
@@ -200,8 +197,8 @@ fun CategoryVideoItem(
                 .fillMaxWidth()
                 .bouncyClick { onClick() }
                 .padding(
-                    horizontal = 12.dp,
-                    vertical = ContainerTokens.ListItemVerticalPadding
+                    horizontal = ContainerTokens.ListRowHorizontalPadding,
+                    vertical = ContainerTokens.ListRowVerticalPadding
                 ),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -271,7 +268,7 @@ fun CategoryVideoItem(
                 imageVector = Icons.Default.PlayArrow,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(ContainerTokens.ListTrailingIconSize)
             )
         }
     }

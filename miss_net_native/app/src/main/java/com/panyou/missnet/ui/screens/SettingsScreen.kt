@@ -37,7 +37,6 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material.icons.rounded.VisibilityOff
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -58,9 +57,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.util.bouncyClick
 import com.panyou.missnet.ui.viewmodel.SettingsViewModel
@@ -90,7 +89,7 @@ fun SettingsScreen(
                         leadingContent = {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(ContainerTokens.ListLeadingContainerSize)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.surfaceVariant),
                                 contentAlignment = Alignment.Center
@@ -98,7 +97,8 @@ fun SettingsScreen(
                                 Icon(
                                     Icons.Rounded.AccountCircle,
                                     null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(ContainerTokens.ListLeadingIconSize)
                                 )
                             }
                         },
@@ -112,7 +112,7 @@ fun SettingsScreen(
                         leadingContent = {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(ContainerTokens.ListLeadingContainerSize)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.surfaceVariant),
                                 contentAlignment = Alignment.Center
@@ -120,7 +120,8 @@ fun SettingsScreen(
                                 Icon(
                                     Icons.Rounded.Verified,
                                     null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(ContainerTokens.ListLeadingIconSize)
                                 )
                             }
                         },
@@ -146,7 +147,7 @@ fun SettingsScreen(
                     checked = uiState.isDarkMode,
                     onCheckedChange = { viewModel.toggleDarkMode() }
                 )
-                SettingsItemDivider()
+                MissNetListDivider()
 
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("主题颜色", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
@@ -197,7 +198,7 @@ fun SettingsScreen(
                     subtitle = "浏览记录不写入历史",
                     onCheckedChange = { viewModel.toggleIncognito() }
                 )
-                SettingsItemDivider()
+                MissNetListDivider()
                 SettingsToggleItem(
                     icon = Icons.Rounded.Fingerprint,
                     title = "应用锁",
@@ -220,7 +221,7 @@ fun SettingsScreen(
                                 Icons.Rounded.Storage,
                                 null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(ContainerTokens.ListLeadingIconSize)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text("本地存储", fontWeight = FontWeight.Medium)
@@ -242,7 +243,7 @@ fun SettingsScreen(
                         trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                 }
-                SettingsItemDivider()
+                MissNetListDivider()
                 ListItem(
                     headlineContent = { Text("清理图片缓存") },
                     supportingContent = { Text("释放封面缓存占用空间") },
@@ -250,7 +251,8 @@ fun SettingsScreen(
                         Icon(
                             Icons.Rounded.DeleteSweep,
                             null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(ContainerTokens.ListLeadingIconSize)
                         )
                     },
                     modifier = Modifier.clickable {
@@ -269,7 +271,12 @@ fun SettingsScreen(
                         Text(uiState.version, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     },
                     leadingContent = {
-                        Icon(Icons.Rounded.Info, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            Icons.Rounded.Info,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(ContainerTokens.ListLeadingIconSize)
+                        )
                     },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                 )
@@ -310,15 +317,6 @@ fun EliteSettingsCard(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun SettingsItemDivider(insetStart: Dp = 56.dp) {
-    HorizontalDivider(
-        modifier = Modifier.padding(start = insetStart),
-        thickness = 0.5.dp,
-        color = MaterialTheme.colorScheme.outlineVariant
-    )
-}
-
-@Composable
 fun SettingsToggleItem(
     icon: ImageVector,
     title: String,
@@ -329,7 +327,14 @@ fun SettingsToggleItem(
     ListItem(
         headlineContent = { Text(title, fontWeight = FontWeight.Medium) },
         supportingContent = subtitle?.let { { Text(it) } },
-        leadingContent = { Icon(icon, null, tint = MaterialTheme.colorScheme.onSurface) },
+        leadingContent = {
+            Icon(
+                icon,
+                null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(ContainerTokens.ListLeadingIconSize)
+            )
+        },
         trailingContent = {
             Switch(
                 checked = checked,

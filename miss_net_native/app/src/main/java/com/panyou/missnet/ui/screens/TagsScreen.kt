@@ -11,8 +11,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.MissNetLoading
 import com.panyou.missnet.ui.components.MissNetStateCard
 import com.panyou.missnet.ui.components.SecondaryPageSurface
@@ -53,21 +55,25 @@ fun TagsScreen(
                         ) {
                             items(uiState.tags) { tag ->
                                 ListItem(
-                                    headlineContent = { Text(tag, style = MaterialTheme.typography.titleMedium) },
+                                    headlineContent = {
+                                        Text(
+                                            text = tag,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    },
                                     leadingContent = {
                                         Icon(
                                             Icons.Rounded.Star,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(ContainerTokens.ListLeadingIconSize)
                                         )
                                     },
                                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                                     modifier = Modifier.clickable { onTagClick(tag) }
                                 )
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = ContainerTokens.ScreenContentPadding),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                                )
+                                MissNetListDivider()
                             }
                             item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
                         }

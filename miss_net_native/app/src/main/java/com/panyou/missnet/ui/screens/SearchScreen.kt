@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
 import com.panyou.missnet.ui.components.MissNetStateCard
@@ -128,10 +128,20 @@ fun SearchScreen(
                     itemsIndexed(uiState.history) { index, historyItem ->
                         ListItem(
                             headlineContent = { Text(historyItem) },
-                            leadingContent = { Icon(Icons.Default.History, null) },
+                            leadingContent = {
+                                Icon(
+                                    Icons.Default.History,
+                                    null,
+                                    modifier = Modifier.size(ContainerTokens.ListLeadingIconSize)
+                                )
+                            },
                             trailingContent = {
                                 IconButton(onClick = { viewModel.removeHistoryItem(historyItem) }) {
-                                    Icon(Icons.Default.Close, contentDescription = "删除")
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "删除",
+                                        modifier = Modifier.size(ContainerTokens.ListTrailingIconSize)
+                                    )
                                 }
                             },
                             modifier = Modifier.clickable {
@@ -140,10 +150,7 @@ fun SearchScreen(
                             }
                         )
                         if (index < uiState.history.lastIndex) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(start = 56.dp, end = 16.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.36f)
-                            )
+                            MissNetListDivider()
                         }
                     }
                 }
