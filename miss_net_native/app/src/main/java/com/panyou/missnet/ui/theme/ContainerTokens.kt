@@ -73,3 +73,16 @@ object BadgeTokens {
     // Corner radius - use shapes.small (8dp) for badges
     val CornerRadius = 8.dp
 }
+
+/**
+ * Action-level tokens for button/chip density consistency.
+ */
+object ActionTokens {
+    val RowSpacing = 8.dp
+    val ButtonContentGap = 6.dp
+    val ButtonIconSize = 18.dp
+    val ButtonContentPaddingHorizontal = 14.dp
+    val ButtonContentPaddingVertical = 10.dp
+    val ChipMinHeight = 36.dp
+    val ChipIconSize = 18.dp
+}

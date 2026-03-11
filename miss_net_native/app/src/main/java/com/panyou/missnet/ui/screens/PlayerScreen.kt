@@ -75,6 +75,7 @@ import com.panyou.missnet.service.PlaybackService
 import com.panyou.missnet.ui.components.DurationBadge
 import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.components.StatusBadge
+import com.panyou.missnet.ui.theme.ActionTokens
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.theme.ThumbnailShape
 import com.panyou.missnet.ui.viewmodel.PlayerViewModel
@@ -862,15 +863,23 @@ private fun PrimaryActionsRow(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)
     ) {
         Button(
             onClick = onDownload,
-            modifier = Modifier.weight(1.2f)
+            modifier = Modifier.weight(1.2f),
+            contentPadding = PaddingValues(
+                horizontal = ActionTokens.ButtonContentPaddingHorizontal,
+                vertical = ActionTokens.ButtonContentPaddingVertical
+            )
         ) {
-            Icon(Icons.Default.CloudDownload, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("下载")
+            Icon(
+                Icons.Default.CloudDownload,
+                contentDescription = null,
+                modifier = Modifier.size(ActionTokens.ButtonIconSize)
+            )
+            Spacer(modifier = Modifier.width(ActionTokens.ButtonContentGap))
+            Text("下载", style = MaterialTheme.typography.labelLarge)
         }
 
         FilledTonalButton(
@@ -883,14 +892,19 @@ private fun PrimaryActionsRow(
                 )
             } else {
                 ButtonDefaults.filledTonalButtonColors()
-            }
+            },
+            contentPadding = PaddingValues(
+                horizontal = ActionTokens.ButtonContentPaddingHorizontal,
+                vertical = ActionTokens.ButtonContentPaddingVertical
+            )
         ) {
             Icon(
                 imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = null
+                contentDescription = null,
+                modifier = Modifier.size(ActionTokens.ButtonIconSize)
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(if (isFavorite) "已收藏" else "收藏")
+            Spacer(modifier = Modifier.width(ActionTokens.ButtonContentGap))
+            Text(if (isFavorite) "已收藏" else "收藏", style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -905,8 +919,8 @@ private fun SecondaryActionsRow(
 ) {
     FlowRow(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing),
+        verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)
     ) {
         SecondaryActionChip(
             icon = Icons.Default.Share,
@@ -934,14 +948,15 @@ private fun SecondaryActionChip(
 ) {
     AssistChip(
         onClick = onClick,
-        label = { Text(label) },
+        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
         leadingIcon = {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(ActionTokens.ChipIconSize)
             )
         },
+        modifier = Modifier.heightIn(min = ActionTokens.ChipMinHeight),
         colors = AssistChipDefaults.assistChipColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             labelColor = MaterialTheme.colorScheme.onSurfaceVariant,

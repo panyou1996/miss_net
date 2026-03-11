@@ -72,6 +72,7 @@ import com.panyou.missnet.ui.components.MissNetLoading
 import com.panyou.missnet.ui.components.VideoCard
 import com.panyou.missnet.ui.components.DurationBadge
 import com.panyou.missnet.ui.components.StatusBadge
+import com.panyou.missnet.ui.theme.ActionTokens
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.theme.ThumbnailShape
 import com.panyou.missnet.ui.viewmodel.LibraryViewModel
@@ -417,7 +418,7 @@ private fun OverviewChip(icon: androidx.compose.ui.graphics.vector.ImageVector, 
         onClick = {},
         enabled = false,
         label = { Text(label) },
-        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp)) }
+        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(ActionTokens.ChipIconSize)) }
     )
 }
 
@@ -618,7 +619,7 @@ private fun DownloadActionRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)
     ) {
         when {
             item.canPause -> {
@@ -748,11 +749,15 @@ private fun TaskPrimaryActionButton(
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier
+        modifier = modifier,
+        contentPadding = PaddingValues(
+            horizontal = ActionTokens.ButtonContentPaddingHorizontal,
+            vertical = ActionTokens.ButtonContentPaddingVertical
+        )
     ) {
-        Icon(icon, contentDescription = null)
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(label)
+        Icon(icon, contentDescription = null, modifier = Modifier.size(ActionTokens.ButtonIconSize))
+        Spacer(modifier = Modifier.width(ActionTokens.ButtonContentGap))
+        Text(label, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -767,11 +772,15 @@ private fun TaskSecondaryActionButton(
     FilledTonalButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier
+        modifier = modifier,
+        contentPadding = PaddingValues(
+            horizontal = ActionTokens.ButtonContentPaddingHorizontal,
+            vertical = ActionTokens.ButtonContentPaddingVertical
+        )
     ) {
-        Icon(icon, contentDescription = null)
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(label)
+        Icon(icon, contentDescription = null, modifier = Modifier.size(ActionTokens.ButtonIconSize))
+        Spacer(modifier = Modifier.width(ActionTokens.ButtonContentGap))
+        Text(label, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -790,11 +799,15 @@ private fun TaskDestructiveActionButton(
         colors = ButtonDefaults.filledTonalButtonColors(
             containerColor = MaterialTheme.colorScheme.errorContainer,
             contentColor = MaterialTheme.colorScheme.onErrorContainer
+        ),
+        contentPadding = PaddingValues(
+            horizontal = ActionTokens.ButtonContentPaddingHorizontal,
+            vertical = ActionTokens.ButtonContentPaddingVertical
         )
     ) {
-        Icon(icon, contentDescription = null)
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(label)
+        Icon(icon, contentDescription = null, modifier = Modifier.size(ActionTokens.ButtonIconSize))
+        Spacer(modifier = Modifier.width(ActionTokens.ButtonContentGap))
+        Text(label, style = MaterialTheme.typography.labelLarge)
     }
 }
 
