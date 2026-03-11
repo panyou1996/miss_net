@@ -29,7 +29,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.rounded.Stars
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -70,6 +69,7 @@ import com.panyou.missnet.data.media.DownloadTracker
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.service.MissNetDownloadService
 import com.panyou.missnet.service.PlaybackService
+import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
 
@@ -83,6 +83,13 @@ fun Context.findActivity(): Activity? = when (this) {
 private data class PendingDownload(
     val request: DownloadRequest
 )
+
+private const val DOWNLOAD_QUEUED_MESSAGE =
+    "已加入进行中的任务，可在 Library > Downloads 查看「进行中的任务 / 需要处理 / 最近完成」。"
+private const val DOWNLOAD_QUEUED_WITHOUT_NOTIFICATION_MESSAGE =
+    "通知权限未开启，任务仍已加入进行中的任务；请在 Library > Downloads 查看状态。"
+private const val DOWNLOAD_UNAVAILABLE_MESSAGE = "下载失败：当前没有可用的视频地址。"
+private const val SHARE_UNAVAILABLE_MESSAGE = "当前没有可分享的链接。"
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -115,9 +122,6 @@ fun PlayerScreen(
     var playbackError by remember { mutableStateOf<String?>(null) }
 
     val primaryColor = MaterialTheme.colorScheme.primary
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
-    val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     fun stopPlaybackSession() {
         val controlledPlayer = player ?: return
@@ -161,11 +165,7 @@ fun PlayerScreen(
     ) { granted ->
         val pending = pendingDownload ?: return@rememberLauncherForActivityResult
         enqueueDownload(pending.request)
-        val message = if (granted) {
-            "已加入下载队列；直链单文件会导出到系统 Movies/MissNet，HLS/m3u8 会尝试通过 FFmpeg 导出为单个 mp4，若失败可在 Library > Downloads 查看失败原因。"
-        } else {
-            "通知权限未开启，已加入下载队列；完成后可在 Library > Downloads 查看系统导出状态"
-        }
+        val message = if (granted) DOWNLOAD_QUEUED_MESSAGE else DOWNLOAD_QUEUED_WITHOUT_NOTIFICATION_MESSAGE
         viewModel.showDownloadMessage(message)
         pendingDownload = null
     }
@@ -345,6 +345,7 @@ fun PlayerScreen(
                 CircularProgressIndicator(color = primaryColor)
             }
         } else {
+            val effectiveError = uiState.errorMessage ?: playbackError
             Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                 val videoBoxModifier = Modifier
                     .fillMaxWidth()
@@ -372,7 +373,6 @@ fun PlayerScreen(
                             strokeWidth = 4.dp
                         )
                     }
-                    val effectiveError = uiState.errorMessage ?: playbackError
                     if (effectiveError != null) {
                         PlayerErrorOverlay(
                             message = effectiveError,
@@ -458,7 +458,7 @@ fun PlayerScreen(
                                     val url = uiState.streamUrl
                                     val video = uiState.video
                                     if (url.isNullOrBlank() || video == null) {
-                                        viewModel.showDownloadMessage("下载失败：当前没有可用的视频地址")
+                                        viewModel.showDownloadMessage(DOWNLOAD_UNAVAILABLE_MESSAGE)
                                     } else {
                                         val metadata = DownloadMetadata(
                                             id = video.id,
@@ -481,16 +481,9 @@ fun PlayerScreen(
                                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                                         } else {
                                             enqueueDownload(downloadRequest)
-                                            viewModel.showDownloadMessage("已加入下载队列；直链单文件会导出到系统 Movies/MissNet，HLS/m3u8 会尝试通过 FFmpeg 导出为单个 mp4，若失败可在 Library > Downloads 查看失败原因。")
+                                            viewModel.showDownloadMessage(DOWNLOAD_QUEUED_MESSAGE)
                                         }
                                     }
-                                },
-                                onShare = {
-                                    shareVideo(
-                                        context = context,
-                                        title = uiState.video?.title.orEmpty(),
-                                        url = uiState.streamUrl ?: uiState.video?.sourceUrl
-                                    )
                                 },
                                 onFavorite = { viewModel.toggleFavorite() },
                                 isFavorite = uiState.isFavorite,
@@ -501,8 +494,28 @@ fun PlayerScreen(
                         // 操作按钮区 - 次操作
                         item {
                             SecondaryActionsRow(
+                                onShare = {
+                                    val shared = shareVideo(
+                                        context = context,
+                                        title = uiState.video?.title.orEmpty(),
+                                        url = uiState.streamUrl ?: uiState.video?.sourceUrl
+                                    )
+                                    if (!shared) {
+                                        viewModel.showDownloadMessage(SHARE_UNAVAILABLE_MESSAGE)
+                                    }
+                                },
                                 onSpeed = { showSpeedSheet = true },
                                 onCast = { viewModel.showDownloadMessage("Cast 暂未接入，后续补齐") },
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                        }
+
+                        // 状态区
+                        item {
+                            PlayerStatusSection(
+                                isPlaying = isPlaying,
+                                isBuffering = isBuffering,
+                                errorMessage = effectiveError,
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
@@ -565,26 +578,107 @@ fun PlayerScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun RecommendSectionHeader(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "推荐",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+private fun PlayerStatusSection(
+    isPlaying: Boolean,
+    isBuffering: Boolean,
+    errorMessage: String?,
+    modifier: Modifier = Modifier
+) {
+    val (playbackLabel, playbackContainer, playbackContent) = when {
+        errorMessage != null -> Triple(
+            "需要处理",
+            MaterialTheme.colorScheme.errorContainer,
+            MaterialTheme.colorScheme.onErrorContainer
         )
-        Spacer(modifier = Modifier.width(8.dp))
-        Icon(
-            imageVector = Icons.Rounded.Stars,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp)
+        isBuffering -> Triple(
+            "加载中",
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.onPrimaryContainer
+        )
+        isPlaying -> Triple(
+            "播放中",
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.onSecondaryContainer
+        )
+        else -> Triple(
+            "已暂停",
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+
+    ElevatedCard(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "状态",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "播放",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                StatusBadge(
+                    text = playbackLabel,
+                    containerColor = playbackContainer,
+                    contentColor = playbackContent
+                )
+            }
+
+            Text(
+                text = "下载与导出状态统一在 Library > Downloads 查看：",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                StatusBadge(
+                    text = "进行中的任务",
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                StatusBadge(
+                    text = "需要处理",
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                )
+                StatusBadge(
+                    text = "最近完成",
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecommendSectionHeader(modifier: Modifier = Modifier) {
+    Text(
+        text = "相关推荐",
+        modifier = modifier.fillMaxWidth(),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurface
+    )
 }
 
 @Composable
@@ -696,7 +790,6 @@ private fun VideoInfoSection(
 @Composable
 private fun PrimaryActionsRow(
     onDownload: () -> Unit,
-    onShare: () -> Unit,
     onFavorite: () -> Unit,
     isFavorite: Boolean,
     modifier: Modifier = Modifier
@@ -705,118 +798,90 @@ private fun PrimaryActionsRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // 下载按钮 - 主操作
-        ActionButton(
-            icon = Icons.Default.CloudDownload,
-            label = "下载",
-            isPrimary = true,
+        Button(
             onClick = onDownload,
-            modifier = Modifier.weight(1f)
-        )
-        
-        // 分享按钮 - 主操作
-        ActionButton(
-            icon = Icons.Default.Share,
-            label = "分享",
-            isPrimary = true,
-            onClick = onShare,
-            modifier = Modifier.weight(1f)
-        )
-        
-        // 收藏按钮 - 主操作
-        ActionButton(
-            icon = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-            label = if (isFavorite) "已收藏" else "收藏",
-            isPrimary = true,
-            isActive = isFavorite,
+            modifier = Modifier.weight(1.2f)
+        ) {
+            Icon(Icons.Default.CloudDownload, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("下载")
+        }
+
+        FilledTonalButton(
             onClick = onFavorite,
-            modifier = Modifier.weight(1f)
-        )
+            modifier = Modifier.weight(1f),
+            colors = if (isFavorite) {
+                ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            } else {
+                ButtonDefaults.filledTonalButtonColors()
+            }
+        ) {
+            Icon(
+                imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = null
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(if (isFavorite) "已收藏" else "收藏")
+        }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SecondaryActionsRow(
+    onShare: () -> Unit,
     onSpeed: () -> Unit,
     onCast: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    FlowRow(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // 速度按钮 - 次操作
-        ActionButton(
+        SecondaryActionChip(
+            icon = Icons.Default.Share,
+            label = "分享",
+            onClick = onShare
+        )
+        SecondaryActionChip(
             icon = Icons.Default.Speed,
             label = "速度",
-            isPrimary = false,
-            onClick = onSpeed,
-            modifier = Modifier.weight(1f)
+            onClick = onSpeed
         )
-        
-        // 投屏按钮 - 次操作
-        ActionButton(
+        SecondaryActionChip(
             icon = Icons.Default.Cast,
             label = "投屏",
-            isPrimary = false,
-            onClick = onCast,
-            modifier = Modifier.weight(1f)
+            onClick = onCast
         )
-        
-        // PiP 已在顶部栏，此处留空保持对称
-        Spacer(modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun ActionButton(
+private fun SecondaryActionChip(
     icon: ImageVector,
     label: String,
-    isPrimary: Boolean,
-    isActive: Boolean = false,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
 ) {
-    val containerColor = when {
-        isActive -> MaterialTheme.colorScheme.primaryContainer
-        isPrimary -> MaterialTheme.colorScheme.secondaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant
-    }
-    val contentColor = when {
-        isActive -> MaterialTheme.colorScheme.primary
-        isPrimary -> MaterialTheme.colorScheme.onSecondaryContainer
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    Surface(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
-        color = containerColor,
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp, horizontal = 8.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    AssistChip(
+        onClick = onClick,
+        label = { Text(label) },
+        leadingIcon = {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = contentColor
+                modifier = Modifier.size(18.dp)
             )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = contentColor,
-                fontWeight = if (isPrimary) FontWeight.Medium else FontWeight.Normal
-            )
-        }
-    }
+        },
+        colors = AssistChipDefaults.assistChipColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            leadingIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    )
 }
 
 @Composable
@@ -989,8 +1054,8 @@ fun PlayerErrorOverlay(message: String, onRetry: () -> Unit, modifier: Modifier 
     }
 }
 
-private fun shareVideo(context: Context, title: String, url: String?) {
-    if (url.isNullOrBlank()) return
+private fun shareVideo(context: Context, title: String, url: String?): Boolean {
+    if (url.isNullOrBlank()) return false
     val shareText = buildString {
         if (title.isNotBlank()) appendLine(title)
         append(url)
@@ -1002,6 +1067,7 @@ private fun shareVideo(context: Context, title: String, url: String?) {
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
     context.startActivity(Intent.createChooser(shareIntent, "分享视频"))
+    return true
 }
 
 private fun formatTime(ms: Long): String {
