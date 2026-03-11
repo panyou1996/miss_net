@@ -119,7 +119,7 @@ class MissNetDownloadService : DownloadService(
         return when {
             active != null -> DownloadMetadata.fromDownload(active)?.title ?: "MissNet 下载中"
             pausedCount > 0 && totalCount == pausedCount -> "下载已暂停"
-            failedCount > 0 && totalCount == failedCount -> "下载失败"
+            failedCount > 0 && totalCount == failedCount -> "任务需要处理"
             completedCount > 0 && totalCount == completedCount -> "下载已完成"
             else -> "MissNet 下载管理"
         }
@@ -139,8 +139,8 @@ class MissNetDownloadService : DownloadService(
                 val total = if (active.contentLength > 0L) formatBytes(active.contentLength) else "--"
                 "${stateLabel(active)} · $percent · $downloaded / $total${requirementSuffix(notMetRequirements)}"
             }
-            pausedCount > 0 -> "有 $pausedCount 个任务已暂停${if (failedCount > 0) "，$failedCount 个失败" else ""}"
-            failedCount > 0 -> "有 $failedCount 个任务失败，请回到 Library > Downloads 重试"
+            pausedCount > 0 -> "有 $pausedCount 个任务已暂停${if (failedCount > 0) "，$failedCount 个需要处理" else ""}"
+            failedCount > 0 -> "有 $failedCount 个任务需要处理，请回到 Library > Downloads 重试"
             totalCount > 0 -> "下载任务共 $totalCount 个"
             else -> "准备下载"
         }
@@ -161,7 +161,7 @@ class MissNetDownloadService : DownloadService(
         } else {
             summary += "总任务：$totalCount"
             if (pausedCount > 0) summary += "暂停：$pausedCount"
-            if (failedCount > 0) summary += "失败：$failedCount"
+            if (failedCount > 0) summary += "需要处理：$failedCount"
             if (completedCount > 0) summary += "完成：$completedCount"
             summary += requirementSuffix(notMetRequirements).removePrefix(" · ").ifBlank { "可在 Library > Downloads 管理任务" }
         }
