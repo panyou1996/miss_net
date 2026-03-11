@@ -3,7 +3,6 @@ package com.panyou.missnet.ui.screens
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
+import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.components.VideoCard
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.viewmodel.SearchViewModel
@@ -136,35 +136,22 @@ fun SearchScreen(
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(
-                        start = ContainerTokens.ScreenCompactHorizontalPadding,
-                        end = ContainerTokens.ScreenCompactHorizontalPadding,
-                        bottom = ContainerTokens.ScreenContentPadding
-                    )
-            ) {
-                when {
-                    uiState.isLoading -> {
-                        MissNetLoading()
-                    }
+            SecondaryPageSurface {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when {
+                        uiState.isLoading -> {
+                            MissNetLoading()
+                        }
 
-                    uiState.errorMessage != null && uiState.query.isNotBlank() -> {
-                        MissNetErrorState(
-                            message = uiState.errorMessage ?: "搜索失败",
-                            onRetry = viewModel::retry,
-                            title = if (uiState.results.isEmpty()) "未找到结果" else "搜索失败"
-                        )
-                    }
+                        uiState.errorMessage != null && uiState.query.isNotBlank() -> {
+                            MissNetErrorState(
+                                message = uiState.errorMessage ?: "搜索失败",
+                                onRetry = viewModel::retry,
+                                title = if (uiState.results.isEmpty()) "未找到结果" else "搜索失败"
+                            )
+                        }
 
-                    uiState.results.isNotEmpty() -> {
-                        Surface(
-                            modifier = Modifier.fillMaxSize(),
-                            shape = MaterialTheme.shapes.large,
-                            color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
-                        ) {
+                        uiState.results.isNotEmpty() -> {
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(ContainerTokens.GridColumns),
                                 contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
@@ -186,22 +173,22 @@ fun SearchScreen(
                                 item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
                             }
                         }
-                    }
 
-                    uiState.query.isBlank() -> {
-                        SearchStateCard(
-                            icon = Icons.Default.Search,
-                            title = "输入关键词开始搜索",
-                            subtitle = "支持视频标题、演员与标签"
-                        )
-                    }
+                        uiState.query.isBlank() -> {
+                            SearchStateCard(
+                                icon = Icons.Default.Search,
+                                title = "输入关键词开始搜索",
+                                subtitle = "支持视频标题、演员与标签"
+                            )
+                        }
 
-                    else -> {
-                        SearchStateCard(
-                            icon = Icons.Default.History,
-                            title = "未找到相关内容",
-                            subtitle = "试试更短的关键词或不同标签"
-                        )
+                        else -> {
+                            SearchStateCard(
+                                icon = Icons.Default.History,
+                                title = "未找到相关内容",
+                                subtitle = "试试更短的关键词或不同标签"
+                            )
+                        }
                     }
                 }
             }
@@ -215,38 +202,31 @@ private fun SearchStateCard(
     title: String,
     subtitle: String
 ) {
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(40.dp)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(40.dp)
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }

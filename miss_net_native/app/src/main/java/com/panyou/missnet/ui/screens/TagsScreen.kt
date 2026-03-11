@@ -1,6 +1,5 @@
 package com.panyou.missnet.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.panyou.missnet.ui.components.MissNetLoading
+import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.viewmodel.TagsViewModel
 
@@ -31,18 +31,7 @@ fun TagsScreen(
             MissNetLoading()
         } else {
             Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(
-                            start = ContainerTokens.ScreenCompactHorizontalPadding,
-                            end = ContainerTokens.ScreenCompactHorizontalPadding,
-                            bottom = ContainerTokens.ScreenContentPadding
-                        ),
-                    shape = MaterialTheme.shapes.large,
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
-                ) {
+                SecondaryPageSurface {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(vertical = 8.dp)

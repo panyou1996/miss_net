@@ -1,6 +1,5 @@
 package com.panyou.missnet.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -21,6 +20,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.panyou.missnet.data.model.ActorInfo
 import com.panyou.missnet.ui.components.MissNetLoading
+import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.util.bouncyClick
 import com.panyou.missnet.ui.viewmodel.ActressViewModel
@@ -59,18 +59,7 @@ fun ActressScreen(
                 }
 
                 // Grid of Actresses
-                Surface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(
-                            start = ContainerTokens.ScreenCompactHorizontalPadding,
-                            end = ContainerTokens.ScreenCompactHorizontalPadding,
-                            bottom = ContainerTokens.ScreenContentPadding
-                        ),
-                    shape = MaterialTheme.shapes.large,
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
-                ) {
+                SecondaryPageSurface {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
                         modifier = Modifier.fillMaxSize(),

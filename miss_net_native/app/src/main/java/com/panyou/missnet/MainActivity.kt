@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -104,6 +105,7 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    var showMainQuickActions by rememberSaveable { mutableStateOf(false) }
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     
@@ -171,7 +173,8 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
                     title = "MissNet",
                     navController = navController,
                     currentDestination = currentDestination,
-                    scrollBehavior = scrollBehavior
+                    scrollBehavior = scrollBehavior,
+                    onMenuClick = { showMainQuickActions = true }
                 ) { innerPadding ->
                     HomeScreen(
                         onVideoClick = { id -> navController.navigate(Screen.Player.createRoute(id)) },
@@ -192,7 +195,8 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
                     title = Screen.Actress.title,
                     navController = navController,
                     currentDestination = currentDestination,
-                    scrollBehavior = scrollBehavior
+                    scrollBehavior = scrollBehavior,
+                    onMenuClick = { showMainQuickActions = true }
                 ) { innerPadding ->
                     ActressScreen(
                         onActressClick = { name -> navController.navigate(Screen.CategoryDetail.createRoute(name, null, name)) },
@@ -207,7 +211,8 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
                     title = Screen.Tags.title,
                     navController = navController,
                     currentDestination = currentDestination,
-                    scrollBehavior = scrollBehavior
+                    scrollBehavior = scrollBehavior,
+                    onMenuClick = { showMainQuickActions = true }
                 ) { innerPadding ->
                     TagsScreen(
                         onTagClick = { tag -> navController.navigate(Screen.CategoryDetail.createRoute(tag, tag, null)) },
@@ -222,7 +227,8 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
                     title = Screen.Library.title,
                     navController = navController,
                     currentDestination = currentDestination,
-                    scrollBehavior = scrollBehavior
+                    scrollBehavior = scrollBehavior,
+                    onMenuClick = { showMainQuickActions = true }
                 ) { innerPadding ->
                     LibraryScreen(
                         onVideoClick = { id -> navController.navigate(Screen.Player.createRoute(id)) },
@@ -293,6 +299,30 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
                 )
             }
         }
+
+        if (showMainQuickActions) {
+            MainQuickActionsSheet(
+                onDismiss = { showMainQuickActions = false },
+                onOpenSearch = {
+                    showMainQuickActions = false
+                    navController.navigate(Screen.Search.route)
+                },
+                onOpenLibrary = {
+                    showMainQuickActions = false
+                    navController.navigate(Screen.Library.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onOpenSettings = {
+                    showMainQuickActions = false
+                    navController.navigate(Screen.Settings.route)
+                }
+            )
+        }
     }
 }
 
@@ -303,6 +333,7 @@ private fun MainTabRouteShell(
     navController: NavHostController,
     currentDestination: androidx.navigation.NavDestination?,
     scrollBehavior: TopAppBarScrollBehavior,
+    onMenuClick: () -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
     MainTabScaffold(
@@ -310,6 +341,7 @@ private fun MainTabRouteShell(
         navController = navController,
         currentDestination = currentDestination,
         scrollBehavior = scrollBehavior,
+        onMenuClick = onMenuClick,
         onSearchClick = { navController.navigate(Screen.Search.route) },
         onSettingsClick = { navController.navigate(Screen.Settings.route) },
         content = content
@@ -318,9 +350,86 @@ private fun MainTabRouteShell(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun MainQuickActionsSheet(
+    onDismiss: () -> Unit,
+    onOpenSearch: () -> Unit,
+    onOpenLibrary: () -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(bottom = 12.dp)
+        ) {
+            Text(
+                text = "快捷操作",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+            )
+
+            MainQuickActionItem(
+                icon = Icons.Rounded.Search,
+                title = "搜索",
+                subtitle = "打开全局搜索",
+                onClick = onOpenSearch
+            )
+            MainQuickActionItem(
+                icon = Icons.Rounded.VideoLibrary,
+                title = "资源库任务",
+                subtitle = "查看下载与导出状态",
+                onClick = onOpenLibrary
+            )
+            MainQuickActionItem(
+                icon = Icons.Rounded.Settings,
+                title = "设置",
+                subtitle = "账号、主题与隐私选项",
+                onClick = onOpenSettings
+            )
+        }
+    }
+}
+
+@Composable
+private fun MainQuickActionItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = { Text(title, fontWeight = FontWeight.Medium) },
+        supportingContent = {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        leadingContent = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        modifier = Modifier.clickable(onClick = onClick),
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun MissNetTopBar(
     isMainTab: Boolean, 
     title: String,
+    onMenuClick: () -> Unit,
     onSearchClick: () -> Unit, 
     onBackClick: () -> Unit, 
     onAvatarClick: () -> Unit,
@@ -334,7 +443,7 @@ fun MissNetTopBar(
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { /* Drawer or action */ }) {
+            IconButton(onClick = onMenuClick) {
                 Icon(
                     imageVector = Icons.Rounded.Menu,
                     contentDescription = "Menu",
@@ -363,14 +472,6 @@ fun MissNetTopBar(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-
-            IconButton(onClick = { /* Reserved for smart assistant entry */ }) {
-                Icon(
-                    imageVector = Icons.Rounded.AutoAwesome,
-                    contentDescription = "Assistant",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
 
             if (showAvatar) {

@@ -52,6 +52,7 @@ import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.ui.components.HeroCarouselItem
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
+import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.theme.ThumbnailShape
 import com.panyou.missnet.ui.util.bouncyClick
@@ -102,22 +103,11 @@ fun CategoryDetailScreen(
         else -> {
             Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(
-                                start = ContainerTokens.ScreenCompactHorizontalPadding,
-                                end = ContainerTokens.ScreenCompactHorizontalPadding,
-                                bottom = ContainerTokens.ScreenContentPadding
-                            ),
-                        shape = MaterialTheme.shapes.large,
-                        color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
-                    ) {
+                    SecondaryPageSurface {
                         LazyColumn(
                             state = listState,
                             contentPadding = PaddingValues(vertical = ContainerTokens.ScreenContentPadding),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(ContainerTokens.SectionVerticalSpacing),
                             modifier = Modifier
                                 .fillMaxSize()
                                 .nestedScroll(scrollBehavior.nestedScrollConnection)
@@ -131,18 +121,21 @@ fun CategoryDetailScreen(
                                         state = carouselState,
                                         preferredItemWidth = 320.dp,
                                         itemSpacing = 12.dp,
-                                        contentPadding = PaddingValues(horizontal = ContainerTokens.ScreenContentPadding),
+                                        contentPadding = PaddingValues(horizontal = ContainerTokens.ScreenCompactHorizontalPadding),
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(212.dp)
-                                            .padding(bottom = 12.dp)
+                                            .height(220.dp)
                                     ) { index ->
-                                        HeroCarouselItem(
-                                            video = carouselVideos[index],
-                                            onClick = { onVideoClick(carouselVideos[index].id) },
-                                            sharedTransitionScope = sharedTransitionScope,
-                                            animatedVisibilityScope = animatedVisibilityScope
-                                        )
+                                        Box(modifier = Modifier.fillMaxSize().padding(vertical = 4.dp)) {
+                                            HeroCarouselItem(
+                                                video = carouselVideos[index],
+                                                modifier = Modifier.fillMaxSize(),
+                                                onClick = { onVideoClick(carouselVideos[index].id) },
+                                                // 避免与列表同 key 的 shared element 在同屏叠加，导致 Hero 视觉重叠。
+                                                sharedTransitionScope = null,
+                                                animatedVisibilityScope = null
+                                            )
+                                        }
                                     }
                                 }
                             }

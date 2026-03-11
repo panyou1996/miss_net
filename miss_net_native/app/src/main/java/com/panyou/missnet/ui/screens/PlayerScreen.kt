@@ -131,16 +131,24 @@ fun PlayerScreen(
     var playbackSpeed by remember { mutableStateOf(1.0f) }
     var isBuffering by remember { mutableStateOf(true) }
     var playbackError by remember { mutableStateOf<String?>(null) }
+    var hasRequestedExit by remember { mutableStateOf(false) }
 
     val primaryColor = MaterialTheme.colorScheme.primary
 
-    fun stopPlaybackSession() {
+    fun persistPlaybackProgress() {
         val controlledPlayer = player ?: return
         val latestDuration = controlledPlayer.duration.coerceAtLeast(0L)
         val latestPosition = controlledPlayer.currentPosition.coerceAtLeast(0L)
+        currentPos = latestPosition
+        duration = latestDuration
         if (latestDuration > 0L) {
             viewModel.updatePlaybackProgress(latestPosition, latestDuration)
         }
+    }
+
+    fun stopPlaybackSession() {
+        persistPlaybackProgress()
+        val controlledPlayer = player ?: return
         controlledPlayer.pause()
         controlledPlayer.stop()
         controlledPlayer.clearMediaItems()
@@ -148,6 +156,7 @@ fun PlayerScreen(
     }
 
     fun exitPlayer() {
+        hasRequestedExit = true
         pipRequested = false
         if (isFullscreen) {
             isFullscreen = false
@@ -224,10 +233,12 @@ fun PlayerScreen(
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> {
-                    viewModel.updatePlaybackProgress(currentPos, duration)
+                    persistPlaybackProgress()
                     val isInPip = activity?.isInPictureInPictureMode == true
-                    if (!isInPip && !pipRequested) {
-                        stopPlaybackSession()
+                    val isChangingConfigurations = activity?.isChangingConfigurations == true
+                    if (!isInPip && !pipRequested && !isChangingConfigurations) {
+                        player?.pause()
+                        isPlaying = false
                     }
                 }
                 Lifecycle.Event.ON_RESUME -> {
@@ -242,8 +253,10 @@ fun PlayerScreen(
 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            viewModel.updatePlaybackProgress(currentPos, duration)
-            if (activity?.isInPictureInPictureMode != true && !pipRequested) {
+            persistPlaybackProgress()
+            val isInPip = activity?.isInPictureInPictureMode == true
+            val isChangingConfigurations = activity?.isChangingConfigurations == true
+            if (!isInPip && !pipRequested && (hasRequestedExit || !isChangingConfigurations)) {
                 stopPlaybackSession()
             }
             controllerFuture?.let { MediaController.releaseFuture(it) }
@@ -284,26 +297,37 @@ fun PlayerScreen(
         if (streamUrl != null && p != null) {
             playbackError = null
             isBuffering = true
-            val mediaItem = MediaItem.Builder()
-                .setUri(streamUrl)
-                .setMimeType(MimeTypes.APPLICATION_M3U8)
-                .setMediaId(uiState.video?.id ?: videoId)
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle(uiState.video?.title)
-                        .setArtworkUri(android.net.Uri.parse(uiState.video?.coverUrl ?: ""))
-                        .build()
-                )
-                .build()
+            val targetMediaId = uiState.video?.id ?: videoId
+            val currentMediaItem = p.currentMediaItem
+            val currentUri = currentMediaItem?.localConfiguration?.uri?.toString()
+            val shouldReplaceMediaItem = p.mediaItemCount == 0 ||
+                currentMediaItem?.mediaId != targetMediaId ||
+                currentUri != streamUrl
 
-            p.setMediaItem(mediaItem)
-            p.prepare()
-            val resumePosition = uiState.lastPositionMs
-            if (resumePosition > 0L) {
-                p.seekTo(resumePosition)
-                currentPos = resumePosition
+            if (shouldReplaceMediaItem) {
+                val mediaItem = MediaItem.Builder()
+                    .setUri(streamUrl)
+                    .setMimeType(MimeTypes.APPLICATION_M3U8)
+                    .setMediaId(targetMediaId)
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(uiState.video?.title)
+                            .setArtworkUri(android.net.Uri.parse(uiState.video?.coverUrl ?: ""))
+                            .build()
+                    )
+                    .build()
+
+                p.setMediaItem(mediaItem)
+                p.prepare()
+                val resumePosition = uiState.lastPositionMs
+                if (resumePosition > 0L) {
+                    p.seekTo(resumePosition)
+                    currentPos = resumePosition
+                }
+                p.playWhenReady = true
+            } else if (p.playbackState == Player.STATE_IDLE) {
+                p.prepare()
             }
-            p.playWhenReady = true
         }
     }
 
@@ -361,7 +385,7 @@ fun PlayerScreen(
             Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                 val videoBoxModifier = Modifier
                     .fillMaxWidth()
-                    .let { if (isFullscreen) Modifier.fillMaxHeight() else Modifier.aspectRatio(16f / 9f) }
+                    .then(if (isFullscreen) Modifier.fillMaxHeight() else Modifier.aspectRatio(16f / 9f))
                     .background(Color.Black)
                     .clickable(remember { MutableInteractionSource() }, null) { showControls = !showControls }
 

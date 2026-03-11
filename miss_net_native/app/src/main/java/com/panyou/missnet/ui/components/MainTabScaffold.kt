@@ -41,6 +41,7 @@ fun MainTabScaffold(
     navController: NavController,
     currentDestination: NavDestination?,
     scrollBehavior: TopAppBarScrollBehavior,
+    onMenuClick: () -> Unit,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
     content: @Composable (PaddingValues) -> Unit
@@ -55,6 +56,7 @@ fun MainTabScaffold(
                     MissNetTopBar(
                         isMainTab = true,
                         title = title,
+                        onMenuClick = onMenuClick,
                         onSearchClick = onSearchClick,
                         onBackClick = { },
                         onAvatarClick = onSettingsClick,
@@ -94,6 +96,7 @@ fun SimpleTopBarScaffold(
             MissNetTopBar(
                 isMainTab = false,
                 title = title,
+                onMenuClick = { },
                 onSearchClick = { },
                 onBackClick = onBackClick,
                 onAvatarClick = onSettingsClick ?: { },

@@ -128,16 +128,15 @@ fun VerticalVideoCard(
 fun HeroCarouselItem(
     video: Video,
     pageOffset: Float = 0f,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight()
-            .bouncyClick(onClick = onClick)
-            .clip(MaterialTheme.shapes.extraLarge),
+        modifier = modifier
+            .fillMaxSize()
+            .bouncyClick(onClick = onClick),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -182,7 +181,7 @@ fun HeroCarouselItem(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(24.dp)
+                        .padding(16.dp)
                 ) {
                     // Actor tag - using unified SmallBadge
                     if (video.actors.isNotEmpty()) {
@@ -197,10 +196,10 @@ fun HeroCarouselItem(
                     Text(
                         text = video.title,
                         color = Color.White,
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         maxLines = 2,
-                        lineHeight = 32.sp,
+                        lineHeight = 28.sp,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
