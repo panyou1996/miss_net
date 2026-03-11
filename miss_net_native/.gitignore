@@ -1,0 +1,25 @@
+# Gradle / build
+.gradle/
+build/
+**/build/
+
+# Local machine config
+local.properties
+.java-version
+
+# IDE
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated / caches
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Parent-level local assets not part of app source
+../pic/
+../run_native.sh
