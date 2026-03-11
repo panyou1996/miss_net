@@ -70,6 +70,7 @@ import com.panyou.missnet.ui.components.SectionHeader
 import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.components.VerticalVideoCard
 import com.panyou.missnet.ui.theme.ContainerTokens
+import com.panyou.missnet.ui.theme.ThumbnailShape
 import com.panyou.missnet.ui.viewmodel.HomeViewModel
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
@@ -371,7 +372,7 @@ private fun ContinueWatchingCard(
             Box(
                 modifier = Modifier
                     .size(width = 92.dp, height = 64.dp)
-                    .clip(MaterialTheme.shapes.medium)
+                    .clip(ThumbnailShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 AsyncImage(
@@ -425,7 +426,7 @@ private fun FavoriteGlanceCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(104.dp)
-                    .clip(MaterialTheme.shapes.large)
+                    .clip(ThumbnailShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 AsyncImage(

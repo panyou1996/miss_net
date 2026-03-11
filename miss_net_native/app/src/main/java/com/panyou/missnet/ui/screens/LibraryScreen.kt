@@ -69,6 +69,7 @@ import com.panyou.missnet.ui.components.VideoCard
 import com.panyou.missnet.ui.components.DurationBadge
 import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.theme.ContainerTokens
+import com.panyou.missnet.ui.theme.ThumbnailShape
 import com.panyou.missnet.ui.viewmodel.LibraryViewModel
 import java.util.Locale
 
@@ -424,7 +425,7 @@ private fun DownloadCard(
                 Box(
                     modifier = Modifier
                         .size(92.dp)
-                        .clip(MaterialTheme.shapes.large)
+                        .clip(ThumbnailShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {

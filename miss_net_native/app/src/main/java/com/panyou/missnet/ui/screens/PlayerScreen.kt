@@ -71,6 +71,7 @@ import com.panyou.missnet.service.MissNetDownloadService
 import com.panyou.missnet.service.PlaybackService
 import com.panyou.missnet.ui.components.DurationBadge
 import com.panyou.missnet.ui.components.StatusBadge
+import com.panyou.missnet.ui.theme.ThumbnailShape
 import com.panyou.missnet.ui.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
 
@@ -1000,7 +1001,7 @@ fun RecommendItem(video: Video, onClick: () -> Unit, modifier: Modifier = Modifi
         Box(
             modifier = Modifier
                 .size(100.dp, 60.dp)
-                .clip(MaterialTheme.shapes.medium)
+                .clip(ThumbnailShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
             AsyncImage(
