@@ -345,7 +345,10 @@ private fun DownloadOverviewCard(
     completedCount: Int
 ) {
     ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            modifier = Modifier.padding(ContainerTokens.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(ContainerTokens.ListItemVerticalPadding)
+        ) {
             Text("任务与资产状态中心", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(
                 "优先处理正在进行的任务、失败恢复，以及已完成资产的快速访问。",
@@ -420,7 +423,7 @@ private fun DownloadCard(
             .then(if (clickable) Modifier.clickable(onClick = onClick) else Modifier),
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(ContainerTokens.CardPadding)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -446,7 +449,7 @@ private fun DownloadCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(ContainerTokens.ScreenContentPadding))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -497,15 +500,15 @@ private fun DownloadCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(ContainerTokens.ListItemVerticalPadding))
             LinearProgressIndicator(
                 progress = { item.normalizedProgress },
                 modifier = Modifier.fillMaxWidth(),
                 trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(ContainerTokens.ListItemVerticalPadding))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(ContainerTokens.ListItemVerticalPadding))
             val context = androidx.compose.ui.platform.LocalContext.current
             DownloadActionRow(
                 item = item,

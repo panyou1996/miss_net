@@ -368,7 +368,10 @@ private fun ContinueWatchingCard(
             .clickable(onClick = onClick),
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.padding(ContainerTokens.ListItemVerticalPadding),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
                 modifier = Modifier
                     .size(width = 92.dp, height = 64.dp)
@@ -436,7 +439,10 @@ private fun FavoriteGlanceCard(
                     modifier = Modifier.fillMaxSize()
                 )
             }
-            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                modifier = Modifier.padding(ContainerTokens.ListItemVerticalPadding),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     text = video.title,
                     style = MaterialTheme.typography.bodyLarge,
@@ -462,13 +468,13 @@ private fun DownloadGlanceRow(
     onClick: () -> Unit
 ) {
     Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(ContainerTokens.ListItemVerticalPadding),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
