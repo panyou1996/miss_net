@@ -8,11 +8,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.panyou.missnet.ui.components.MissNetLoading
+import com.panyou.missnet.ui.components.MissNetStateCard
 import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.viewmodel.TagsViewModel
@@ -32,29 +34,43 @@ fun TagsScreen(
         } else {
             Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
                 SecondaryPageSurface {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        items(uiState.tags) { tag ->
-                            ListItem(
-                                headlineContent = { Text(tag, style = MaterialTheme.typography.titleMedium) },
-                                leadingContent = {
-                                    Icon(
-                                        Icons.Rounded.Star,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                },
-                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                                modifier = Modifier.clickable { onTagClick(tag) }
-                            )
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = ContainerTokens.ScreenContentPadding),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                    if (uiState.tags.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            MissNetStateCard(
+                                icon = Icons.Rounded.Star,
+                                title = "暂无标签数据",
+                                subtitle = "稍后重试，或等待抓取任务同步最新标签",
+                                modifier = Modifier.padding(horizontal = 24.dp)
                             )
                         }
-                        item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            items(uiState.tags) { tag ->
+                                ListItem(
+                                    headlineContent = { Text(tag, style = MaterialTheme.typography.titleMedium) },
+                                    leadingContent = {
+                                        Icon(
+                                            Icons.Rounded.Star,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                    modifier = Modifier.clickable { onTagClick(tag) }
+                                )
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(horizontal = ContainerTokens.ScreenContentPadding),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                )
+                            }
+                            item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
+                        }
                     }
                 }
             }

@@ -25,6 +25,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -42,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -980,28 +982,64 @@ fun PlayerControls(
     onSpeed: () -> Unit
 ) {
     AnimatedVisibility(visible = showControls, enter = fadeIn(), exit = fadeOut()) {
-        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).padding(if (isFullscreen) 48.dp else 16.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .padding(if (isFullscreen) 36.dp else 12.dp)
+        ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                IconButton(onClick = onBack) {
-                    Icon(if (isFullscreen) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White, modifier = Modifier.size(32.dp))
-                }
+                OverlayControlButton(
+                    onClick = onBack,
+                    icon = if (isFullscreen) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = if (isFullscreen) "退出全屏" else "返回"
+                )
                 Row {
-                    IconButton(onClick = onCast) { Icon(Icons.Default.Cast, null, tint = Color.White) }
-                    IconButton(onClick = onSpeed) { Icon(Icons.Default.Speed, null, tint = Color.White) }
+                    OverlayControlButton(
+                        onClick = onCast,
+                        icon = Icons.Default.Cast,
+                        contentDescription = "投屏"
+                    )
+                    OverlayControlButton(
+                        onClick = onSpeed,
+                        icon = Icons.Default.Speed,
+                        contentDescription = "倍速"
+                    )
                 }
             }
 
-            Row(modifier = Modifier.align(Alignment.Center), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(40.dp)) {
-                IconButton(onClick = onSeekBack) { Icon(Icons.Default.Replay10, null, tint = Color.White, modifier = Modifier.size(32.dp)) }
-                IconButton(onClick = onTogglePlay, modifier = Modifier.size(80.dp)) {
-                    Icon(imageVector = if (isPlaying) Icons.Default.PauseCircle else Icons.Default.PlayCircle, null, tint = Color.White, modifier = Modifier.fillMaxSize())
+            Row(
+                modifier = Modifier.align(Alignment.Center),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(if (isFullscreen) 40.dp else 28.dp)
+            ) {
+                OverlayControlButton(
+                    onClick = onSeekBack,
+                    icon = Icons.Default.Replay10,
+                    contentDescription = "后退10秒",
+                    iconSize = 28.dp,
+                    buttonSize = 52.dp
+                )
+                IconButton(onClick = onTogglePlay, modifier = Modifier.size(if (isFullscreen) 88.dp else 76.dp)) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
+                        contentDescription = if (isPlaying) "暂停" else "播放",
+                        tint = Color.White,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
-                IconButton(onClick = onSeekForward) { Icon(Icons.Default.Forward10, null, tint = Color.White, modifier = Modifier.size(32.dp)) }
+                OverlayControlButton(
+                    onClick = onSeekForward,
+                    icon = Icons.Default.Forward10,
+                    contentDescription = "前进10秒",
+                    iconSize = 28.dp,
+                    buttonSize = 52.dp
+                )
             }
 
             Column(modifier = Modifier.align(Alignment.BottomCenter)) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(formatTime(currentPos), color = Color.White, fontSize = 11.sp)
+                    Text(formatTime(currentPos), color = Color.White, style = MaterialTheme.typography.labelSmall)
                     Slider(
                         value = currentPos.toFloat(),
                         onValueChange = { onSeekTo(it.toLong()) },
@@ -1009,11 +1047,40 @@ fun PlayerControls(
                         modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
                         colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White)
                     )
-                    Text(formatTime(duration), color = Color.White, fontSize = 11.sp)
-                    IconButton(onClick = onToggleFullscreen) { Icon(if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen, null, tint = Color.White) }
+                    Text(formatTime(duration), color = Color.White, style = MaterialTheme.typography.labelSmall)
+                    OverlayControlButton(
+                        onClick = onToggleFullscreen,
+                        icon = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                        contentDescription = if (isFullscreen) "退出全屏" else "进入全屏",
+                        iconSize = 22.dp,
+                        buttonSize = 40.dp
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun OverlayControlButton(
+    onClick: () -> Unit,
+    icon: ImageVector,
+    contentDescription: String,
+    iconSize: Dp = 24.dp,
+    buttonSize: Dp = 44.dp
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .size(buttonSize)
+            .background(Color.Black.copy(alpha = 0.36f), CircleShape)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = Color.White,
+            modifier = Modifier.size(iconSize)
+        )
     }
 }
 

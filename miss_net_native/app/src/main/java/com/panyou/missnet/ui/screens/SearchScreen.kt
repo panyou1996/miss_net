@@ -43,12 +43,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
+import com.panyou.missnet.ui.components.MissNetStateCard
 import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.components.VideoCard
 import com.panyou.missnet.ui.theme.ContainerTokens
@@ -189,7 +188,7 @@ fun SearchScreen(
                         }
 
                         uiState.query.isBlank() -> {
-                            SearchStateCard(
+                            SearchState(
                                 icon = Icons.Default.Search,
                                 title = "输入关键词开始搜索",
                                 subtitle = "支持视频标题、演员与标签"
@@ -197,7 +196,7 @@ fun SearchScreen(
                         }
 
                         else -> {
-                            SearchStateCard(
+                            SearchState(
                                 icon = Icons.Default.History,
                                 title = "未找到相关内容",
                                 subtitle = "试试更短的关键词或不同标签"
@@ -211,36 +210,21 @@ fun SearchScreen(
 }
 
 @Composable
-private fun SearchStateCard(
+private fun SearchState(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String
 ) {
-    Column(
+    Box(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(40.dp)
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
+        MissNetStateCard(
+            icon = icon,
+            title = title,
+            subtitle = subtitle,
+            modifier = Modifier.padding(horizontal = 24.dp)
         )
     }
 }

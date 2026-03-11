@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.People
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +22,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.panyou.missnet.data.model.ActorInfo
 import com.panyou.missnet.ui.components.MissNetLoading
+import com.panyou.missnet.ui.components.MissNetStateCard
 import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.util.bouncyClick
@@ -60,15 +63,29 @@ fun ActressScreen(
 
                 // Grid of Actresses
                 SecondaryPageSurface {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
-                        horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
-                        verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing)
-                    ) {
-                        items(uiState.actresses) { actor ->
-                            ActressItem(actor = actor, onClick = { onActressClick(actor.name) })
+                    if (uiState.actresses.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            MissNetStateCard(
+                                icon = Icons.Rounded.People,
+                                title = "暂无演员数据",
+                                subtitle = "稍后下拉刷新，或等待每日抓取任务补充内容",
+                                modifier = Modifier.padding(horizontal = 24.dp)
+                            )
+                        }
+                    } else {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(3),
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+                            horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
+                            verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing)
+                        ) {
+                            items(uiState.actresses) { actor ->
+                                ActressItem(actor = actor, onClick = { onActressClick(actor.name) })
+                            }
                         }
                     }
                 }
