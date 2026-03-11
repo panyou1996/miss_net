@@ -31,7 +31,6 @@ import com.panyou.missnet.ui.viewmodel.ActressViewModel
 fun ActressScreen(
     onActressClick: (String) -> Unit,
     contentPadding: PaddingValues,
-    scrollBehavior: TopAppBarScrollBehavior,
     viewModel: ActressViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()

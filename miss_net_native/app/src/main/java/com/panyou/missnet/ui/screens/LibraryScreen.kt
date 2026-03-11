@@ -43,7 +43,6 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -85,7 +84,6 @@ fun LibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
     onVideoClick: (String) -> Unit,
     contentPadding: PaddingValues,
-    scrollBehavior: TopAppBarScrollBehavior,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
@@ -120,7 +118,6 @@ fun LibraryScreen(
                 when (LibraryTab.entries[selectedTab]) {
                     LibraryTab.Downloads -> DownloadsPage(
                         downloads = uiState.downloads,
-                        scrollBehavior = scrollBehavior,
                         onVideoClick = onVideoClick,
                         onPause = viewModel::pauseDownload,
                         onResume = viewModel::resumeDownload,
@@ -137,7 +134,6 @@ fun LibraryScreen(
                         videos = uiState.history,
                         historyProgress = uiState.historyProgress,
                         onVideoClick = onVideoClick,
-                        scrollBehavior = scrollBehavior,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope
                     )
@@ -150,7 +146,6 @@ fun LibraryScreen(
                         videos = uiState.likes,
                         historyProgress = emptyMap(),
                         onVideoClick = onVideoClick,
-                        scrollBehavior = scrollBehavior,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope
                     )
@@ -171,7 +166,6 @@ private fun VideoGridPage(
     videos: List<Video>,
     historyProgress: Map<String, Float>,
     onVideoClick: (String) -> Unit,
-    scrollBehavior: TopAppBarScrollBehavior,
     sharedTransitionScope: SharedTransitionScope?,
     animatedVisibilityScope: AnimatedVisibilityScope?
 ) {
@@ -241,7 +235,6 @@ private fun VideoGridPage(
 @Composable
 private fun DownloadsPage(
     downloads: List<DownloadStatusEntry>,
-    scrollBehavior: TopAppBarScrollBehavior,
     onVideoClick: (String) -> Unit,
     onPause: (String) -> Unit,
     onResume: (String) -> Unit,

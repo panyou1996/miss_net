@@ -20,7 +20,6 @@ import com.panyou.missnet.ui.viewmodel.TagsViewModel
 fun TagsScreen(
     onTagClick: (String) -> Unit,
     contentPadding: PaddingValues,
-    scrollBehavior: TopAppBarScrollBehavior,
     viewModel: TagsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()

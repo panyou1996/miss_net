@@ -180,7 +180,6 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
                         },
                         onLibraryClick = { navController.navigate(Screen.Library.route) },
                         contentPadding = innerPadding,
-                        scrollBehavior = scrollBehavior,
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )
@@ -197,8 +196,7 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
                 ) { innerPadding ->
                     ActressScreen(
                         onActressClick = { name -> navController.navigate(Screen.CategoryDetail.createRoute(name, null, name)) },
-                        contentPadding = innerPadding,
-                        scrollBehavior = scrollBehavior
+                        contentPadding = innerPadding
                     )
                 }
             }
@@ -213,8 +211,7 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
                 ) { innerPadding ->
                     TagsScreen(
                         onTagClick = { tag -> navController.navigate(Screen.CategoryDetail.createRoute(tag, tag, null)) },
-                        contentPadding = innerPadding,
-                        scrollBehavior = scrollBehavior
+                        contentPadding = innerPadding
                     )
                 }
             }
@@ -230,7 +227,6 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
                     LibraryScreen(
                         onVideoClick = { id -> navController.navigate(Screen.Player.createRoute(id)) },
                         contentPadding = innerPadding,
-                        scrollBehavior = scrollBehavior,
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
                     )
