@@ -358,8 +358,8 @@ private fun DownloadOverviewCard(
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OverviewChip(icon = Icons.Default.Downloading, label = "进行中 $activeCount")
-                OverviewChip(icon = Icons.Rounded.WarningAmber, label = "失败 $failedCount")
-                OverviewChip(icon = Icons.Default.DownloadDone, label = "完成 $completedCount")
+                OverviewChip(icon = Icons.Rounded.WarningAmber, label = "需要处理 $failedCount")
+                OverviewChip(icon = Icons.Default.DownloadDone, label = "最近完成 $completedCount")
             }
             if (failedCount > 0) {
                 Surface(
@@ -367,7 +367,7 @@ private fun DownloadOverviewCard(
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Text(
-                        text = "建议优先处理失败项，避免旧任务长期堆积。",
+                        text = "建议优先处理需要处理项，避免旧任务长期堆积。",
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onErrorContainer
