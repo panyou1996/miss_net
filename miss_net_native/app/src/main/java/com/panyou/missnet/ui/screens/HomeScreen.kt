@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -70,6 +71,7 @@ import com.panyou.missnet.ui.components.MissNetLoading
 import com.panyou.missnet.ui.components.SectionHeader
 import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.components.VerticalVideoCard
+import com.panyou.missnet.ui.theme.ActionTokens
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.theme.ThumbnailShape
 import com.panyou.missnet.ui.viewmodel.HomeViewModel
@@ -337,8 +339,8 @@ private fun QuickActionGrid(
     onLibraryClick: () -> Unit
 ) {
     FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing),
+        verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)
     ) {
         QuickActionChip(icon = Icons.Rounded.PlayCircle, label = "继续播放 $continueCount", onClick = onLibraryClick)
         QuickActionChip(icon = Icons.Rounded.CloudDownload, label = "下载任务 $downloadCount", onClick = onLibraryClick)
@@ -355,8 +357,15 @@ private fun QuickActionChip(
 ) {
     AssistChip(
         onClick = onClick,
-        label = { Text(label) },
-        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp)) }
+        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+        leadingIcon = {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(ActionTokens.ChipIconSize)
+            )
+        },
+        modifier = Modifier.heightIn(min = ActionTokens.ChipMinHeight)
     )
 }
 

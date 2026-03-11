@@ -3,9 +3,6 @@ package com.panyou.missnet.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -33,7 +30,7 @@ fun StatusBadge(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.heightIn(min = BadgeTokens.StatusBadgeHeight),
         shape = MaterialTheme.shapes.small,
         color = containerColor
     ) {
@@ -61,7 +58,7 @@ fun SmallBadge(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.heightIn(min = BadgeTokens.SmallBadgeHeight),
         shape = MaterialTheme.shapes.small,
         color = containerColor
     ) {

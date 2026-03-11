@@ -417,8 +417,9 @@ private fun OverviewChip(icon: androidx.compose.ui.graphics.vector.ImageVector, 
     AssistChip(
         onClick = {},
         enabled = false,
-        label = { Text(label) },
-        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(ActionTokens.ChipIconSize)) }
+        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(ActionTokens.ChipIconSize)) },
+        modifier = Modifier.heightIn(min = ActionTokens.ChipMinHeight)
     )
 }
 
