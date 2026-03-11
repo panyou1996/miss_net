@@ -6,6 +6,7 @@ import os
 import asyncio
 import random
 import re
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 # Load environment variables from .env file if present
 load_dotenv()
@@ -62,6 +63,43 @@ SOURCES = [
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+
+def env_positive_int(name: str, default: int) -> int:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    try:
+        return max(1, int(value))
+    except ValueError:
+        print(f"[Config] Invalid {name}={value}, fallback to {default}")
+        return default
+
+
+MISSAV_MAX_PAGES = env_positive_int("MISSAV_MAX_PAGES", 30)
+CG_MAX_PAGES = env_positive_int("CG_MAX_PAGES", 3)
+CONCURRENT_DETAIL_PAGES = env_positive_int("CONCURRENT_DETAIL_PAGES", 2)
+
+
+def ordered_unique(items):
+    seen = set()
+    output = []
+    for item in items:
+        if not item:
+            continue
+        text = str(item).strip()
+        if text and text not in seen:
+            seen.add(text)
+            output.append(text)
+    return output
+
+
+def build_paged_url(base_url: str, page_num: int) -> str:
+    parsed = urlparse(base_url)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    query["page"] = str(page_num)
+    return urlunparse(parsed._replace(query=urlencode(query)))
+
 
 def map_categories(title, tags):
     refined = []
@@ -259,7 +297,7 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
                         if details and (details.get('duration') or details.get('actors')):
                             vid.update(details)
                             vid['categories'] = map_categories(vid['title'], vid.get('tags', []))
-                            vid['tags'] = list(set([source_tag] + vid.get('tags', [])))
+                            vid['tags'] = ordered_unique([source_tag] + vid.get('tags', []))
                             await sync_video(vid, supabase, "Deep Scraped")
                         else:
                             vid['categories'] = map_categories(vid['title'], [])
@@ -287,18 +325,17 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_t
                             vid['title'] = details['title']
                         
                         # Merge tags
-                        vid_tags = vid.get('tags', []) + details.get('tags', [])
-                        vid_tags = list(set(vid_tags))
+                        vid_tags = ordered_unique(vid.get('tags', []) + details.get('tags', []))
                         
                         # Refine Categories based on title and tags
                         refined_cats = map_categories(vid['title'], vid_tags)
                         
                         # Merge with list-page categories
-                        final_cats = list(set(vid.get('categories', []) + refined_cats + ["51吃瓜"]))
+                        final_cats = ordered_unique(vid.get('categories', []) + refined_cats + ["51吃瓜"])
                         
                         vid.update({k: v for k, v in details.items() if k not in ['title', 'tags', 'videos']})
                         vid['categories'] = final_cats
-                        vid['tags'] = vid_tags + [source_tag]
+                        vid['tags'] = ordered_unique(vid_tags + [source_tag])
 
                         # Handle multiple videos
                         videos_to_sync = []
@@ -335,7 +372,7 @@ async def scrape_51cg_feed(context, supabase, semaphore, detail_pages, base_url,
     list_page = await context.new_page()
     
     try:
-        for page_num in range(1, 4): # Scrape first 3 pages
+        for page_num in range(1, CG_MAX_PAGES + 1):
             url = base_url if page_num == 1 else f"{base_url}page/{page_num}/"
             print(f"[{source_tag.upper()}] Page {page_num}...")
             
@@ -436,8 +473,11 @@ async def scrape_videos():
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     
     HEADLESS = os.environ.get("HEADLESS", "true").lower() == "true"
-    USER_DATA_DIR = os.path.join(os.getcwd(), "user_data")
-    CONCURRENT_DETAIL_PAGES = 2 
+    USER_DATA_DIR = os.environ.get("USER_DATA_DIR", os.path.join(os.getcwd(), "user_data"))
+    print(
+        f"[Config] HEADLESS={HEADLESS} | MISSAV_MAX_PAGES={MISSAV_MAX_PAGES} | "
+        f"CG_MAX_PAGES={CG_MAX_PAGES} | CONCURRENT_DETAIL_PAGES={CONCURRENT_DETAIL_PAGES}"
+    )
     semaphore = asyncio.Semaphore(CONCURRENT_DETAIL_PAGES)
 
     async with async_playwright() as p:
@@ -475,8 +515,8 @@ async def scrape_videos():
             tag = source["tag"]
             print(f"\n>>> Starting Category: {tag} <<<")
 
-            for page_num in range(1, 31):
-                current_url = f"{base_url}?page={page_num}"
+            for page_num in range(1, MISSAV_MAX_PAGES + 1):
+                current_url = build_paged_url(base_url, page_num)
                 print(f"[{tag.upper()}] Page {page_num}...")
                 try:
                     await list_page.goto(current_url, timeout=60000, wait_until="load")

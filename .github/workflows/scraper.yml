@@ -6,9 +6,14 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
 
+concurrency:
+  group: daily-video-scraper
+  cancel-in-progress: false
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
 
     steps:
     - name: Checkout code
@@ -17,7 +22,9 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: scraper/requirements.txt
 
     - name: Install dependencies
       run: |
@@ -33,5 +40,18 @@ jobs:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         HEADLESS: "true"
+        USER_DATA_DIR: scraper/user_data
+        MISSAV_MAX_PAGES: ${{ vars.MISSAV_MAX_PAGES }}
+        CG_MAX_PAGES: ${{ vars.CG_MAX_PAGES }}
+        CONCURRENT_DETAIL_PAGES: ${{ vars.CONCURRENT_DETAIL_PAGES }}
       run: |
-        python scraper/main.py
+        python scraper/main.py | tee scraper-run.log
+
+    - name: Upload scraper log
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: scraper-log-${{ github.run_number }}
+        path: scraper-run.log
+        if-no-files-found: warn
+        retention-days: 14
