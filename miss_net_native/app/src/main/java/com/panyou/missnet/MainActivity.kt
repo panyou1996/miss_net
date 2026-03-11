@@ -42,17 +42,17 @@ import com.panyou.missnet.ui.components.MainTabScaffold
 import com.panyou.missnet.ui.components.SimpleTopBarScaffold
 
 sealed class Screen(val route: String, val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    object Home : Screen("home", "Home", Icons.Rounded.Home)
-    object Actress : Screen("actress", "Actress", Icons.Rounded.People)
-    object Tags : Screen("tags", "Tags", Icons.Rounded.Tag)
-    object Library : Screen("library", "Library", Icons.Rounded.VideoLibrary)
-    object Settings : Screen("settings", "Settings", Icons.Rounded.Settings)
-    object Search : Screen("search", "Search", Icons.Rounded.Search)
-    object CategoryDetail : Screen("categoryDetail/{title}?category={category}&actor={actor}", "Detail", Icons.AutoMirrored.Rounded.List) {
+    object Home : Screen("home", "首页", Icons.Rounded.Home)
+    object Actress : Screen("actress", "演员", Icons.Rounded.People)
+    object Tags : Screen("tags", "标签", Icons.Rounded.Tag)
+    object Library : Screen("library", "资源库", Icons.Rounded.VideoLibrary)
+    object Settings : Screen("settings", "设置", Icons.Rounded.Settings)
+    object Search : Screen("search", "搜索", Icons.Rounded.Search)
+    object CategoryDetail : Screen("categoryDetail/{title}?category={category}&actor={actor}", "详情", Icons.AutoMirrored.Rounded.List) {
         fun createRoute(title: String, category: String? = null, actor: String? = null) = 
             "categoryDetail/$title?category=${category ?: ""}&actor=${actor ?: ""}"
     }
-    object Player : Screen("player/{videoId}", "Player", Icons.Rounded.PlayArrow) {
+    object Player : Screen("player/{videoId}", "播放", Icons.Rounded.PlayArrow) {
         fun createRoute(id: String) = "player/$id"
     }
 }
@@ -189,7 +189,7 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
             // ========== Actress Tab ==========
             composable(Screen.Actress.route) { 
                 MainTabRouteShell(
-                    title = "Actress",
+                    title = Screen.Actress.title,
                     navController = navController,
                     currentDestination = currentDestination,
                     scrollBehavior = scrollBehavior
@@ -204,7 +204,7 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
             // ========== Tags Tab ==========
             composable(Screen.Tags.route) { 
                 MainTabRouteShell(
-                    title = "Tags",
+                    title = Screen.Tags.title,
                     navController = navController,
                     currentDestination = currentDestination,
                     scrollBehavior = scrollBehavior
@@ -219,7 +219,7 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
             // ========== Library Tab ==========
             composable(Screen.Library.route) { 
                 MainTabRouteShell(
-                    title = "Library",
+                    title = Screen.Library.title,
                     navController = navController,
                     currentDestination = currentDestination,
                     scrollBehavior = scrollBehavior
@@ -246,7 +246,7 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
             // ========== Settings Screen ==========
             composable(Screen.Settings.route) { 
                 SimpleTopBarScaffold(
-                    title = "Settings",
+                    title = Screen.Settings.title,
                     scrollBehavior = null,
                     onBackClick = { navController.popBackStack() },
                     showSettings = false
@@ -264,7 +264,7 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
                     navArgument("actor") { type = NavType.StringType; nullable = true }
                 )
             ) { backStackEntry ->
-                val title = backStackEntry.arguments?.getString("title") ?: "Detail"
+                val title = backStackEntry.arguments?.getString("title") ?: Screen.CategoryDetail.title
                 SimpleTopBarScaffold(
                     title = title,
                     scrollBehavior = scrollBehavior,

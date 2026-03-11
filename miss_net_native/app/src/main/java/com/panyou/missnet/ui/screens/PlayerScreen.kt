@@ -89,9 +89,9 @@ private data class PendingDownload(
 )
 
 private const val DOWNLOAD_QUEUED_MESSAGE =
-    "已加入进行中的任务，可在 Library > Downloads 查看「进行中的任务 / 需要处理 / 最近完成」。"
+    "已加入进行中的任务，可在资源库 > 任务查看「进行中 / 需要处理 / 最近完成」。"
 private const val DOWNLOAD_QUEUED_WITHOUT_NOTIFICATION_MESSAGE =
-    "通知权限未开启，任务仍已加入进行中的任务；请在 Library > Downloads 查看状态。"
+    "通知权限未开启，任务仍已加入进行中的任务；请在资源库 > 任务查看状态。"
 private const val DOWNLOAD_UNAVAILABLE_MESSAGE = "下载失败：当前没有可用的视频地址。"
 private const val SHARE_UNAVAILABLE_MESSAGE = "当前没有可分享的链接。"
 private const val CAST_NOT_READY_MESSAGE = "投屏暂未接入，后续补齐。"
@@ -327,7 +327,7 @@ fun PlayerScreen(
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
-                            uiState.video?.title ?: "Player",
+                            uiState.video?.title ?: "播放",
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.titleMedium
@@ -471,7 +471,7 @@ fun PlayerScreen(
                             // 视频信息区
                             item {
                                 VideoInfoSection(
-                                    title = uiState.video?.title ?: "Loading...",
+                                    title = uiState.video?.title ?: "加载中...",
                                     createdAt = uiState.video?.createdAt,
                                     tags = uiState.video?.tags ?: emptyList()
                                 )
@@ -671,7 +671,7 @@ private fun PlayerStatusSection(
             }
 
             Text(
-                text = "下载与导出状态统一在 Library > Downloads 查看：",
+                text = "下载与导出状态统一在资源库 > 任务查看：",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
