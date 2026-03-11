@@ -281,6 +281,13 @@ data class DownloadStatusEntry(
     val exportedAt: Long = 0L,
     val updatedAt: Long = 0L
 ) {
+    val taskStageLabel: String
+        get() = when {
+            state == Download.STATE_FAILED || exportState == ExportState.EXPORT_FAILED -> "需要处理"
+            state == Download.STATE_COMPLETED -> "最近完成"
+            else -> "进行中"
+        }
+
     val stateLabel: String
         get() = when (state) {
             Download.STATE_QUEUED -> "等待开始"
@@ -320,6 +327,17 @@ data class DownloadStatusEntry(
             ExportState.EXPORTED -> "已导出"
             ExportState.EXPORT_FAILED -> "导出失败"
             ExportState.EXPORT_UNSUPPORTED -> "不支持"
+        }
+
+    val homeSummaryLabel: String
+        get() = when {
+            taskStageLabel == "需要处理" -> "需要处理 · 下载或导出失败"
+            state == Download.STATE_COMPLETED && exportState == ExportState.EXPORTED -> "最近完成 · 已导出"
+            state == Download.STATE_COMPLETED && exportState == ExportState.EXPORT_UNSUPPORTED -> "最近完成 · 不支持"
+            state == Download.STATE_COMPLETED && (exportState == ExportState.EXPORTING || exportState == ExportState.EXPORT_QUEUED) ->
+                "最近完成 · 导出中"
+            state == Download.STATE_COMPLETED -> "最近完成 · 待导出"
+            else -> "进行中 · $stateLabel"
         }
 
     val exportLocationText: String?
