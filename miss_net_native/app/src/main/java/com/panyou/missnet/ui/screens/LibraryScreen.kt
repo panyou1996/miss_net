@@ -350,7 +350,7 @@ private fun DownloadsPage(
             }
 
             if (activeTasks.isNotEmpty()) {
-                item { DownloadSectionHeader(title = "进行中的任务", subtitle = "优先关注下载、暂停和导出中的项目", count = activeTasks.size) }
+                item { DownloadSectionHeader(title = "进行中", subtitle = "优先关注下载、暂停和导出中的项目", count = activeTasks.size) }
                 items(activeTasks, key = { it.id }) { item ->
                     DownloadCard(
                         item = item,

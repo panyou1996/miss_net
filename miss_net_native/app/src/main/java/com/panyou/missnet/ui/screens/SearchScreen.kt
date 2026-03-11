@@ -90,22 +90,22 @@ fun SearchScreen(
                                 onBack()
                             }
                         }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                         }
                     } else {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
+                        Icon(Icons.Default.Search, contentDescription = "搜索")
                     }
                 },
                 trailingIcon = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (uiState.history.isNotEmpty() && uiState.active) {
                             IconButton(onClick = viewModel::clearSearchHistory) {
-                                Icon(Icons.Default.DeleteOutline, contentDescription = "Clear history")
+                                Icon(Icons.Default.DeleteOutline, contentDescription = "清空历史")
                             }
                         }
                         if (uiState.query.isNotEmpty()) {
                             IconButton(onClick = { viewModel.onQueryChange("") }) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear")
+                                Icon(Icons.Default.Close, contentDescription = "清空")
                             }
                         }
                     }
@@ -124,7 +124,7 @@ fun SearchScreen(
                             leadingContent = { Icon(Icons.Default.History, null) },
                             trailingContent = {
                                 IconButton(onClick = { viewModel.removeHistoryItem(historyItem) }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Delete")
+                                    Icon(Icons.Default.Close, contentDescription = "删除")
                                 }
                             },
                             modifier = Modifier.clickable {

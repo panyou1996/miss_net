@@ -260,7 +260,7 @@ fun CategoryVideoItem(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "${video.createdAt?.take(10) ?: "最近更新"} · ${video.duration ?: "HD"}",
+                        text = "${video.createdAt?.take(10) ?: "最近更新"} · ${video.duration ?: "高清"}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

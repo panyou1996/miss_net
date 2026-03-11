@@ -89,9 +89,9 @@ private data class PendingDownload(
 )
 
 private const val DOWNLOAD_QUEUED_MESSAGE =
-    "已加入进行中的任务，可在资源库 > 任务查看「进行中 / 需要处理 / 最近完成」。"
+    "任务已加入队列，可在资源库 > 任务查看「进行中 / 需要处理 / 最近完成」。"
 private const val DOWNLOAD_QUEUED_WITHOUT_NOTIFICATION_MESSAGE =
-    "通知权限未开启，任务仍已加入进行中的任务；请在资源库 > 任务查看状态。"
+    "通知权限未开启，任务仍已加入队列；请在资源库 > 任务查看状态。"
 private const val DOWNLOAD_UNAVAILABLE_MESSAGE = "下载失败：当前没有可用的视频地址。"
 private const val SHARE_UNAVAILABLE_MESSAGE = "当前没有可分享的链接。"
 private const val CAST_NOT_READY_MESSAGE = "投屏暂未接入，后续补齐。"
