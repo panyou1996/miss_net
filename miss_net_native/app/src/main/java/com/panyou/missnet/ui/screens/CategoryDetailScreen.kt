@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -118,6 +117,7 @@ fun CategoryDetailScreen(
                         LazyColumn(
                             state = listState,
                             contentPadding = PaddingValues(vertical = ContainerTokens.ScreenContentPadding),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier
                                 .fillMaxSize()
                                 .nestedScroll(scrollBehavior.nestedScrollConnection)
@@ -147,19 +147,13 @@ fun CategoryDetailScreen(
                                 }
                             }
 
-                            itemsIndexed(uiState.videos, key = { _, video -> video.id }) { index, video ->
+                            itemsIndexed(uiState.videos, key = { _, video -> video.id }) { _, video ->
                                 CategoryVideoItem(
                                     video = video,
                                     onClick = { onVideoClick(video.id) },
                                     sharedTransitionScope = sharedTransitionScope,
                                     animatedVisibilityScope = animatedVisibilityScope
                                 )
-                                if (index < uiState.videos.lastIndex) {
-                                    HorizontalDivider(
-                                        modifier = Modifier.padding(start = 136.dp, end = ContainerTokens.ScreenContentPadding),
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
-                                    )
-                                }
                             }
 
                             if (uiState.isMoreLoading) {
@@ -192,83 +186,95 @@ fun CategoryVideoItem(
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
-    Row(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .bouncyClick { onClick() }
             .padding(
                 horizontal = ContainerTokens.ScreenContentPadding,
-                vertical = ContainerTokens.ListItemVerticalPadding
+                vertical = 2.dp
             ),
-        verticalAlignment = Alignment.CenterVertically
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f))
     ) {
-        with(sharedTransitionScope) {
-            val imageModifier = if (this != null && animatedVisibilityScope != null) {
-                Modifier.sharedElement(
-                    state = rememberSharedContentState(key = "image-${video.id}"),
-                    animatedVisibilityScope = animatedVisibilityScope
-                )
-            } else {
-                Modifier
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .bouncyClick { onClick() }
+                .padding(
+                    horizontal = 12.dp,
+                    vertical = ContainerTokens.ListItemVerticalPadding
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            with(sharedTransitionScope) {
+                val imageModifier = if (this != null && animatedVisibilityScope != null) {
+                    Modifier.sharedElement(
+                        state = rememberSharedContentState(key = "image-${video.id}"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+                } else {
+                    Modifier
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(width = 100.dp, height = 70.dp)
+                        .clip(ThumbnailShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .then(imageModifier)
+                ) {
+                    AsyncImage(
+                        model = video.coverUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
 
-            Box(
-                modifier = Modifier
-                    .size(width = 100.dp, height = 70.dp)
-                    .clip(ThumbnailShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .then(imageModifier)
-            ) {
-                AsyncImage(
-                    model = video.coverUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-        }
+            Spacer(modifier = Modifier.width(12.dp))
 
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = video.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = video.tags.joinToString(" · ").ifEmpty { "暂无标签" },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.AddCircleOutline,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(4.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${video.createdAt?.take(10) ?: "最近更新"} · ${video.duration ?: "HD"}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = video.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+                Text(
+                    text = video.tags.joinToString(" · ").ifEmpty { "暂无标签" },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.AddCircleOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${video.createdAt?.take(10) ?: "最近更新"} · ${video.duration ?: "HD"}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
         }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Icon(
-            imageVector = Icons.Default.PlayArrow,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp)
-        )
     }
 }
