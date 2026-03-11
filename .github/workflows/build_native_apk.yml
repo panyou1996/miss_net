@@ -1,16 +1,26 @@
-name: Build APK
+name: Build Native APK (MissNet Native)
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'miss_net_native/**'
+      - '.github/workflows/build_native_apk.yml'
   pull_request:
+    paths:
+      - 'miss_net_native/**'
+      - '.github/workflows/build_native_apk.yml'
   workflow_dispatch:
 
 jobs:
   build-debug-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
+
+    defaults:
+      run:
+        working-directory: miss_net_native
 
     steps:
       - name: Checkout
@@ -35,15 +45,15 @@ jobs:
       - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: missnet-debug-apk-${{ github.run_number }}
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: missnet-native-debug-apk-${{ github.run_number }}
+          path: miss_net_native/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
 
       - name: Upload lint report artifact
         uses: actions/upload-artifact@v4
         with:
-          name: missnet-lint-report-${{ github.run_number }}
-          path: app/build/reports/lint-results-debug.html
+          name: missnet-native-lint-report-${{ github.run_number }}
+          path: miss_net_native/app/build/reports/lint-results-debug.html
           if-no-files-found: warn
           retention-days: 14
