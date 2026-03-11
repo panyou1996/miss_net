@@ -70,6 +70,7 @@ import com.panyou.missnet.data.media.DownloadTracker
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.service.MissNetDownloadService
 import com.panyou.missnet.service.PlaybackService
+import com.panyou.missnet.ui.components.DurationBadge
 import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
@@ -1011,20 +1012,12 @@ fun RecommendItem(video: Video, onClick: () -> Unit, modifier: Modifier = Modifi
             )
             // 播放时长徽章
             video.duration?.let { dur ->
-                Surface(
+                DurationBadge(
+                    text = dur,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
-                        .padding(4.dp),
-                    color = Color.Black.copy(alpha = 0.7f),
-                    shape = RoundedCornerShape(4.dp)
-                ) {
-                    Text(
-                        text = dur,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                    )
-                }
+                        .padding(4.dp)
+                )
             }
         }
 
