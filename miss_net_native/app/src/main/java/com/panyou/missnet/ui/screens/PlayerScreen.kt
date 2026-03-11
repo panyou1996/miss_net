@@ -8,6 +8,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.content.ActivityNotFoundException
 import android.content.pm.ActivityInfo
 import android.os.Build
 import android.util.Log
@@ -93,6 +94,10 @@ private const val SHARE_UNAVAILABLE_MESSAGE = "当前没有可分享的链接。
 private const val CAST_NOT_READY_MESSAGE = "投屏暂未接入，后续补齐。"
 private const val PIP_NOT_SUPPORTED_MESSAGE = "当前系统版本不支持画中画（PiP）。"
 private const val PLAYBACK_FAILED_MESSAGE = "播放失败，请重试。"
+private const val FAVORITE_ADDED_MESSAGE = "已加入收藏。"
+private const val FAVORITE_REMOVED_MESSAGE = "已取消收藏。"
+private const val RELATED_SWITCH_MESSAGE = "已切换到相关推荐。"
+private const val CONTINUE_PLAYBACK_MESSAGE = "已恢复到上次播放位置。"
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -279,7 +284,7 @@ fun PlayerScreen(
             val mediaItem = MediaItem.Builder()
                 .setUri(streamUrl)
                 .setMimeType(MimeTypes.APPLICATION_M3U8)
-                .setMediaId(videoId)
+                .setMediaId(uiState.video?.id ?: videoId)
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle(uiState.video?.title)
@@ -438,7 +443,9 @@ fun PlayerScreen(
                                     lastPositionMs = uiState.lastPositionMs,
                                     onContinue = {
                                         player?.seekTo(uiState.lastPositionMs)
-                                        viewModel.showDownloadMessage("已恢复到上次播放位置")
+                                        player?.playWhenReady = true
+                                        player?.play()
+                                        viewModel.showDownloadMessage(CONTINUE_PLAYBACK_MESSAGE)
                                     },
                                     modifier = Modifier.padding(horizontal = 16.dp)
                                 )
@@ -489,7 +496,12 @@ fun PlayerScreen(
                                         }
                                     }
                                 },
-                                onFavorite = { viewModel.toggleFavorite() },
+                                onFavorite = {
+                                    viewModel.toggleFavorite()
+                                    viewModel.showDownloadMessage(
+                                        if (uiState.isFavorite) FAVORITE_REMOVED_MESSAGE else FAVORITE_ADDED_MESSAGE
+                                    )
+                                },
                                 isFavorite = uiState.isFavorite,
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
@@ -542,7 +554,11 @@ fun PlayerScreen(
                         items(uiState.relatedVideos) { related ->
                             RecommendItem(
                                 video = related,
-                                onClick = { viewModel.setVideo(related.id) },
+                                onClick = {
+                                    viewModel.updatePlaybackProgress(currentPos, duration)
+                                    viewModel.setVideo(related.id)
+                                    viewModel.showDownloadMessage(RELATED_SWITCH_MESSAGE)
+                                },
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
@@ -668,6 +684,21 @@ private fun PlayerStatusSection(
                     text = "最近完成",
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                StatusBadge(
+                    text = "已导出",
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                StatusBadge(
+                    text = "导出失败",
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                )
+                StatusBadge(
+                    text = "不支持",
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -1070,8 +1101,12 @@ private fun shareVideo(context: Context, title: String, url: String?): Boolean {
         putExtra(Intent.EXTRA_TEXT, shareText)
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
-    context.startActivity(Intent.createChooser(shareIntent, "分享视频"))
-    return true
+    return try {
+        context.startActivity(Intent.createChooser(shareIntent, "分享视频"))
+        true
+    } catch (_: ActivityNotFoundException) {
+        false
+    }
 }
 
 private fun formatTime(ms: Long): String {
