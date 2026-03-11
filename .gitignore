@@ -40,5 +40,7 @@ user_data/
 
 # Build artifacts
 *.apk
+!miss_net_native/apk/
+!miss_net_native/apk/*.apk
 build/
 miss_net/build/
