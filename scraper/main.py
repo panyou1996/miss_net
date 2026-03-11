@@ -76,9 +76,40 @@ def env_positive_int(name: str, default: int) -> int:
         return default
 
 
-MISSAV_MAX_PAGES = env_positive_int("MISSAV_MAX_PAGES", 30)
+def env_non_negative_float(name: str, default: float) -> float:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        print(f"[Config] Invalid {name}={value}, fallback to {default}")
+        return default
+
+
+def env_bool(name: str, default: bool) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ("1", "true", "yes", "on")
+
+
+MISSAV_MAX_PAGES = env_positive_int("MISSAV_MAX_PAGES", 50)
 CG_MAX_PAGES = env_positive_int("CG_MAX_PAGES", 3)
-CONCURRENT_DETAIL_PAGES = env_positive_int("CONCURRENT_DETAIL_PAGES", 2)
+CONCURRENT_DETAIL_PAGES = env_positive_int("CONCURRENT_DETAIL_PAGES", 4)
+SUPABASE_UPSERT_CHUNK_SIZE = env_positive_int("SUPABASE_UPSERT_CHUNK_SIZE", 150)
+SUPABASE_MAX_RETRIES = env_positive_int("SUPABASE_MAX_RETRIES", 4)
+SUPABASE_RETRY_BASE_SECONDS = env_non_negative_float("SUPABASE_RETRY_BASE_SECONDS", 1.2)
+DETAIL_PRE_NAV_DELAY_MIN = env_non_negative_float("DETAIL_PRE_NAV_DELAY_MIN", 0.15)
+DETAIL_PRE_NAV_DELAY_MAX = env_non_negative_float("DETAIL_PRE_NAV_DELAY_MAX", 0.45)
+DETAIL_POST_LOAD_DELAY_MIN = env_non_negative_float("DETAIL_POST_LOAD_DELAY_MIN", 0.15)
+DETAIL_POST_LOAD_DELAY_MAX = env_non_negative_float("DETAIL_POST_LOAD_DELAY_MAX", 0.45)
+LIST_POST_LOAD_DELAY_MIN = env_non_negative_float("LIST_POST_LOAD_DELAY_MIN", 0.2)
+LIST_POST_LOAD_DELAY_MAX = env_non_negative_float("LIST_POST_LOAD_DELAY_MAX", 0.6)
+INTER_PAGE_DELAY_MIN = env_non_negative_float("INTER_PAGE_DELAY_MIN", 0.5)
+INTER_PAGE_DELAY_MAX = env_non_negative_float("INTER_PAGE_DELAY_MAX", 1.6)
+BLOCK_HEAVY_RESOURCES = env_bool("BLOCK_HEAVY_RESOURCES", True)
+BLOCKED_RESOURCE_TYPES = {"image", "media", "font"}
 
 
 def ordered_unique(items):
@@ -101,6 +132,70 @@ def build_paged_url(base_url: str, page_num: int) -> str:
     return urlunparse(parsed._replace(query=urlencode(query)))
 
 
+def normalize_video_record(video: dict) -> dict:
+    record = dict(video)
+    record["is_active"] = True
+    record["tags"] = ordered_unique(record.get("tags", []))
+    record["categories"] = ordered_unique(record.get("categories", []))
+    record["actors"] = ordered_unique(record.get("actors", []))
+    if not record.get("duration") or record.get("duration") == "Unknown":
+        record["duration"] = "0"
+    return record
+
+
+def chunked(items, size):
+    for i in range(0, len(items), size):
+        yield items[i:i + size]
+
+
+async def jitter_sleep(min_seconds: float, max_seconds: float):
+    if max_seconds <= 0:
+        return
+    if max_seconds < min_seconds:
+        min_seconds, max_seconds = max_seconds, min_seconds
+    await asyncio.sleep(random.uniform(min_seconds, max_seconds))
+
+
+def backoff_seconds(attempt: int, base_seconds: float = SUPABASE_RETRY_BASE_SECONDS) -> float:
+    return base_seconds * (2 ** max(0, attempt - 1)) + random.uniform(0.0, 0.4)
+
+
+async def execute_with_retry(label: str, fn):
+    for attempt in range(1, SUPABASE_MAX_RETRIES + 1):
+        try:
+            return fn()
+        except Exception as e:
+            if attempt >= SUPABASE_MAX_RETRIES:
+                raise
+            wait = backoff_seconds(attempt)
+            print(f"[Retry] {label} failed (attempt {attempt}/{SUPABASE_MAX_RETRIES}): {e}. Sleep {wait:.2f}s")
+            await asyncio.sleep(wait)
+
+
+async def batch_upsert_videos(records, supabase, mode_label):
+    if not records:
+        return
+
+    normalized = [normalize_video_record(v) for v in records]
+
+    # No DB client: keep visible logs for local dry run
+    if not supabase:
+        for v in normalized[:5]:
+            print(f"  [{mode_label}] Prepared: {v.get('title', '')[:30]}... | Dur: {v.get('duration')} | Actors: {v.get('actors')}")
+        if len(normalized) > 5:
+            print(f"  [{mode_label}] Prepared {len(normalized)} records (dry-run without Supabase)")
+        return
+
+    synced = 0
+    for idx, payload in enumerate(chunked(normalized, SUPABASE_UPSERT_CHUNK_SIZE), start=1):
+        await execute_with_retry(
+            label=f"{mode_label}-chunk-{idx}",
+            fn=lambda payload=payload: supabase.table("videos").upsert(payload, on_conflict="external_id").execute()
+        )
+        synced += len(payload)
+    print(f"  [{mode_label}] Batch upserted {synced} records")
+
+
 def map_categories(title, tags):
     refined = []
     text_to_check = (title + " " + " ".join(tags)).upper()
@@ -111,7 +206,7 @@ def map_categories(title, tags):
 
 async def get_video_details(page, url):
     try:
-        await asyncio.sleep(random.uniform(1.0, 2.0))
+        await jitter_sleep(DETAIL_PRE_NAV_DELAY_MIN, DETAIL_PRE_NAV_DELAY_MAX)
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
         
         # Optimize: Wait for metadata selector instead of hard sleep
@@ -119,7 +214,7 @@ async def get_video_details(page, url):
             await page.wait_for_selector('div.text-secondary', timeout=5000)
         except:
             pass 
-        await asyncio.sleep(random.uniform(0.5, 1.5))
+        await jitter_sleep(DETAIL_POST_LOAD_DELAY_MIN, DETAIL_POST_LOAD_DELAY_MAX)
         
         title = await page.title()
         if "Just a moment" in title:
@@ -181,14 +276,14 @@ async def get_video_details(page, url):
 
 async def get_51cg_details(page, url):
     try:
-        await asyncio.sleep(random.uniform(1.0, 2.0))
+        await jitter_sleep(DETAIL_PRE_NAV_DELAY_MIN, DETAIL_PRE_NAV_DELAY_MAX)
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
         
         try:
             await page.wait_for_selector('h1.post-title', timeout=5000)
         except:
             pass
-        await asyncio.sleep(random.uniform(0.5, 1.5))
+        await jitter_sleep(DETAIL_POST_LOAD_DELAY_MIN, DETAIL_POST_LOAD_DELAY_MAX)
 
         details = await page.evaluate(r'''() => {
             const data = { tags: [], actors: [], title: null, release_date: null, videos: [] };
@@ -257,27 +352,24 @@ async def get_51cg_details(page, url):
         print(f"  51CG Detail Fetch Error: {e}")
         return None
 
-async def sync_video(v, supabase, mode_label):
-    if supabase:
-        try:
-            v['is_active'] = True
-            supabase.table("videos").upsert(v, on_conflict="external_id").execute()
-            print(f"  [{mode_label}] Synced: {v['title'][:30]}... | Dur: {v.get('duration')} | Actors: {v.get('actors')}")
-        except Exception as e:
-            print(f"  DB Error: {e}")
-
 async def process_page_batch(videos, source_tag, detail_pages, supabase, semaphore):
-    if not videos: return
+    if not videos:
+        return
+
     external_ids = [v['external_id'] for v in videos]
     metadata_map = {}
     if supabase:
         try:
-            res = supabase.table("videos").select("external_id, duration, actors").in_("external_id", external_ids).execute()
+            res = await execute_with_retry(
+                label=f"{source_tag}-metadata-check",
+                fn=lambda: supabase.table("videos").select("external_id, duration, actors").in_("external_id", external_ids).execute()
+            )
             for record in res.data:
                 metadata_map[record['external_id']] = record
         except Exception as e:
             print(f"  Batch Check Error: {e}")
 
+    rows_to_upsert = []
     tasks = []
     for v in videos:
         ext_id = v['external_id']
@@ -289,7 +381,7 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
         if has_real_metadata:
             print(f"  [Skip] {v['title'][:30]}... (Metadata exists)")
         else:
-            async def scrape_and_sync(vid=v):
+            async def scrape_and_prepare(vid=v):
                 async with semaphore:
                     page = detail_pages.pop()
                     try:
@@ -298,23 +390,30 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
                             vid.update(details)
                             vid['categories'] = map_categories(vid['title'], vid.get('tags', []))
                             vid['tags'] = ordered_unique([source_tag] + vid.get('tags', []))
-                            await sync_video(vid, supabase, "Deep Scraped")
+                            rows_to_upsert.append(vid)
                         else:
                             vid['categories'] = map_categories(vid['title'], [])
-                            await sync_video(vid, supabase, "Basic Sync")
+                            vid['tags'] = ordered_unique([source_tag] + vid.get('tags', []))
+                            rows_to_upsert.append(vid)
+                    except Exception as e:
+                        print(f"  [Detail Error] {vid.get('source_url')}: {e}")
                     finally:
                         detail_pages.append(page)
-            tasks.append(scrape_and_sync())
+            tasks.append(scrape_and_prepare())
             
     if tasks:
         await asyncio.gather(*tasks)
 
+    await batch_upsert_videos(rows_to_upsert, supabase, f"{source_tag.upper()} BATCH")
+
 async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_tag="51cg"):
-    if not videos: return
-    # No duplicate check for now, or simplistic one
+    if not videos:
+        return
+
+    rows_to_upsert = []
     tasks = []
     for v in videos:
-        async def scrape_and_sync(vid=v):
+        async def scrape_and_prepare(vid=v):
             async with semaphore:
                 page = detail_pages.pop()
                 try:
@@ -355,16 +454,20 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_t
                             videos_to_sync.append(vid)
 
                         for v_sync in videos_to_sync:
-                            await sync_video(v_sync, supabase, f"51CG ({source_tag})")
+                            rows_to_upsert.append(v_sync)
                     else:
-                         await sync_video(vid, supabase, f"51CG ({source_tag}) - Basic")
+                        rows_to_upsert.append(vid)
+                except Exception as e:
+                    print(f"  [51CG Detail Error] {vid.get('source_url')}: {e}")
 
                 finally:
                     detail_pages.append(page)
-        tasks.append(scrape_and_sync())
+        tasks.append(scrape_and_prepare())
     
     if tasks:
         await asyncio.gather(*tasks)
+
+    await batch_upsert_videos(rows_to_upsert, supabase, f"51CG ({source_tag})")
 
 async def scrape_51cg_feed(context, supabase, semaphore, detail_pages, base_url, source_tag="51cg"):
     print(f"\n>>> Starting Source: {source_tag.upper()} ({base_url}) <<<")
@@ -382,7 +485,7 @@ async def scrape_51cg_feed(context, supabase, semaphore, detail_pages, base_url,
                 await list_page.wait_for_selector('#index article', timeout=10000)
             except:
                 pass
-            await asyncio.sleep(random.uniform(1.0, 2.0))
+            await jitter_sleep(LIST_POST_LOAD_DELAY_MIN, LIST_POST_LOAD_DELAY_MAX)
 
             videos = await list_page.evaluate(r'''() => {
                 const items = document.querySelectorAll('#index article');
@@ -460,7 +563,7 @@ async def scrape_51cg_feed(context, supabase, semaphore, detail_pages, base_url,
                 break
 
             await process_51cg_batch(videos, detail_pages, supabase, semaphore, source_tag)
-            await asyncio.sleep(random.uniform(2, 5))
+            await jitter_sleep(INTER_PAGE_DELAY_MIN, INTER_PAGE_DELAY_MAX)
 
     except Exception as e:
         print(f"[{source_tag.upper()}] Error: {e}")
@@ -476,7 +579,9 @@ async def scrape_videos():
     USER_DATA_DIR = os.environ.get("USER_DATA_DIR", os.path.join(os.getcwd(), "user_data"))
     print(
         f"[Config] HEADLESS={HEADLESS} | MISSAV_MAX_PAGES={MISSAV_MAX_PAGES} | "
-        f"CG_MAX_PAGES={CG_MAX_PAGES} | CONCURRENT_DETAIL_PAGES={CONCURRENT_DETAIL_PAGES}"
+        f"CG_MAX_PAGES={CG_MAX_PAGES} | CONCURRENT_DETAIL_PAGES={CONCURRENT_DETAIL_PAGES} | "
+        f"UPSERT_CHUNK={SUPABASE_UPSERT_CHUNK_SIZE} | RETRIES={SUPABASE_MAX_RETRIES} | "
+        f"BLOCK_HEAVY_RESOURCES={BLOCK_HEAVY_RESOURCES}"
     )
     semaphore = asyncio.Semaphore(CONCURRENT_DETAIL_PAGES)
 
@@ -492,6 +597,15 @@ async def scrape_videos():
                 user_data_dir=USER_DATA_DIR, headless=HEADLESS, user_agent=USER_AGENT,
                 args=args, viewport={"width": 1280, "height": 720}
             )
+
+        if BLOCK_HEAVY_RESOURCES:
+            async def route_handler(route, request):
+                if request.resource_type in BLOCKED_RESOURCE_TYPES:
+                    await route.abort()
+                else:
+                    await route.continue_()
+
+            await context.route("**/*", route_handler)
 
         stealth = Stealth()
         # Create pages for main scraping
@@ -519,13 +633,13 @@ async def scrape_videos():
                 current_url = build_paged_url(base_url, page_num)
                 print(f"[{tag.upper()}] Page {page_num}...")
                 try:
-                    await list_page.goto(current_url, timeout=60000, wait_until="load")
+                    await list_page.goto(current_url, timeout=60000, wait_until="domcontentloaded")
                     
                     try:
                         await list_page.wait_for_selector('div.grid > div, div.thumbnail, .group', timeout=10000)
                     except:
                         pass
-                    await asyncio.sleep(random.uniform(1.0, 2.0))
+                    await jitter_sleep(LIST_POST_LOAD_DELAY_MIN, LIST_POST_LOAD_DELAY_MAX)
                     
                     if "Just a moment" in await list_page.title():
                         print(f"[{tag.upper()}] Blocked. Skipping.")
@@ -566,7 +680,7 @@ async def scrape_videos():
                         break
 
                     await process_page_batch(videos, tag, detail_pages, supabase, semaphore)
-                    await asyncio.sleep(random.uniform(4, 8))
+                    await jitter_sleep(INTER_PAGE_DELAY_MIN, INTER_PAGE_DELAY_MAX)
                 except Exception as e:
                     print(f"Error: {e}")
 

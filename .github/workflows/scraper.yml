@@ -31,6 +31,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r scraper/requirements.txt
 
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-chromium
+
     - name: Install Playwright Browsers
       run: |
         python -m playwright install chromium --with-deps
@@ -41,9 +47,13 @@ jobs:
         SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         HEADLESS: "true"
         USER_DATA_DIR: scraper/user_data
-        MISSAV_MAX_PAGES: ${{ vars.MISSAV_MAX_PAGES }}
-        CG_MAX_PAGES: ${{ vars.CG_MAX_PAGES }}
-        CONCURRENT_DETAIL_PAGES: ${{ vars.CONCURRENT_DETAIL_PAGES }}
+        MISSAV_MAX_PAGES: ${{ vars.MISSAV_MAX_PAGES || '50' }}
+        CG_MAX_PAGES: ${{ vars.CG_MAX_PAGES || '3' }}
+        CONCURRENT_DETAIL_PAGES: ${{ vars.CONCURRENT_DETAIL_PAGES || '4' }}
+        SUPABASE_UPSERT_CHUNK_SIZE: ${{ vars.SUPABASE_UPSERT_CHUNK_SIZE || '150' }}
+        SUPABASE_MAX_RETRIES: ${{ vars.SUPABASE_MAX_RETRIES || '4' }}
+        SUPABASE_RETRY_BASE_SECONDS: ${{ vars.SUPABASE_RETRY_BASE_SECONDS || '1.2' }}
+        BLOCK_HEAVY_RESOURCES: ${{ vars.BLOCK_HEAVY_RESOURCES || 'true' }}
       run: |
         python scraper/main.py | tee scraper-run.log
 
