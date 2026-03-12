@@ -112,6 +112,7 @@ fun PlayerScreen(
     videoId: String,
     onBack: () -> Unit,
     onTagClick: (String) -> Unit,
+    onActorClick: (String) -> Unit,
     viewModel: PlayerViewModel = hiltViewModel(),
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
@@ -483,7 +484,9 @@ fun PlayerScreen(
                                     title = uiState.video?.title ?: "加载中...",
                                     createdAt = uiState.video?.createdAt,
                                     tags = uiState.video?.tags ?: emptyList(),
-                                    onTagClick = onTagClick
+                                    actors = uiState.video?.actors ?: emptyList(),
+                                    onTagClick = onTagClick,
+                                    onActorClick = onActorClick
                                 )
                             }
 
@@ -781,7 +784,9 @@ private fun VideoInfoSection(
     title: String,
     createdAt: String?,
     tags: List<String>,
+    actors: List<String>,
     onTagClick: (String) -> Unit,
+    onActorClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -831,10 +836,31 @@ private fun VideoInfoSection(
                         },
                         modifier = Modifier.height(28.dp)
                     )
+            }
+        }
+
+        if (actors.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                actors.forEach { actor ->
+                    AssistChip(
+                        onClick = { onActorClick(actor) },
+                        label = {
+                            Text(
+                                text = actor,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        },
+                        modifier = Modifier.height(28.dp)
+                    )
                 }
             }
         }
     }
+}
 }
 
 @Composable
@@ -850,7 +876,7 @@ private fun PrimaryActionsRow(
     ) {
         Button(
             onClick = onDownload,
-            modifier = Modifier.weight(1.2f),
+            modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(
                 horizontal = ActionTokens.ButtonContentPaddingHorizontal,
                 vertical = ActionTokens.ButtonContentPaddingVertical

@@ -295,6 +295,7 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
                     videoId = backStackEntry.arguments?.getString("videoId") ?: "",
                     onBack = { navController.popBackStack() },
                     onTagClick = { tag -> navController.navigate(Screen.CategoryDetail.createRoute(tag, tag, null)) },
+                    onActorClick = { actor -> navController.navigate(Screen.CategoryDetail.createRoute(actor, null, actor)) },
                     sharedTransitionScope = this@SharedTransitionLayout,
                     animatedVisibilityScope = this@composable
                 )
