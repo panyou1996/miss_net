@@ -1054,15 +1054,37 @@ fun PlayerControls(
 
             Column(modifier = Modifier.align(Alignment.BottomCenter)) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(formatTime(currentPos), color = Color.White, style = MaterialTheme.typography.labelSmall)
+                    // Current time with better visibility
+                    Text(
+                        text = formatTime(currentPos),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    // MD3 Slider with primary color
                     Slider(
                         value = currentPos.toFloat(),
                         onValueChange = { onSeekTo(it.toLong()) },
                         valueRange = 0f..(duration.toFloat().coerceAtLeast(1f)),
-                        modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-                        colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White)
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 12.dp),
+                        colors = SliderDefaults.colors(
+                            thumbColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = Color.White.copy(alpha = 0.3f),
+                            disabledThumbColor = Color.White.copy(alpha = 0.5f),
+                            disabledActiveTrackColor = Color.White.copy(alpha = 0.5f),
+                            disabledInactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                        )
                     )
-                    Text(formatTime(duration), color = Color.White, style = MaterialTheme.typography.labelSmall)
+                    // Duration with better visibility
+                    Text(
+                        text = formatTime(duration),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium
+                    )
                     OverlayControlButton(
                         onClick = onToggleFullscreen,
                         icon = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
