@@ -3,6 +3,11 @@ package com.panyou.missnet.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.*
@@ -105,4 +110,69 @@ fun MissNetStateCard(
             }
         }
     }
+}
+
+
+
+/**
+ * Unified empty state for when there's no content to display.
+ * Replaces scattered empty state implementations across screens.
+ */
+@Composable
+fun MissNetEmptyState(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    MissNetStateCard(
+        icon = icon,
+        title = title,
+        subtitle = subtitle ?: "",
+        actionLabel = actionLabel,
+        onAction = onAction,
+        modifier = modifier.fillMaxWidth()
+    )
+}
+
+/**
+ * Convenience function for common empty states.
+ */
+@Composable
+fun MissNetEmptyStateNoResults(
+    keyword: String? = null,
+    modifier: Modifier = Modifier
+) {
+    MissNetEmptyState(
+        icon = Icons.Outlined.SearchOff,
+        title = "未找到结果",
+        subtitle = keyword?.let { "未找到与 \"$it\" 相关的内容" } ?: "暂无相关内容",
+        modifier = modifier
+    )
+}
+
+@Composable
+fun MissNetEmptyStateNoDownloads(
+    modifier: Modifier = Modifier
+) {
+    MissNetEmptyState(
+        icon = Icons.Default.CloudDownload,
+        title = "暂无下载",
+        subtitle = "下载的视频将显示在这里",
+        modifier = modifier
+    )
+}
+
+@Composable
+fun MissNetEmptyStateNoFavorites(
+    modifier: Modifier = Modifier
+) {
+    MissNetEmptyState(
+        icon = Icons.Default.FavoriteBorder,
+        title = "暂无收藏",
+        subtitle = "收藏的视频将显示在这里",
+        modifier = modifier
+    )
 }
