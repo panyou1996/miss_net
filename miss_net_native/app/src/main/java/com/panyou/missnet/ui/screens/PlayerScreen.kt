@@ -111,6 +111,7 @@ private const val CONTINUE_PLAYBACK_MESSAGE = "已恢复到上次播放位置。
 fun PlayerScreen(
     videoId: String,
     onBack: () -> Unit,
+    onTagClick: (String) -> Unit,
     viewModel: PlayerViewModel = hiltViewModel(),
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
@@ -474,27 +475,15 @@ fun PlayerScreen(
                             contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
                             verticalArrangement = Arrangement.spacedBy(ContainerTokens.SectionVerticalSpacing)
                         ) {
-                            // 续看提示
-                            if (uiState.lastPositionMs > 0L && uiState.lastDurationMs > 0L) {
-                                item {
-                                    ContinueWatchingCard(
-                                        lastPositionMs = uiState.lastPositionMs,
-                                        onContinue = {
-                                            player?.seekTo(uiState.lastPositionMs)
-                                            player?.playWhenReady = true
-                                            player?.play()
-                                            viewModel.showDownloadMessage(CONTINUE_PLAYBACK_MESSAGE)
-                                        }
-                                    )
-                                }
-                            }
+                            
 
                             // 视频信息区
                             item {
                                 VideoInfoSection(
                                     title = uiState.video?.title ?: "加载中...",
                                     createdAt = uiState.video?.createdAt,
-                                    tags = uiState.video?.tags ?: emptyList()
+                                    tags = uiState.video?.tags ?: emptyList(),
+                                    onTagClick = onTagClick
                                 )
                             }
 
@@ -560,14 +549,7 @@ fun PlayerScreen(
                                 )
                             }
 
-                            // 状态区
-                            item {
-                                PlayerStatusSection(
-                                    isPlaying = isPlaying,
-                                    isBuffering = isBuffering,
-                                    errorMessage = effectiveError
-                                )
-                            }
+                            
 
                             // 分割线
                             item {
@@ -799,6 +781,7 @@ private fun VideoInfoSection(
     title: String,
     createdAt: String?,
     tags: List<String>,
+    onTagClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -839,7 +822,7 @@ private fun VideoInfoSection(
             ) {
                 tags.forEach { tag ->
                     AssistChip(
-                        onClick = { },
+                        onClick = { onTagClick(tag) },
                         label = {
                             Text(
                                 text = tag,
