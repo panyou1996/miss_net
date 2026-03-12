@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.panyou.missnet"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.panyou.missnet"
@@ -84,14 +84,16 @@ dependencies {
     // Biometric
     implementation("androidx.biometric:biometric-ktx:1.2.0-alpha05")
 
-    // Video Player (Jetpack Media3 - Latest)
-    val media3Version = "1.4.1"
+    // Video Player (Jetpack Media3 - 1.6.0+ with Compose support)
+    val media3Version = "1.6.0"
     implementation("androidx.media3:media3-exoplayer:$media3Version")
     implementation("androidx.media3:media3-exoplayer-hls:$media3Version")
     implementation("androidx.media3:media3-ui:$media3Version")
+    implementation("androidx.media3:media3-ui-compose:$media3Version")
     implementation("androidx.media3:media3-session:$media3Version")
     implementation("androidx.media3:media3-datasource-okhttp:$media3Version")
     implementation("androidx.media3:media3-exoplayer-dash:$media3Version")
+
 
     // Dependency Injection (Hilt) - KSP MIGRATION
     implementation("com.google.dagger:hilt-android:2.50")
