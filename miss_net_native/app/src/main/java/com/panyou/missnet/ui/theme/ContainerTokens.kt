@@ -86,3 +86,21 @@ object ActionTokens {
     val ChipMinHeight = 36.dp
     val ChipIconSize = 18.dp
 }
+
+
+
+/**
+ * Elevation tokens for cinematic depth.
+ * Adds subtle shadows for layered surfaces.
+ */
+object ElevationTokens {
+    val CardRest = 1.dp
+    val CardHover = 3.dp
+    val CardPressed = 6.dp
+    
+    val BottomSheet = 16.dp
+    val Modal = 24.dp
+    
+    val FAB = 6.dp
+    val FABMini = 3.dp
+}
