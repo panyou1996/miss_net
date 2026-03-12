@@ -112,7 +112,6 @@ fun HomeScreen(
                     item {
                         TaskRecoverySection(
                             continueWatching = uiState.continueWatching,
-                            recentDownloads = uiState.recentDownloads,
                             recentFavorites = uiState.recentFavorites,
                             onVideoClick = onVideoClick,
                             onLibraryClick = onLibraryClick
@@ -148,16 +147,6 @@ fun HomeScreen(
                         }
                     }
 
-                    if (uiState.heroVideos.isNotEmpty()) {
-                        item {
-                            CompactHeroSection(
-                                videos = uiState.heroVideos,
-                                onVideoClick = onVideoClick,
-                                sharedTransitionScope = sharedTransitionScope,
-                                animatedVisibilityScope = animatedVisibilityScope
-                            )
-                        }
-                    }
 
                     item {
                         Surface(
@@ -188,7 +177,6 @@ fun HomeScreen(
 @Composable
 private fun TaskRecoverySection(
     continueWatching: List<WatchProgressEntry>,
-    recentDownloads: List<DownloadStatusEntry>,
     recentFavorites: List<Video>,
     onVideoClick: (String) -> Unit,
     onLibraryClick: () -> Unit
@@ -220,23 +208,7 @@ private fun TaskRecoverySection(
                 }
             }
 
-            if (recentDownloads.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        SectionTitleWithMeta(title = "最近任务", meta = "${recentDownloads.size} 项")
-                        TextButton(onClick = onLibraryClick) {
-                            Text("去资源库")
-                        }
-                    }
-                    recentDownloads.forEach { item ->
-                        DownloadGlanceRow(item = item, onClick = onLibraryClick)
-                    }
-                }
-            }
+            
 
             if (recentFavorites.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)) {
@@ -437,19 +409,23 @@ private fun FavoriteGlanceCard(
 ) {
     ElevatedCard(
         modifier = Modifier
-            .width(188.dp)
+            .width(312.dp)
             .clickable(onClick = onClick),
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
-        Column {
+        Row(
+            modifier = Modifier.padding(
+                horizontal = ContainerTokens.ListRowHorizontalPadding,
+                vertical = ContainerTokens.ListRowVerticalPadding
+            ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(104.dp)
+                    .size(width = 92.dp, height = 64.dp)
                     .clip(ThumbnailShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                // Use fallback placeholder when coverUrl is null or empty
                 val effectiveCoverUrl = video.coverUrl?.takeIf { it.isNotBlank() }
                 if (effectiveCoverUrl != null) {
                     AsyncImage(
@@ -473,16 +449,15 @@ private fun FavoriteGlanceCard(
                 }
             }
             Column(
-                modifier = Modifier.padding(
-                    horizontal = ContainerTokens.ListRowHorizontalPadding,
-                    vertical = ContainerTokens.ListRowVerticalPadding
-                ),
-                verticalArrangement = Arrangement.spacedBy(ContainerTokens.ScreenCompactVerticalPadding)
+                modifier = Modifier
+                    .padding(start = ContainerTokens.ListItemVerticalPadding)
+                    .weight(1f),
+                verticalArrangement = Arrangement.spacedBy(ActionTokens.ButtonContentGap)
             ) {
                 Text(
                     text = video.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )

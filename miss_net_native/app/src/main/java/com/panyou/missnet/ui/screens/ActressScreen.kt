@@ -39,10 +39,8 @@ fun ActressScreen(
     val alphabet = listOf("Hot") + ('A'..'Z').map { it.toString() }
     var selectedLetter by remember { mutableStateOf("Hot") }
     val filteredActresses = remember(uiState.actresses, selectedLetter) {
-        when (selectedLetter) {
-            "Hot" -> uiState.actresses
-            else -> uiState.actresses.filter { it.name.firstOrNull()?.uppercaseChar() == selectedLetter.first() }
-        }
+        // Show all actresses - filtering by letter requires pinyin data which isn't available
+        uiState.actresses
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {

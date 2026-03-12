@@ -34,7 +34,7 @@ fun TagsScreen(
         if (uiState.isLoading) {
             MissNetLoading()
         } else {
-            Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+            Column(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(top = ContainerTokens.ScreenContentPadding)) {
                 SecondaryPageSurface {
                     if (uiState.tags.isEmpty()) {
                         Box(
