@@ -38,6 +38,12 @@ fun ActressScreen(
     val uiState by viewModel.uiState.collectAsState()
     val alphabet = listOf("Hot") + ('A'..'Z').map { it.toString() }
     var selectedLetter by remember { mutableStateOf("Hot") }
+    val filteredActresses = remember(uiState.actresses, selectedLetter) {
+        when (selectedLetter) {
+            "Hot" -> uiState.actresses
+            else -> uiState.actresses.filter { it.name.firstOrNull()?.uppercaseChar() == selectedLetter.first() }
+        }
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         if (uiState.isLoading) {
@@ -63,7 +69,7 @@ fun ActressScreen(
 
                 // Grid of Actresses
                 SecondaryPageSurface {
-                    if (uiState.actresses.isEmpty()) {
+                    if (filteredActresses.isEmpty()) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -71,7 +77,7 @@ fun ActressScreen(
                             MissNetStateCard(
                                 icon = Icons.Rounded.People,
                                 title = "暂无演员数据",
-                                subtitle = "稍后下拉刷新，或等待每日抓取任务补充内容",
+                                subtitle = "选择其他字母筛选",
                                 modifier = Modifier.padding(horizontal = 24.dp)
                             )
                         }
@@ -83,7 +89,7 @@ fun ActressScreen(
                             horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
                             verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing)
                         ) {
-                            items(uiState.actresses) { actor ->
+                            items(filteredActresses) { actor ->
                                 ActressItem(actor = actor, onClick = { onActressClick(actor.name) })
                             }
                         }

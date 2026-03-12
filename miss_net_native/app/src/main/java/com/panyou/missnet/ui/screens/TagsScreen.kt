@@ -51,7 +51,12 @@ fun TagsScreen(
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(vertical = 8.dp)
+                            contentPadding = PaddingValues(
+                                top = ContainerTokens.ScreenContentPadding,
+                                bottom = 8.dp,
+                                start = ContainerTokens.ScreenContentPadding,
+                                end = ContainerTokens.ScreenContentPadding
+                            )
                         ) {
                             items(uiState.tags) { tag ->
                                 ListItem(

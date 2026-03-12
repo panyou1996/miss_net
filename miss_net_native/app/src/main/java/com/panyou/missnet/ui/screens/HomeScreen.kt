@@ -208,26 +208,6 @@ private fun TaskRecoverySection(
             modifier = Modifier.padding(ContainerTokens.ScreenContentPadding),
             verticalArrangement = Arrangement.spacedBy(ContainerTokens.ScreenContentPadding)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = "继续你的任务",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            TaskSummaryStrip(
-                continueCount = continueWatching.size,
-                downloadCount = recentDownloads.size,
-                favoriteCount = recentFavorites.size
-            )
-
-            QuickActionGrid(
-                continueCount = continueWatching.size,
-                downloadCount = recentDownloads.size,
-                favoriteCount = recentFavorites.size,
-                onLibraryClick = onLibraryClick
-            )
 
             if (continueWatching.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)) {
