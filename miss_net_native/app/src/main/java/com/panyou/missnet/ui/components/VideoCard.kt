@@ -9,6 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +22,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.size
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 
@@ -65,7 +69,33 @@ fun VideoCard(
                 } else {
                     Modifier
                 }
-
+                // Handle empty/null coverUrl with fallback
+                val effectiveCoverUrl = coverUrl.takeIf { it.isNotBlank() }
+                if (effectiveCoverUrl != null) {
+                    Image(
+                        painter = rememberAsyncImagePainter(effectiveCoverUrl),
+                        contentDescription = title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(imageModifier)
+                    )
+                } else {
+                    // Placeholder for missing cover
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(imageModifier),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+                }
                 Image(
                     painter = rememberAsyncImagePainter(coverUrl),
                     contentDescription = title,

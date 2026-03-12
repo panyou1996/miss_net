@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.CloudDownload
@@ -398,12 +399,28 @@ private fun ContinueWatchingCard(
                     .clip(ThumbnailShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                AsyncImage(
-                    model = entry.video.coverUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                // Use fallback placeholder when coverUrl is null or empty
+                val effectiveCoverUrl = entry.video.coverUrl?.takeIf { it.isNotBlank() }
+                if (effectiveCoverUrl != null) {
+                    AsyncImage(
+                        model = effectiveCoverUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PlayCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
             }
             Column(
                 modifier = Modifier
@@ -452,12 +469,28 @@ private fun FavoriteGlanceCard(
                     .clip(ThumbnailShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                AsyncImage(
-                    model = video.coverUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                // Use fallback placeholder when coverUrl is null or empty
+                val effectiveCoverUrl = video.coverUrl?.takeIf { it.isNotBlank() }
+                if (effectiveCoverUrl != null) {
+                    AsyncImage(
+                        model = effectiveCoverUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PlayCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
             }
             Column(
                 modifier = Modifier.padding(

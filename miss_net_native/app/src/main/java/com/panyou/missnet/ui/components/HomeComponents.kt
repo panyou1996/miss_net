@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -92,12 +93,29 @@ fun VerticalVideoCard(
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .then(imageModifier)
             ) {
-                AsyncImage(
-                    model = video.coverUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                // Use fallback placeholder when coverUrl is null or empty
+                val effectiveCoverUrl = video.coverUrl?.takeIf { it.isNotBlank() }
+                if (effectiveCoverUrl != null) {
+                    AsyncImage(
+                        model = effectiveCoverUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    // Placeholder for missing cover
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.PlayCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+                }
             }
         }
         
