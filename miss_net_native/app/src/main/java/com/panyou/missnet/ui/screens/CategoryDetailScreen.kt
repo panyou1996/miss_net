@@ -104,6 +104,7 @@ fun CategoryDetailScreen(
         else -> {
             Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+                    // Note: Sort/Filter UI requires backend support for: sort (newest/hottest), filter (subtitle/uncensored/high-res)
                     SecondaryPageSurface {
                         LazyColumn(
                             state = listState,

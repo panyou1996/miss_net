@@ -75,6 +75,14 @@ fun TagsScreen(
                                             modifier = Modifier.size(ContainerTokens.ListLeadingIconSize)
                                         )
                                     },
+                                    trailingContent = {
+                                        Text(
+                                            text = "#${uiState.tags.indexOf(tag) + 1}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    },
                                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                                     modifier = Modifier.clickable { onTagClick(tag) }
                                 )

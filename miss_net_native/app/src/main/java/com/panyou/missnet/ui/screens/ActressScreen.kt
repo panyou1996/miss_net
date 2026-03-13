@@ -112,5 +112,6 @@ fun ActressItem(actor: ActorInfo, onClick: () -> Unit) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+        // Note: Actor metadata (video count, hot, recent update) requires backend to provide additional fields
     }
 }
