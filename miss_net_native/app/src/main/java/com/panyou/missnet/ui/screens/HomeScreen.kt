@@ -61,15 +61,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.exoplayer.offline.Download
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.panyou.missnet.data.local.WatchProgressEntry
 import com.panyou.missnet.data.media.DownloadStatusEntry
 import com.panyou.missnet.data.media.ExportState
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.ui.components.HeroCarouselItem
+import com.panyou.missnet.ui.components.MediaPlaceholder
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
 import com.panyou.missnet.ui.components.SectionHeader
+import com.panyou.missnet.ui.components.SmallBadge
 import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.components.VerticalVideoCard
 import com.panyou.missnet.ui.theme.ActionTokens
@@ -386,29 +388,20 @@ private fun ContinueWatchingCard(
                 modifier = Modifier
                     .size(width = 92.dp, height = 64.dp)
                     .clip(ThumbnailShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                // Use fallback placeholder when coverUrl is null or empty
-                val effectiveCoverUrl = entry.video.coverUrl?.takeIf { it.isNotBlank() }
-                if (effectiveCoverUrl != null) {
-                    AsyncImage(
-                        model = effectiveCoverUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                MediaThumbnail(
+                    coverUrl = entry.video.coverUrl,
+                    label = "封面待同步"
+                )
+                if (entry.progress > 0f) {
+                    SmallBadge(
+                        text = "已看 ${(entry.progress * 100).toInt()}%",
+                        containerColor = Color.Black.copy(alpha = 0.58f),
+                        contentColor = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(6.dp)
                     )
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.PlayCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
                 }
             }
             Column(
@@ -475,29 +468,11 @@ private fun FavoriteGlanceCard(
                 modifier = Modifier
                     .size(width = 92.dp, height = 64.dp)
                     .clip(ThumbnailShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                val effectiveCoverUrl = video.coverUrl?.takeIf { it.isNotBlank() }
-                if (effectiveCoverUrl != null) {
-                    AsyncImage(
-                        model = effectiveCoverUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.PlayCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
+                MediaThumbnail(
+                    coverUrl = video.coverUrl,
+                    label = "封面待同步"
+                )
             }
             Column(
                 modifier = Modifier
@@ -521,6 +496,36 @@ private fun FavoriteGlanceCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun MediaThumbnail(
+    coverUrl: String?,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    val effectiveCoverUrl = coverUrl?.takeIf { it.isNotBlank() }
+    if (effectiveCoverUrl != null) {
+        SubcomposeAsyncImage(
+            model = effectiveCoverUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            loading = {
+                MediaPlaceholder(label = "封面加载中")
+            },
+            error = {
+                MediaPlaceholder(label = label)
+            }
+        )
+    } else {
+        MediaPlaceholder(
+            modifier = modifier.fillMaxSize(),
+            label = label
+        )
     }
 }
 

@@ -491,15 +491,14 @@ fun PlayerScreen(
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
-                            verticalArrangement = Arrangement.spacedBy(ContainerTokens.SectionVerticalSpacing)
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            
-
                             // 视频信息区
                             item {
                                 VideoInfoSection(
                                     title = uiState.video?.title ?: "加载中...",
                                     createdAt = uiState.video?.createdAt,
+                                    lastPositionMs = uiState.lastPositionMs,
                                     tags = uiState.video?.tags ?: emptyList(),
                                     actors = uiState.video?.actors ?: emptyList(),
                                     onTagClick = onTagClick,
@@ -568,29 +567,27 @@ fun PlayerScreen(
                                 )
                             }
 
-                            
+                            if (uiState.relatedVideos.isNotEmpty()) {
+                                item {
+                                    HorizontalDivider(
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    )
+                                }
 
-                            // 分割线
-                            item {
-                                HorizontalDivider(
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                )
-                            }
+                                item {
+                                    RecommendSectionHeader()
+                                }
 
-                            // 推荐区标题
-                            item {
-                                RecommendSectionHeader()
-                            }
-
-                            items(uiState.relatedVideos) { related ->
-                                RecommendItem(
-                                    video = related,
-                                    onClick = {
-                                        viewModel.updatePlaybackProgress(currentPos, duration)
-                                        viewModel.setVideo(related.id)
-                                        viewModel.showDownloadMessage(RELATED_SWITCH_MESSAGE)
-                                    }
-                                )
+                                items(uiState.relatedVideos) { related ->
+                                    RecommendItem(
+                                        video = related,
+                                        onClick = {
+                                            viewModel.updatePlaybackProgress(currentPos, duration)
+                                            viewModel.setVideo(related.id)
+                                            viewModel.showDownloadMessage(RELATED_SWITCH_MESSAGE)
+                                        }
+                                    )
+                                }
                             }
 
                             item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
@@ -757,118 +754,61 @@ private fun RecommendSectionHeader(modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-private fun ContinueWatchingCard(
-    lastPositionMs: Long,
-    onContinue: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f)),
-        onClick = onContinue
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.PlayCircle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(32.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "继续播放",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = formatTime(lastPositionMs),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            FilledTonalButton(onClick = onContinue) {
-                Text("继续")
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun VideoInfoSection(
     title: String,
     createdAt: String?,
+    lastPositionMs: Long,
     tags: List<String>,
     actors: List<String>,
     onTagClick: (String) -> Unit,
     onActorClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.CalendarToday,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = "发布于 ${createdAt?.take(10) ?: "最近"}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+    var expandedMeta by remember(title, createdAt, tags, actors) { mutableStateOf(false) }
+    val safeActors = remember(actors) { actors.filter { it.isNotBlank() }.distinct() }
+    val safeTags = remember(tags) { tags.filter { it.isNotBlank() }.distinct() }
+    val collapsedActors = if (expandedMeta) safeActors else safeActors.take(2)
+    val collapsedTags = if (expandedMeta) safeTags else safeTags.take(4)
+    val remainingMetaCount = (safeActors.size - collapsedActors.size).coerceAtLeast(0) +
+        (safeTags.size - collapsedTags.size).coerceAtLeast(0)
 
-        Spacer(modifier = Modifier.height(8.dp))
-
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
 
-        if (tags.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(12.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                tags.forEach { tag ->
-                    AssistChip(
-                        onClick = { onTagClick(tag) },
-                        label = {
-                            Text(
-                                text = tag,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        },
-                        modifier = Modifier.height(28.dp)
-                    )
-                }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            InfoMetaChip(
+                icon = Icons.Default.CalendarToday,
+                text = "发布于 ${createdAt?.take(10) ?: "最近"}"
+            )
+            if (lastPositionMs > 0L) {
+                InfoMetaChip(
+                    icon = Icons.Default.History,
+                    text = "上次看到 ${formatTime(lastPositionMs)}"
+                )
             }
         }
 
-        if (actors.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(12.dp))
+        if (collapsedActors.isNotEmpty() || collapsedTags.isNotEmpty()) {
             FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                actors.forEach { actor ->
+                collapsedActors.forEach { actor ->
                     AssistChip(
                         onClick = { onActorClick(actor) },
                         label = {
@@ -877,10 +817,83 @@ private fun VideoInfoSection(
                                 style = MaterialTheme.typography.labelSmall
                             )
                         },
-                        modifier = Modifier.height(28.dp)
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        },
+                        modifier = Modifier.heightIn(min = 30.dp),
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    )
+                }
+
+                collapsedTags.forEach { tag ->
+                    AssistChip(
+                        onClick = { onTagClick(tag) },
+                        label = {
+                            Text(
+                                text = "#$tag",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        },
+                        modifier = Modifier.heightIn(min = 30.dp)
+                    )
+                }
+
+                if (remainingMetaCount > 0) {
+                    AssistChip(
+                        onClick = { expandedMeta = !expandedMeta },
+                        label = {
+                            Text(
+                                text = if (expandedMeta) "收起" else "+$remainingMetaCount",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        },
+                        modifier = Modifier.heightIn(min = 30.dp),
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun InfoMetaChip(
+    icon: ImageVector,
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -956,7 +969,7 @@ private fun PrimaryActionsRow(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(
                 horizontal = ActionTokens.ButtonContentPaddingHorizontal,
-                vertical = ActionTokens.ButtonContentPaddingVertical
+                vertical = 8.dp
             )
         ) {
             Icon(
@@ -981,7 +994,7 @@ private fun PrimaryActionsRow(
             },
             contentPadding = PaddingValues(
                 horizontal = ActionTokens.ButtonContentPaddingHorizontal,
-                vertical = ActionTokens.ButtonContentPaddingVertical
+                vertical = 8.dp
             )
         ) {
             Icon(
@@ -1042,7 +1055,7 @@ private fun SecondaryActionChip(
                 modifier = Modifier.size(ActionTokens.ChipIconSize)
             )
         },
-        modifier = Modifier.heightIn(min = ActionTokens.ChipMinHeight),
+        modifier = Modifier.heightIn(min = 32.dp),
         colors = AssistChipDefaults.assistChipColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             labelColor = MaterialTheme.colorScheme.onSurfaceVariant,

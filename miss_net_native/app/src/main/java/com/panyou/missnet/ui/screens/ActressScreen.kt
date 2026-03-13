@@ -12,13 +12,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.panyou.missnet.data.model.ActorInfo
+import com.panyou.missnet.ui.components.BrowseSummaryCard
+import com.panyou.missnet.ui.components.MediaPlaceholder
 import com.panyou.missnet.ui.components.MissNetLoading
 import com.panyou.missnet.ui.components.MissNetStateCard
 import com.panyou.missnet.ui.components.SecondaryPageSurface
@@ -58,19 +61,30 @@ fun ActressScreen(
                             )
                         }
                     } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(3),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
-                            horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
-                            verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing)
-                        ) {
-                            itemsIndexed(actresses) { index, actor ->
-                                ActressItem(
-                                    actor = actor,
-                                    isFeatured = index < 12,
-                                    onClick = { onActressClick(actor.name) }
-                                )
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            BrowseSummaryCard(
+                                title = "热门演员",
+                                summary = "共 ${actresses.size} 位 · 优先展示常用浏览入口",
+                                helper = "点击卡片查看该演员相关内容",
+                                modifier = Modifier.padding(ContainerTokens.ScreenContentPadding)
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f)
+                            )
+                            LazyVerticalGrid(
+                                columns = GridCells.Adaptive(minSize = 124.dp),
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+                                horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
+                                verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing)
+                            ) {
+                                itemsIndexed(actresses) { index, actor ->
+                                    ActressItem(
+                                        actor = actor,
+                                        isFeatured = index < 12,
+                                        onClick = { onActressClick(actor.name) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -82,51 +96,60 @@ fun ActressScreen(
 
 @Composable
 fun ActressItem(actor: ActorInfo, isFeatured: Boolean, onClick: () -> Unit) {
-    Column(
+    ElevatedCard(
         modifier = Modifier.fillMaxWidth().bouncyClick(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(MaterialTheme.shapes.large)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.Start
         ) {
-            if (actor.coverUrl != null) {
-                AsyncImage(
-                    model = actor.coverUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Text(
-                    text = actor.name.take(1),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
-                )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(MaterialTheme.shapes.large)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                val coverUrl = actor.coverUrl?.takeIf { it.isNotBlank() }
+                if (coverUrl != null) {
+                    SubcomposeAsyncImage(
+                        model = coverUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        loading = {
+                            MediaPlaceholder(label = "封面加载中")
+                        },
+                        error = {
+                            MediaPlaceholder(label = "资料待补充")
+                        }
+                    )
+                } else {
+                    MediaPlaceholder(label = "资料待补充")
+                }
+                if (isFeatured) {
+                    SmallBadge(
+                        text = "热门",
+                        containerColor = Color.Black.copy(alpha = 0.58f),
+                        contentColor = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp)
+                    )
+                }
             }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = actor.name,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        if (isFeatured) {
-            SmallBadge(
-                text = "热门",
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        } else {
             Text(
-                text = "演员",
+                text = actor.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = if (isFeatured) "热门演员 · 点击查看相关内容" else "点击查看该演员相关内容",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

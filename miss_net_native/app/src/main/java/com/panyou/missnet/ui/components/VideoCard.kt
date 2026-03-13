@@ -11,13 +11,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -83,10 +80,10 @@ fun VideoCard(
                             .fillMaxSize()
                             .then(imageModifier),
                         loading = {
-                            MediaCardPlaceholder()
+                            MediaPlaceholder(label = "封面加载中")
                         },
                         error = {
-                            MediaCardPlaceholder()
+                            MediaPlaceholder(label = "暂无封面")
                         }
                     )
                 } else {
@@ -96,7 +93,7 @@ fun VideoCard(
                             .then(imageModifier),
                         contentAlignment = Alignment.Center
                     ) {
-                        MediaCardPlaceholder()
+                        MediaPlaceholder(label = "暂无封面")
                     }
                 }
             }
@@ -161,22 +158,5 @@ fun VideoCard(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun MediaCardPlaceholder(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceVariant),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.PlayCircle,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.58f),
-            modifier = Modifier.size(42.dp)
-        )
     }
 }
