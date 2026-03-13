@@ -84,8 +84,8 @@ fun SettingsScreen(
             EliteSettingsCard {
                 if (!uiState.isLoggedIn) {
                     ListItem(
-                        headlineContent = { Text("登录账号", fontWeight = FontWeight.SemiBold) },
-                        supportingContent = { Text("将收藏与进度同步到云端") },
+                        headlineContent = { Text("本地存储", fontWeight = FontWeight.SemiBold) },
+                        supportingContent = { Text("本地保存偏好与播放进度") },
                         leadingContent = {
                             Box(
                                 modifier = Modifier
@@ -224,7 +224,7 @@ fun SettingsScreen(
                                 modifier = Modifier.size(ContainerTokens.ListLeadingIconSize)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text("本地存储", fontWeight = FontWeight.Medium)
+                            Text("设备存储参考", fontWeight = FontWeight.Medium)
                         }
                         Text(
                             uiState.usedStorageStr,

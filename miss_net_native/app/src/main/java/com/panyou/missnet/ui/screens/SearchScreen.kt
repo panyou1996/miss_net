@@ -82,7 +82,7 @@ fun SearchScreen(
                         onSearch = { viewModel.search(it) },
                         expanded = uiState.active,
                         onExpandedChange = { viewModel.onActiveChange(it) },
-                        placeholder = { Text("搜索视频、演员、标签") },
+                        placeholder = { Text("搜索标题") },
                         leadingIcon = {
                             if (uiState.active) {
                                 IconButton(onClick = {
