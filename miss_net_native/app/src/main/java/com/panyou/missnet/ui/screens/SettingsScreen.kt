@@ -31,9 +31,11 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material.icons.rounded.VisibilityOff
@@ -60,6 +62,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.panyou.missnet.ui.components.MissNetListDivider
+import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.util.bouncyClick
 import com.panyou.missnet.ui.viewmodel.SettingsViewModel
@@ -80,12 +83,14 @@ fun SettingsScreen(
                 .padding(contentPadding),
             verticalArrangement = Arrangement.spacedBy(ContainerTokens.SectionVerticalSpacing)
         ) {
-            SettingsSectionTitle("账号")
+            SettingsSectionTitle("同步")
             EliteSettingsCard {
                 if (!uiState.isLoggedIn) {
                     ListItem(
-                        headlineContent = { Text("本地存储", fontWeight = FontWeight.SemiBold) },
-                        supportingContent = { Text("本地保存偏好与播放进度") },
+                        headlineContent = { Text("当前使用本机存储", fontWeight = FontWeight.SemiBold) },
+                        supportingContent = {
+                            Text("收藏、偏好与播放进度当前仅保存在本机。云端同步将在后续版本接入。")
+                        },
                         leadingContent = {
                             Box(
                                 modifier = Modifier
@@ -102,12 +107,18 @@ fun SettingsScreen(
                                 )
                             }
                         },
-                        modifier = Modifier.bouncyClick { viewModel.signIn() },
+                        trailingContent = {
+                            StatusBadge(
+                                text = "开发中",
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
                 } else {
                     ListItem(
-                        headlineContent = { Text("当前账号", fontWeight = FontWeight.SemiBold) },
+                        headlineContent = { Text("已连接云端账号", fontWeight = FontWeight.SemiBold) },
                         supportingContent = { Text(uiState.user?.email ?: "已登录") },
                         leadingContent = {
                             Box(
@@ -148,7 +159,14 @@ fun SettingsScreen(
                     onCheckedChange = { viewModel.toggleDarkMode() }
                 )
                 MissNetListDivider()
-
+                SettingsToggleItem(
+                    icon = Icons.Rounded.Palette,
+                    title = "动态色彩",
+                    subtitle = "跟随壁纸主题色 (Android 12+)",
+                    checked = uiState.isDynamicColor,
+                    onCheckedChange = { viewModel.toggleDynamicColor() }
+                )
+                MissNetListDivider()
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("主题颜色", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     Spacer(modifier = Modifier.height(12.dp))
@@ -176,11 +194,7 @@ fun SettingsScreen(
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                androidx.compose.animation.AnimatedVisibility(
-                                    visible = isSelected,
-                                    enter = scaleIn() + fadeIn(),
-                                    exit = scaleOut() + fadeOut()
-                                ) {
+                                if (isSelected) {
                                     Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(20.dp))
                                 }
                             }
@@ -262,31 +276,41 @@ fun SettingsScreen(
                 )
             }
 
-            // Note: Playback settings require DataStore preferences implementation
-            // - Wi-Fi only download
-            // - Default playback speed
-            // - Auto resume
-            SettingsSectionTitle("播放")
+            SettingsSectionTitle("播放与下载")
             EliteSettingsCard {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "播放设置项开发中",
+                        text = "播放与下载设置正在收口中",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "即将支持：Wi-Fi 下载、默认倍速、自动续播",
+                        text = "后续会补充：仅 Wi‑Fi 下载、默认倍速、自动续播，以及更细的缓存策略。",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Rounded.Sync,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(ContainerTokens.ListLeadingIconSize)
+                        )
+                        Text(
+                            text = "当前版本优先保证播放器、资源库和状态语言稳定。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
-            }
-
             SettingsSectionTitle("关于")
-            EliteSettingsCard {
             EliteSettingsCard {
                 ListItem(
                     headlineContent = { Text("版本") },

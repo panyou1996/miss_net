@@ -198,7 +198,7 @@ fun SearchScreen(
                             SearchState(
                                 icon = Icons.Default.Search,
                                 title = "输入关键词开始搜索",
-                                subtitle = "支持视频标题、演员与标签"
+                                subtitle = "当前版本支持视频标题搜索"
                             )
                         }
 

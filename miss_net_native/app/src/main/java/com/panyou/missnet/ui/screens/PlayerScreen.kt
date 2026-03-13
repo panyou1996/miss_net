@@ -98,7 +98,6 @@ private const val DOWNLOAD_QUEUED_WITHOUT_NOTIFICATION_MESSAGE =
     "通知权限未开启，任务仍已加入队列；请在资源库 > 任务查看状态。"
 private const val DOWNLOAD_UNAVAILABLE_MESSAGE = "下载失败：当前没有可用的视频地址。"
 private const val SHARE_UNAVAILABLE_MESSAGE = "当前没有可分享的链接。"
-private const val CAST_NOT_READY_MESSAGE = "投屏暂未接入，后续补齐。"
 private const val PIP_NOT_SUPPORTED_MESSAGE = "当前系统版本不支持画中画（PiP）。"
 private const val PLAYBACK_FAILED_MESSAGE = "播放失败，请重试。"
 private const val FAVORITE_ADDED_MESSAGE = "已加入收藏。"
@@ -138,8 +137,6 @@ fun PlayerScreen(
     var isBuffering by remember { mutableStateOf(true) }
     var playbackError by remember { mutableStateOf<String?>(null) }
     var hasRequestedExit by remember { mutableStateOf(false) }
-
-    val primaryColor = MaterialTheme.colorScheme.primary
 
     fun persistPlaybackProgress() {
         val controlledPlayer = player ?: return
@@ -383,9 +380,10 @@ fun PlayerScreen(
         }
     ) { innerPadding ->
         if (uiState.isLoading && uiState.video == null) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = primaryColor)
-            }
+            PlayerLoadingState(
+                title = "正在准备播放器",
+                subtitle = "请稍候，正在同步视频信息与播放地址。"
+            )
         } else {
             val effectiveError = uiState.errorMessage ?: playbackError
             Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
@@ -407,12 +405,32 @@ fun PlayerScreen(
                 }
 
                 Box(modifier = finalModifier) {
+                    val showPosterArtwork =
+                        !uiState.video?.coverUrl.isNullOrBlank() &&
+                            (player == null ||
+                                player?.playbackState == Player.STATE_IDLE ||
+                                (uiState.isLoading && uiState.streamUrl == null))
+
+                    if (showPosterArtwork) {
+                        AsyncImage(
+                            model = uiState.video?.coverUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.28f))
+                        )
+                    }
+
                     PlayerContainer(player)
                     if (isBuffering || (uiState.isLoading && uiState.streamUrl == null)) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.align(Alignment.Center).size(48.dp),
-                            color = primaryColor,
-                            strokeWidth = 4.dp
+                        PlayerLoadingOverlay(
+                            title = if (uiState.streamUrl == null) "正在加载播放源" else "正在缓冲",
+                            subtitle = if (uiState.streamUrl == null) "即将进入播放" else "网络波动时会自动恢复",
+                            modifier = Modifier.align(Alignment.Center)
                         )
                     }
                     if (effectiveError != null) {
@@ -459,7 +477,6 @@ fun PlayerScreen(
                                 exitPlayer()
                             }
                         },
-                        onCast = { viewModel.showDownloadMessage(CAST_NOT_READY_MESSAGE) },
                         onSpeed = { showSpeedSheet = true }
                     )
                 }
@@ -547,8 +564,7 @@ fun PlayerScreen(
                                             viewModel.showDownloadMessage(SHARE_UNAVAILABLE_MESSAGE)
                                         }
                                     },
-                                    onSpeed = { showSpeedSheet = true },
-                                    onCast = { viewModel.showDownloadMessage(CAST_NOT_READY_MESSAGE) }
+                                    onSpeed = { showSpeedSheet = true }
                                 )
                             }
 
@@ -723,13 +739,22 @@ private fun PlayerStatusSection(
 
 @Composable
 private fun RecommendSectionHeader(modifier: Modifier = Modifier) {
-    Text(
-        text = "相关推荐 - 点击切换当前播放",
+    Column(
         modifier = modifier.fillMaxWidth(),
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurface
-    )
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = "相关推荐",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = "点击后切换当前播放内容",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 @Composable
@@ -790,7 +815,6 @@ private fun VideoInfoSection(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        // 发布日期
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -810,7 +834,6 @@ private fun VideoInfoSection(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 标题
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge,
@@ -820,7 +843,6 @@ private fun VideoInfoSection(
 
         if (tags.isNotEmpty()) {
             Spacer(modifier = Modifier.height(12.dp))
-            // 标签使用 FlowRow 实现换行
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -836,6 +858,7 @@ private fun VideoInfoSection(
                         },
                         modifier = Modifier.height(28.dp)
                     )
+                }
             }
         }
 
@@ -861,6 +884,60 @@ private fun VideoInfoSection(
         }
     }
 }
+
+@Composable
+private fun PlayerLoadingState(
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
+    ) {
+        PlayerLoadingOverlay(
+            title = title,
+            subtitle = subtitle
+        )
+    }
+}
+
+@Composable
+private fun PlayerLoadingOverlay(
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        color = Color.Black.copy(alpha = 0.56f)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(36.dp),
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 3.dp
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.78f)
+            )
+        }
+    }
 }
 
 @Composable
@@ -923,7 +1000,6 @@ private fun PrimaryActionsRow(
 private fun SecondaryActionsRow(
     onShare: () -> Unit,
     onSpeed: () -> Unit,
-    onCast: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     FlowRow(
@@ -1003,7 +1079,6 @@ fun PlayerControls(
     onSeekTo: (Long) -> Unit,
     onToggleFullscreen: () -> Unit,
     onBack: () -> Unit,
-    onCast: () -> Unit,
     onSpeed: () -> Unit
 ) {
     AnimatedVisibility(visible = showControls, enter = fadeIn(), exit = fadeOut()) {
@@ -1182,7 +1257,7 @@ fun RecommendItem(video: Video, onClick: () -> Unit, modifier: Modifier = Modifi
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = video.tags.take(2).joinToString(" · "),
+                    text = video.tags.take(2).joinToString(" · ").ifBlank { "暂无标签" },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

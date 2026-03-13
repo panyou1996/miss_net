@@ -130,6 +130,8 @@ fun LibraryScreen(
                     LibraryTab.Downloads -> DownloadsPage(
                         downloads = uiState.downloads,
                         onVideoClick = onVideoClick,
+                        actionLabel = "去首页发现内容",
+                        onAction = onHomeClick,
                         onPause = viewModel::pauseDownload,
                         onResume = viewModel::resumeDownload,
                         onRetry = viewModel::retryDownload,
@@ -158,18 +160,6 @@ fun LibraryScreen(
                         animatedVisibilityScope = animatedVisibilityScope,
                         actionLabel = "去搜索发现内容",
                         onAction = onSearchClick
-                    )
-                    LibraryTab.Likes -> VideoGridPage(
-                        title = "收藏",
-                        emptyTitle = "暂无收藏",
-                        emptySubtitle = "你收藏的内容会出现在这里",
-                        icon = Icons.Rounded.Favorite,
-                        isLoading = uiState.isLoading,
-                        videos = uiState.likes,
-                        historyProgress = emptyMap(),
-                        onVideoClick = onVideoClick,
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope
                     )
                 }
             }
@@ -206,14 +196,15 @@ private fun VideoGridPage(
                     horizontal = ContainerTokens.ScreenCompactHorizontalPadding,
                     vertical = ContainerTokens.ScreenContentPadding
                 ),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.TopCenter
         ) {
             LibraryEmptyStateCard(
                 icon = icon,
                 title = emptyTitle,
                 subtitle = emptySubtitle,
                 actionLabel = actionLabel,
-                onAction = onAction
+                onAction = onAction,
+                modifier = Modifier.padding(top = 56.dp)
             )
         }
         return
@@ -292,14 +283,15 @@ private fun ContinueWatchingPage(
                     horizontal = ContainerTokens.ScreenCompactHorizontalPadding,
                     vertical = ContainerTokens.ScreenContentPadding
                 ),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.TopCenter
         ) {
             LibraryEmptyStateCard(
                 icon = Icons.Rounded.History,
                 title = "暂无继续观看内容",
                 subtitle = "你看过但还没看完的内容会显示在这里",
                 actionLabel = actionLabel,
-                onAction = onAction
+                onAction = onAction,
+                modifier = Modifier.padding(top = 56.dp)
             )
         }
         return
@@ -370,6 +362,18 @@ private fun ContinueWatchingCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = buildString {
+                        append(entry.video.actors.firstOrNull() ?: "未知演员")
+                        append(" · ")
+                        append(formatRelativeTime(entry.updatedAt))
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(6.dp))
                 // Progress bar
                 LinearProgressIndicator(
                     progress = { entry.progress },
@@ -411,17 +415,33 @@ private fun formatDuration(ms: Long): String {
     }
 }
 
+private fun formatRelativeTime(timestampMs: Long, nowMs: Long = System.currentTimeMillis()): String {
+    if (timestampMs <= 0L) return "刚刚更新"
+    val diffMs = (nowMs - timestampMs).coerceAtLeast(0L)
+    val minutes = diffMs / 60_000
+    val hours = diffMs / 3_600_000
+    val days = diffMs / 86_400_000
+    return when {
+        minutes < 1 -> "刚刚观看"
+        minutes < 60 -> "${minutes} 分钟前"
+        hours < 24 -> "${hours} 小时前"
+        days < 7 -> "${days} 天前"
+        else -> "最近一周"
+    }
+}
+
 @Composable
 private fun LibraryEmptyStateCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String,
     actionLabel: String? = null,
-    onAction: (() -> Unit)? = null
+    onAction: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     ) {
         MissNetStateCard(
             icon = icon,
@@ -444,6 +464,8 @@ private fun LibraryEmptyStateCard(
 private fun DownloadsPage(
     downloads: List<DownloadStatusEntry>,
     onVideoClick: (String) -> Unit,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
     onPause: (String) -> Unit,
     onResume: (String) -> Unit,
     onRetry: (DownloadStatusEntry) -> Unit,
@@ -458,12 +480,15 @@ private fun DownloadsPage(
                     horizontal = ContainerTokens.ScreenCompactHorizontalPadding,
                     vertical = ContainerTokens.ScreenContentPadding
                 ),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.TopCenter
         ) {
             LibraryEmptyStateCard(
                 icon = Icons.Default.Downloading,
                 title = "暂无任务",
-                subtitle = "下载、导出和失败恢复会集中显示在这里"
+                subtitle = "下载、导出和失败恢复会集中显示在这里",
+                actionLabel = actionLabel,
+                onAction = onAction,
+                modifier = Modifier.padding(top = 56.dp)
             )
         }
         return

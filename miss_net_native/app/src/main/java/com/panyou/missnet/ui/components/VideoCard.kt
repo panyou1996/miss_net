@@ -3,16 +3,24 @@ package com.panyou.missnet.ui.components
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.Image
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,9 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.size
-import androidx.compose.ui.unit.sp
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -40,19 +46,16 @@ fun VideoCard(
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
-    val elevation by androidx.compose.animation.core.animateDpAsState(
-        targetValue = 2.dp,
-        label = "elevation"
-    )
+    val elevation = animateDpAsState(targetValue = 2.dp, label = "elevation")
 
     Card(
         modifier = Modifier
             .aspectRatio(16f / 9f)
             .clip(MaterialTheme.shapes.large)
-            .clickable { onClick() },
+            .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.large,
         elevation = CardDefaults.cardElevation(
-            defaultElevation = elevation,
+            defaultElevation = elevation.value,
             pressedElevation = 8.dp
         ),
         colors = CardDefaults.cardColors(
@@ -69,56 +72,50 @@ fun VideoCard(
                 } else {
                     Modifier
                 }
-                // Handle empty/null coverUrl with fallback
+
                 val effectiveCoverUrl = coverUrl.takeIf { it.isNotBlank() }
                 if (effectiveCoverUrl != null) {
-                    Image(
-                        painter = rememberAsyncImagePainter(effectiveCoverUrl),
+                    SubcomposeAsyncImage(
+                        model = effectiveCoverUrl,
                         contentDescription = title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxSize()
-                            .then(imageModifier)
+                            .then(imageModifier),
+                        loading = {
+                            MediaCardPlaceholder()
+                        },
+                        error = {
+                            MediaCardPlaceholder()
+                        }
                     )
                 } else {
-                    // Placeholder for missing cover
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .then(imageModifier),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.size(48.dp)
-                        )
+                        MediaCardPlaceholder()
                     }
                 }
-                Image(
-                    painter = rememberAsyncImagePainter(coverUrl),
-                    contentDescription = title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .then(imageModifier)
-                )
             }
-            
-            // Gradient overlay for text readability
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                            startY = 50f
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.76f)
+                            ),
+                            startY = 48f
                         )
                     )
             )
 
-            // Title overlay
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -135,8 +132,7 @@ fun VideoCard(
                     lineHeight = 18.sp
                 )
             }
-            
-            // Favorite badge - using unified OverlayBadge
+
             if (showFavoriteBadge) {
                 OverlayBadge(
                     icon = Icons.Default.Favorite,
@@ -146,8 +142,7 @@ fun VideoCard(
                         .padding(8.dp)
                 )
             }
-            
-            // Duration badge - using unified DurationBadge
+
             if (duration != null && progress == null) {
                 DurationBadge(
                     text = duration,
@@ -156,8 +151,7 @@ fun VideoCard(
                         .padding(8.dp)
                 )
             }
-            
-            // Progress indicator - using unified ProgressBadge
+
             if (progress != null) {
                 ProgressBadge(
                     progress = progress,
@@ -167,5 +161,22 @@ fun VideoCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun MediaCardPlaceholder(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.PlayCircle,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.58f),
+            modifier = Modifier.size(42.dp)
+        )
     }
 }

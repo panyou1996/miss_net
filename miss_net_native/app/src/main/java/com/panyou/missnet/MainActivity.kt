@@ -1,5 +1,6 @@
 package com.panyou.missnet
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -50,8 +51,10 @@ sealed class Screen(val route: String, val title: String, val icon: androidx.com
     object Settings : Screen("settings", "设置", Icons.Rounded.Settings)
     object Search : Screen("search", "搜索", Icons.Rounded.Search)
     object CategoryDetail : Screen("categoryDetail/{title}?category={category}&actor={actor}", "详情", Icons.AutoMirrored.Rounded.List) {
-        fun createRoute(title: String, category: String? = null, actor: String? = null) = 
-            "categoryDetail/$title?category=${category ?: ""}&actor=${actor ?: ""}"
+        fun createRoute(title: String, category: String? = null, actor: String? = null): String {
+            val displayTitle = localizeBrowseTitle(title)
+            return "categoryDetail/${Uri.encode(displayTitle)}?category=${Uri.encode(category ?: "")}&actor=${Uri.encode(actor ?: "")}"
+        }
     }
     object Player : Screen("player/{videoId}", "播放", Icons.Rounded.PlayArrow) {
         fun createRoute(id: String) = "player/$id"
@@ -80,8 +83,9 @@ class MainActivity : ComponentActivity() {
 
             MissNetTheme(
                 darkTheme = settingsState.isDarkMode,
+                dynamicColor = settingsState.isDynamicColor,
                 themeColor = themeColor
-            ) { 
+            ) {
                 MainScreen(settingsViewModel) 
             } 
         }
@@ -272,7 +276,10 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
                     navArgument("actor") { type = NavType.StringType; nullable = true }
                 )
             ) { backStackEntry ->
-                val title = backStackEntry.arguments?.getString("title") ?: Screen.CategoryDetail.title
+                val title = backStackEntry.arguments?.getString("title")
+                    ?.let(Uri::decode)
+                    ?.let(::localizeBrowseTitle)
+                    ?: Screen.CategoryDetail.title
                 SimpleTopBarScaffold(
                     title = title,
                     scrollBehavior = scrollBehavior,
@@ -280,8 +287,8 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
                     onSettingsClick = { navController.navigate(Screen.Settings.route) }
                 ) { innerPadding ->
                     CategoryDetailScreen(
-                        category = backStackEntry.arguments?.getString("category")?.takeIf { it.isNotEmpty() },
-                        actor = backStackEntry.arguments?.getString("actor")?.takeIf { it.isNotEmpty() },
+                        category = backStackEntry.arguments?.getString("category")?.let(Uri::decode)?.takeIf { it.isNotEmpty() },
+                        actor = backStackEntry.arguments?.getString("actor")?.let(Uri::decode)?.takeIf { it.isNotEmpty() },
                         onVideoClick = { id -> navController.navigate(Screen.Player.createRoute(id)) },
                         contentPadding = innerPadding,
                         scrollBehavior = scrollBehavior,
@@ -470,6 +477,13 @@ fun MissNetTopBar(
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "在 MissNet 中搜索",
                         style = MaterialTheme.typography.bodyLarge,
@@ -522,6 +536,18 @@ fun MissNetTopBar(
         )
     }
 }
+
+private fun localizeBrowseTitle(title: String): String =
+    when (title.trim().lowercase()) {
+        "new", "new release", "最新发布" -> "最新发布"
+        "monthly_hot", "monthly hot", "本月热门" -> "本月热门"
+        "weekly_hot", "weekly hot", "本周热门" -> "本周热门"
+        "uncensored", "无码" -> "无码"
+        "chinese_subtitle", "subtitled", "中文字幕" -> "中文字幕"
+        "51cg" -> "51CG"
+        "vr" -> "VR"
+        else -> title
+    }
 
 @Composable
 fun MissNetBottomNavigation(navController: androidx.navigation.NavController, currentDestination: androidx.navigation.NavDestination?) {

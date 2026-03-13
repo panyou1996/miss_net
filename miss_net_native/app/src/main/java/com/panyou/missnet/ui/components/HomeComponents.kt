@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.theme.MotionTokens
@@ -93,17 +94,45 @@ fun VerticalVideoCard(
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .then(imageModifier)
             ) {
-                // Use fallback placeholder when coverUrl is null or empty
                 val effectiveCoverUrl = video.coverUrl?.takeIf { it.isNotBlank() }
                 if (effectiveCoverUrl != null) {
-                    AsyncImage(
+                    SubcomposeAsyncImage(
                         model = effectiveCoverUrl,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier.fillMaxSize(),
+                        loading = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(40.dp)
+                                )
+                            }
+                        },
+                        error = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(40.dp)
+                                )
+                            }
+                        }
                     )
                 } else {
-                    // Placeholder for missing cover
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -145,7 +174,6 @@ fun VerticalVideoCard(
 @Composable
 fun HeroCarouselItem(
     video: Video,
-    pageOffset: Float = 0f,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
     sharedTransitionScope: SharedTransitionScope? = null,
@@ -170,13 +198,43 @@ fun HeroCarouselItem(
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
-                AsyncImage(
+                SubcomposeAsyncImage(
                     model = video.coverUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
-                        .then(imageModifier)
+                        .then(imageModifier),
+                    loading = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+                    },
+                    error = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+                    }
                 )
                 
                 // Gradient Overlay for text readability
@@ -342,7 +400,7 @@ fun VideoFeedCard(
                         .padding(12.dp)
                     ) {
                         Text(
-                            text = "来源: ${video.sourceUrl ?: "未知"}",
+                            text = "来源: ${video.sourceUrl.ifBlank { "未知" }}",
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                             color = MaterialTheme.colorScheme.onSurfaceVariant

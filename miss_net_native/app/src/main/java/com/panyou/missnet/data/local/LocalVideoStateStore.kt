@@ -142,7 +142,7 @@ class LocalVideoStateStore @Inject constructor(
 
     private fun <T> trimToSize(list: MutableList<T>, maxSize: Int) {
         while (list.size > maxSize) {
-            list.removeLast()
+            list.removeAt(list.lastIndex)
         }
     }
 

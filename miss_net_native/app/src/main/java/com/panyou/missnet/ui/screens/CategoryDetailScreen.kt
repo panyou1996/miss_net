@@ -140,6 +140,13 @@ fun CategoryDetailScreen(
                                         }
                                     }
                                 }
+
+                                item {
+                                    CategorySummaryCard(
+                                        count = uiState.videos.size,
+                                        subtitle = "当前按最新收录排序，向下滚动可继续浏览。"
+                                    )
+                                }
                             }
 
                             itemsIndexed(uiState.videos, key = { _, video -> video.id }) { _, video ->
@@ -170,6 +177,51 @@ fun CategoryDetailScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CategorySummaryCard(
+    count: Int,
+    subtitle: String
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "共 $count 项",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = "最新",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }

@@ -112,6 +112,7 @@ fun HomeScreen(
                     item {
                         TaskRecoverySection(
                             continueWatching = uiState.continueWatching,
+                            recentDownloads = uiState.recentDownloads,
                             recentFavorites = uiState.recentFavorites,
                             onVideoClick = onVideoClick,
                             onLibraryClick = onLibraryClick
@@ -187,6 +188,7 @@ fun HomeScreen(
 @Composable
 private fun TaskRecoverySection(
     continueWatching: List<WatchProgressEntry>,
+    recentDownloads: List<DownloadStatusEntry>,
     recentFavorites: List<Video>,
     onVideoClick: (String) -> Unit,
     onLibraryClick: () -> Unit
@@ -206,6 +208,13 @@ private fun TaskRecoverySection(
             modifier = Modifier.padding(ContainerTokens.ScreenContentPadding),
             verticalArrangement = Arrangement.spacedBy(ContainerTokens.ScreenContentPadding)
         ) {
+            if (continueWatching.isNotEmpty() || recentDownloads.isNotEmpty() || recentFavorites.isNotEmpty()) {
+                TaskSummaryStrip(
+                    continueCount = continueWatching.size,
+                    downloadCount = recentDownloads.size,
+                    favoriteCount = recentFavorites.size
+                )
+            }
 
             if (continueWatching.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)) {
@@ -218,7 +227,25 @@ private fun TaskRecoverySection(
                 }
             }
 
-            
+            if (recentDownloads.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SectionTitleWithMeta(title = "任务状态", meta = "${recentDownloads.size} 项")
+                        TextButton(onClick = onLibraryClick) {
+                            Text("查看任务")
+                        }
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)) {
+                        recentDownloads.forEach { item ->
+                            DownloadGlanceRow(item = item, onClick = onLibraryClick)
+                        }
+                    }
+                }
+            }
 
             if (recentFavorites.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)) {
@@ -398,7 +425,14 @@ private fun ContinueWatchingCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "已观看 ${(entry.progress * 100).toInt()}%",
+                    text = entry.video.actors.firstOrNull() ?: "未知演员",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "已观看 ${(entry.progress * 100).toInt()}% · 剩余 ${formatCompactDuration((entry.durationMs - entry.positionMs).coerceAtLeast(0L))}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -410,6 +444,13 @@ private fun ContinueWatchingCard(
             }
         }
     }
+}
+
+private fun formatCompactDuration(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    return if (hours > 0) "${hours}小时${minutes}分" else "${minutes}分"
 }
 
 @Composable

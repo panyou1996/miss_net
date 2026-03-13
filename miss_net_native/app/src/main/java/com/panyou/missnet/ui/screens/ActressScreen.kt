@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material3.*
@@ -22,6 +22,7 @@ import com.panyou.missnet.data.model.ActorInfo
 import com.panyou.missnet.ui.components.MissNetLoading
 import com.panyou.missnet.ui.components.MissNetStateCard
 import com.panyou.missnet.ui.components.SecondaryPageSurface
+import com.panyou.missnet.ui.components.SmallBadge
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.util.bouncyClick
 import com.panyou.missnet.ui.viewmodel.ActressViewModel
@@ -64,8 +65,12 @@ fun ActressScreen(
                             horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
                             verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing)
                         ) {
-                            items(actresses) { actor ->
-                                ActressItem(actor = actor, onClick = { onActressClick(actor.name) })
+                            itemsIndexed(actresses) { index, actor ->
+                                ActressItem(
+                                    actor = actor,
+                                    isFeatured = index < 12,
+                                    onClick = { onActressClick(actor.name) }
+                                )
                             }
                         }
                     }
@@ -76,7 +81,7 @@ fun ActressScreen(
 }
 
 @Composable
-fun ActressItem(actor: ActorInfo, onClick: () -> Unit) {
+fun ActressItem(actor: ActorInfo, isFeatured: Boolean, onClick: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth().bouncyClick(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -99,8 +104,8 @@ fun ActressItem(actor: ActorInfo, onClick: () -> Unit) {
             } else {
                 Text(
                     text = actor.name.take(1),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
                 )
             }
         }
@@ -112,6 +117,19 @@ fun ActressItem(actor: ActorInfo, onClick: () -> Unit) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-        // Note: Actor metadata (video count, hot, recent update) requires backend to provide additional fields
+        Spacer(modifier = Modifier.height(4.dp))
+        if (isFeatured) {
+            SmallBadge(
+                text = "热门",
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        } else {
+            Text(
+                text = "演员",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }

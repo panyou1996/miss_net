@@ -3,7 +3,7 @@ package com.panyou.missnet.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
@@ -18,6 +18,7 @@ import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.MissNetLoading
 import com.panyou.missnet.ui.components.MissNetStateCard
 import com.panyou.missnet.ui.components.SecondaryPageSurface
+import com.panyou.missnet.ui.components.SmallBadge
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.viewmodel.TagsViewModel
 
@@ -58,7 +59,7 @@ fun TagsScreen(
                                 end = ContainerTokens.ScreenContentPadding
                             )
                         ) {
-                            items(uiState.tags) { tag ->
+                            itemsIndexed(uiState.tags) { index, tag ->
                                 ListItem(
                                     headlineContent = {
                                         Text(
@@ -67,20 +68,18 @@ fun TagsScreen(
                                             fontWeight = FontWeight.Medium
                                         )
                                     },
-                                    leadingContent = {
-                                        Icon(
-                                            Icons.Rounded.Star,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(ContainerTokens.ListLeadingIconSize)
+                                    supportingContent = {
+                                        Text(
+                                            text = if (index < 10) "热门标签" else "标签",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     },
-                                    trailingContent = {
-                                        Text(
-                                            text = "#${uiState.tags.indexOf(tag) + 1}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            fontWeight = FontWeight.Bold
+                                    leadingContent = {
+                                        SmallBadge(
+                                            text = "#${index + 1}",
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     },
                                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),

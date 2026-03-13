@@ -14,16 +14,16 @@ import io.github.jan.supabase.gotrue.user.UserInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.io.File
 import javax.inject.Inject
 
 data class SettingsUiState(
     val user: UserInfo? = null,
-    val isLoggedIn: Boolean = false, // Mock state
+    val isLoggedIn: Boolean = false,
     val isDarkMode: Boolean = true,
+    val isDynamicColor: Boolean = false,
     val isIncognito: Boolean = false,
     val isAppLockEnabled: Boolean = false,
-    val themeColorIndex: Int = 0, // 0:Red, 1:Blue, 2:Green, 3:Purple
+    val themeColorIndex: Int = 0,
     val usedStorageStr: String = "0.0 GB",
     val storageProgress: Float = 0f,
     val version: String = "1.0.0"
@@ -49,17 +49,17 @@ class SettingsViewModel @Inject constructor(
             val user = supabase.auth.currentUserOrNull()
             val storageInfo = calculateStorage()
             
-            // Load prefs
             val isDark = prefs.getBoolean("is_dark_mode", true)
+            val isDynamicColor = prefs.getBoolean("is_dynamic_color", false)
             val isIncog = prefs.getBoolean("is_incognito", false)
             val isLock = prefs.getBoolean("is_app_lock", false)
             val colorIndex = prefs.getInt("theme_color_index", 0)
-            val loggedIn = prefs.getBoolean("is_logged_in", false)
 
             _uiState.value = _uiState.value.copy(
                 user = user,
-                isLoggedIn = loggedIn || (user != null),
+                isLoggedIn = user != null,
                 isDarkMode = isDark,
+                isDynamicColor = isDynamicColor,
                 isIncognito = isIncog,
                 isAppLockEnabled = isLock,
                 themeColorIndex = colorIndex,
@@ -73,6 +73,12 @@ class SettingsViewModel @Inject constructor(
         val newState = !_uiState.value.isDarkMode
         prefs.edit().putBoolean("is_dark_mode", newState).apply()
         _uiState.value = _uiState.value.copy(isDarkMode = newState)
+    }
+
+    fun toggleDynamicColor() {
+        val newState = !_uiState.value.isDynamicColor
+        prefs.edit().putBoolean("is_dynamic_color", newState).apply()
+        _uiState.value = _uiState.value.copy(isDynamicColor = newState)
     }
 
     fun toggleIncognito() {
@@ -92,18 +98,9 @@ class SettingsViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(themeColorIndex = index)
     }
 
-    fun signIn() {
-        // Mock Login
-        viewModelScope.launch {
-            prefs.edit().putBoolean("is_logged_in", true).apply()
-            refreshState()
-        }
-    }
-
     fun logout() {
         viewModelScope.launch {
             supabase.auth.signOut()
-            prefs.edit().putBoolean("is_logged_in", false).apply()
             refreshState()
         }
     }
