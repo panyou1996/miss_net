@@ -89,6 +89,8 @@ private enum class LibraryTab(val title: String) {
 fun LibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
     onVideoClick: (String) -> Unit,
+    onHomeClick: () -> Unit,
+    onSearchClick: () -> Unit,
     contentPadding: PaddingValues,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
@@ -143,7 +145,23 @@ fun LibraryScreen(
                         historyProgress = uiState.historyProgress,
                         onVideoClick = onVideoClick,
                         sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        actionLabel = "去首页发现内容",
+                        onAction = onHomeClick
+                    )
+                    LibraryTab.Likes -> VideoGridPage(
+                        title = "收藏",
+                        emptyTitle = "暂无收藏",
+                        emptySubtitle = "你收藏的内容会出现在这里",
+                        icon = Icons.Rounded.Favorite,
+                        isLoading = uiState.isLoading,
+                        videos = uiState.likes,
+                        historyProgress = emptyMap(),
+                        onVideoClick = onVideoClick,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        actionLabel = "去搜索发现内容",
+                        onAction = onSearchClick
                     )
                     LibraryTab.Likes -> VideoGridPage(
                         title = "收藏",
@@ -175,7 +193,9 @@ private fun VideoGridPage(
     historyProgress: Map<String, Float>,
     onVideoClick: (String) -> Unit,
     sharedTransitionScope: SharedTransitionScope?,
-    animatedVisibilityScope: AnimatedVisibilityScope?
+    animatedVisibilityScope: AnimatedVisibilityScope?,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
 ) {
     if (isLoading && videos.isEmpty()) {
         MissNetLoading()
@@ -195,7 +215,9 @@ private fun VideoGridPage(
             LibraryEmptyStateCard(
                 icon = icon,
                 title = emptyTitle,
-                subtitle = emptySubtitle
+                subtitle = emptySubtitle,
+                actionLabel = actionLabel,
+                onAction = onAction
             )
         }
         return
@@ -254,15 +276,29 @@ private fun VideoGridPage(
 private fun LibraryEmptyStateCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
-    subtitle: String
+    subtitle: String,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
 ) {
-    MissNetStateCard(
-        icon = icon,
-        title = title,
-        subtitle = subtitle,
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
-    )
+    ) {
+        MissNetStateCard(
+            icon = icon,
+            title = title,
+            subtitle = subtitle,
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (actionLabel != null && onAction != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onAction) {
+                Text(actionLabel)
+            }
+        }
+    }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

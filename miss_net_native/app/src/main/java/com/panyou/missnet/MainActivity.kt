@@ -232,6 +232,8 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
                 ) { innerPadding ->
                     LibraryScreen(
                         onVideoClick = { id -> navController.navigate(Screen.Player.createRoute(id)) },
+                        onHomeClick = { navController.navigate(Screen.Home.route) },
+                        onSearchClick = { navController.navigate(Screen.Search.route) },
                         contentPadding = innerPadding,
                         sharedTransitionScope = this@SharedTransitionLayout,
                         animatedVisibilityScope = this@composable
