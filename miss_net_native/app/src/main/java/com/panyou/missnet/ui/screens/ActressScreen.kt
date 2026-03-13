@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material3.*
@@ -36,38 +34,17 @@ fun ActressScreen(
     viewModel: ActressViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val alphabet = listOf("Hot") + ('A'..'Z').map { it.toString() }
-    var selectedLetter by remember { mutableStateOf("Hot") }
-    val filteredActresses = remember(uiState.actresses, selectedLetter) {
-        // Show all actresses - filtering by letter requires pinyin data which isn't available
-        uiState.actresses
-    }
+    // Note: A-Z filter disabled - requires pinyin data for actual filtering
+    val actresses = uiState.actresses
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         if (uiState.isLoading) {
             MissNetLoading()
         } else {
             Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-                // Alphabet Filter
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = ContainerTokens.ScreenCompactVerticalPadding),
-                    contentPadding = PaddingValues(horizontal = ContainerTokens.ScreenContentPadding),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(alphabet) { letter ->
-                        FilterChip(
-                            selected = selectedLetter == letter,
-                            onClick = { selectedLetter = letter },
-                            label = { Text(letter) }
-                        )
-                    }
-                }
-
                 // Grid of Actresses
                 SecondaryPageSurface {
-                    if (filteredActresses.isEmpty()) {
+                    if (actresses.isEmpty()) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -75,7 +52,7 @@ fun ActressScreen(
                             MissNetStateCard(
                                 icon = Icons.Rounded.People,
                                 title = "暂无演员数据",
-                                subtitle = "选择其他字母筛选",
+                                subtitle = "请尝试其他筛选条件",
                                 modifier = Modifier.padding(horizontal = 24.dp)
                             )
                         }
@@ -87,7 +64,7 @@ fun ActressScreen(
                             horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
                             verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing)
                         ) {
-                            items(filteredActresses) { actor ->
+                            items(actresses) { actor ->
                                 ActressItem(actor = actor, onClick = { onActressClick(actor.name) })
                             }
                         }

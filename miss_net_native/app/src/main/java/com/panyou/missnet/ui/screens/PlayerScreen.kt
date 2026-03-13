@@ -941,11 +941,12 @@ private fun SecondaryActionsRow(
             label = "速度",
             onClick = onSpeed
         )
-        SecondaryActionChip(
-            icon = Icons.Default.Cast,
-            label = "投屏",
-            onClick = onCast
-        )
+        // Note: Cast feature disabled - not implemented
+        // SecondaryActionChip(
+        //     icon = Icons.Default.Cast,
+        //     label = "投屏",
+        //     onClick = onCast
+        // )
     }
 }
 
@@ -1019,11 +1020,12 @@ fun PlayerControls(
                     contentDescription = if (isFullscreen) "退出全屏" else "返回"
                 )
                 Row {
-                    OverlayControlButton(
-                        onClick = onCast,
-                        icon = Icons.Default.Cast,
-                        contentDescription = "投屏"
-                    )
+                    // Note: Cast button disabled - not implemented
+                    // OverlayControlButton(
+                    //     onClick = onCast,
+                    //     icon = Icons.Default.Cast,
+                    //     contentDescription = "投屏"
+                    // )
                     OverlayControlButton(
                         onClick = onSpeed,
                         icon = Icons.Default.Speed,
