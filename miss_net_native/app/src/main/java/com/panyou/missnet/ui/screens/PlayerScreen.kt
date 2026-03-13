@@ -724,7 +724,7 @@ private fun PlayerStatusSection(
 @Composable
 private fun RecommendSectionHeader(modifier: Modifier = Modifier) {
     Text(
-        text = "相关推荐",
+        text = "相关推荐 - 点击切换当前播放",
         modifier = modifier.fillMaxWidth(),
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.SemiBold,
@@ -1188,6 +1188,16 @@ fun RecommendItem(video: Video, onClick: () -> Unit, modifier: Modifier = Modifi
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (video.actors.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = video.actors.first(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(8.dp))
