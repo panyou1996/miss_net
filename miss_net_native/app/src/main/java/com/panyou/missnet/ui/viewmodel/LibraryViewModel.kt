@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.util.UnstableApi
 import com.panyou.missnet.data.local.LocalVideoStateStore
+import com.panyou.missnet.data.local.WatchProgressEntry
 import com.panyou.missnet.data.media.DownloadCommands
 import com.panyou.missnet.data.media.DownloadStatusEntry
 import com.panyou.missnet.data.media.DownloadTracker
@@ -22,6 +23,7 @@ data class LibraryUiState(
     val isLoading: Boolean = false,
     val likes: List<Video> = emptyList(),
     val history: List<Video> = emptyList(),
+    val historyEntries: List<WatchProgressEntry> = emptyList(),
     val historyProgress: Map<String, Float> = emptyMap(),
     val downloads: List<DownloadStatusEntry> = emptyList()
 )
@@ -57,6 +59,7 @@ class LibraryViewModel @Inject constructor(
                 isLoading = false,
                 likes = likes,
                 history = historyEntries.map { it.video },
+                historyEntries = historyEntries,
                 historyProgress = historyEntries.associate { it.video.id to it.progress }
             )
         }

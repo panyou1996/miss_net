@@ -66,6 +66,7 @@ import androidx.media3.exoplayer.offline.Download
 import coil.compose.AsyncImage
 import com.panyou.missnet.data.media.DownloadStatusEntry
 import com.panyou.missnet.data.media.ExportState
+import com.panyou.missnet.data.local.WatchProgressEntry
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.ui.components.MissNetStateCard
 import com.panyou.missnet.ui.components.MissNetLoading
@@ -135,14 +136,9 @@ fun LibraryScreen(
                         onRemove = viewModel::removeDownload,
                         onExport = viewModel::exportDownload
                     )
-                    LibraryTab.History -> VideoGridPage(
-                        title = "继续观看",
-                        emptyTitle = "暂无继续观看内容",
-                        emptySubtitle = "你看过但还没看完的内容会显示在这里",
-                        icon = Icons.Rounded.History,
+                    LibraryTab.History -> ContinueWatchingPage(
+                        entries = uiState.historyEntries,
                         isLoading = uiState.isLoading,
-                        videos = uiState.history,
-                        historyProgress = uiState.historyProgress,
                         onVideoClick = onVideoClick,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
@@ -269,6 +265,149 @@ private fun VideoGridPage(
                 item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@Composable
+private fun ContinueWatchingPage(
+    entries: List<WatchProgressEntry>,
+    isLoading: Boolean,
+    onVideoClick: (String) -> Unit,
+    sharedTransitionScope: SharedTransitionScope?,
+    animatedVisibilityScope: AnimatedVisibilityScope?,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
+) {
+    if (isLoading && entries.isEmpty()) {
+        MissNetLoading()
+        return
+    }
+
+    if (entries.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    horizontal = ContainerTokens.ScreenCompactHorizontalPadding,
+                    vertical = ContainerTokens.ScreenContentPadding
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            LibraryEmptyStateCard(
+                icon = Icons.Rounded.History,
+                title = "暂无继续观看内容",
+                subtitle = "你看过但还没看完的内容会显示在这里",
+                actionLabel = actionLabel,
+                onAction = onAction
+            )
+        }
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(entries.sortedByDescending { it.updatedAt }) { entry ->
+            ContinueWatchingCard(
+                entry = entry,
+                onClick = { onVideoClick(entry.video.id) }
+            )
+        }
+        item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
+    }
+}
+
+@Composable
+private fun ContinueWatchingCard(
+    entry: WatchProgressEntry,
+    onClick: () -> Unit
+) {
+    ElevatedCard(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Cover thumbnail
+            Box(
+                modifier = Modifier
+                    .size(100.dp, 60.dp)
+                    .clip(ThumbnailShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                AsyncImage(
+                    model = entry.video.coverUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                entry.video.duration?.let { dur ->
+                    DurationBadge(
+                        text = dur,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(4.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = entry.video.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                // Progress bar
+                LinearProgressIndicator(
+                    progress = { entry.progress },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "已播放 ${formatDuration(entry.positionMs)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    val remainingMs = (entry.durationMs - entry.positionMs).coerceAtLeast(0)
+                    Text(
+                        text = "剩余 ${formatDuration(remainingMs)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun formatDuration(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    return if (hours > 0) {
+        String.format(Locale.CHINA, "%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format(Locale.CHINA, "%d:%02d", minutes, seconds)
     }
 }
 
