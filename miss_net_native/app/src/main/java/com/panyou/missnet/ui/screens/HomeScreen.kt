@@ -118,6 +118,18 @@ fun HomeScreen(
                         )
                     }
 
+                    // Hero/Discovery Section
+                    if (uiState.heroVideos.isNotEmpty()) {
+                        item {
+                            CompactHeroSection(
+                                videos = uiState.heroVideos,
+                                onVideoClick = onVideoClick,
+                                sharedTransitionScope = sharedTransitionScope,
+                                animatedVisibilityScope = animatedVisibilityScope
+                            )
+                        }
+                    }
+
                     if (uiState.errorMessage != null) {
                         item {
                             ElevatedCard(
@@ -160,8 +172,6 @@ fun HomeScreen(
                             Column(modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)) {
                                 HomeSection(title = "最新发布", category = "new", videos = uiState.newVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
                                 HomeSection(title = "本月热门", category = "monthly_hot", videos = uiState.monthlyVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
-                                HomeSection(title = "本周热门", category = "weekly_hot", videos = uiState.weeklyVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
-                                HomeSection(title = "中文字幕", category = "chinese_subtitle", videos = uiState.subtitleVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
                                 HomeSection(title = "无码", category = "uncensored", videos = uiState.uncensoredVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
                             }
                         }
