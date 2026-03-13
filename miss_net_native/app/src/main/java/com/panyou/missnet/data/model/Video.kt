@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 data class Video(
     val id: String = "", 
     @SerialName("external_id") val externalId: String? = null,
-    val title: String = "Unknown Title",
+    val title: String = "未知标题",
     @SerialName("cover_url") val coverUrl: String? = null,
     @SerialName("source_url") val sourceUrl: String = "",
     val duration: String? = null,

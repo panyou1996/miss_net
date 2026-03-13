@@ -130,7 +130,7 @@ fun VerticalVideoCard(
             overflow = TextOverflow.Ellipsis
         )
         Text(
-            text = video.actors.firstOrNull() ?: "Unknown Artist",
+            text = video.actors.firstOrNull() ?: "未知演员",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1
@@ -342,7 +342,7 @@ fun VideoFeedCard(
                         .padding(12.dp)
                     ) {
                         Text(
-                            text = "Source: ${video.sourceUrl ?: "Unknown"}",
+                            text = "来源: ${video.sourceUrl ?: "未知"}",
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
