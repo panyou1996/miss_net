@@ -259,11 +259,34 @@ fun SettingsScreen(
                         viewModel.clearCache()
                         Toast.makeText(context, "缓存已清理", Toast.LENGTH_SHORT).show()
                     },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                 )
             }
 
+            // Note: Playback settings require DataStore preferences implementation
+            // - Wi-Fi only download
+            // - Default playback speed
+            // - Auto resume
+            SettingsSectionTitle("播放")
+            EliteSettingsCard {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "播放设置项开发中",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "即将支持：Wi-Fi 下载、默认倍速、自动续播",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            }
+
+            }
+
             SettingsSectionTitle("关于")
+            EliteSettingsCard {
             EliteSettingsCard {
                 ListItem(
                     headlineContent = { Text("版本") },
