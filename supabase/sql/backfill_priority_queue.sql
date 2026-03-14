@@ -1,6 +1,6 @@
 -- High-priority backfill queue candidates
 
--- 1) Recent records still missing core metadata
+-- 1) Recent records still missing core metadata, grouped by source + state
 select
   source_site,
   detail_status,
@@ -14,7 +14,38 @@ where is_active = true
 group by 1, 2
 order by total desc;
 
--- 2) Top categories with the largest pending/partial backlog
+-- 2) Weighted tag backlog for metadata-focused backfill (MissAV-first)
+select
+  tag,
+  count(*)::int as backlog_count,
+  count(*) filter (where detail_status = 'pending')::int as pending_count,
+  count(*) filter (where detail_status = 'partial')::int as partial_count,
+  max(source_release_date) as latest_release_date
+from public.videos,
+     unnest(tags) as tag
+where is_active = true
+  and source_site = 'missav'
+  and detail_status in ('pending', 'partial')
+group by 1
+order by partial_count desc, pending_count desc, latest_release_date desc nulls last, tag asc
+limit 50;
+
+-- 3) Weighted tag backlog for cover-focused backfill (MissAV-first)
+select
+  tag,
+  count(*)::int as backlog_count,
+  count(*) filter (where cover_url is null or cover_status = 'missing')::int as missing_cover_count,
+  max(source_release_date) as latest_release_date
+from public.videos,
+     unnest(tags) as tag
+where is_active = true
+  and source_site = 'missav'
+  and (cover_url is null or cover_status = 'missing')
+group by 1
+order by missing_cover_count desc, latest_release_date desc nulls last, tag asc
+limit 50;
+
+-- 4) Top categories with the largest pending/partial backlog
 select
   category,
   count(*)::int as total
@@ -22,30 +53,6 @@ from public.videos,
      unnest(categories) as category
 where is_active = true
   and detail_status in ('pending', 'partial')
-group by 1
-order by total desc
-limit 50;
-
--- 3) Top tags with the largest pending/partial backlog
-select
-  tag,
-  count(*)::int as total
-from public.videos,
-     unnest(tags) as tag
-where is_active = true
-  and detail_status in ('pending', 'partial')
-group by 1
-order by total desc
-limit 50;
-
--- 4) Top tags with the largest missing-cover backlog
-select
-  tag,
-  count(*)::int as total
-from public.videos,
-     unnest(tags) as tag
-where is_active = true
-  and (cover_url is null or cover_status = 'missing')
 group by 1
 order by total desc
 limit 50;
