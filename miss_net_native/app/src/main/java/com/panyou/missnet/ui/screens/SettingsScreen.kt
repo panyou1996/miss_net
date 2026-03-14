@@ -2,6 +2,7 @@ package com.panyou.missnet.ui.screens
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -65,9 +68,11 @@ import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.theme.ContainerTokens
+import com.panyou.missnet.ui.theme.MotionTokens
 import com.panyou.missnet.ui.util.bouncyClick
 import com.panyou.missnet.ui.viewmodel.SettingsViewModel
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
@@ -87,7 +92,29 @@ fun SettingsScreen(
             BrowseSummaryCard(
                 title = "设置与偏好",
                 summary = "当前以本机存储为主，优先保证播放器、资源库与状态语言稳定。",
-                helper = "主题、隐私与存储偏好会保存在本机；云端同步将在后续版本接入。",
+                helper = "主题、隐私与缓存偏好会保存在本机；账号接入不等于已开启完整云同步。",
+                footer = {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        StatusBadge(
+                            text = "本机优先",
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        StatusBadge(
+                            text = "稳定优先",
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        StatusBadge(
+                            text = "同步后续支持",
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                },
                 modifier = Modifier.padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding)
             )
 
@@ -117,7 +144,7 @@ fun SettingsScreen(
                         },
                         trailingContent = {
                             StatusBadge(
-                                text = "开发中",
+                                text = "本机模式",
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -264,6 +291,12 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.primary,
                         trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "这里只展示设备存储参考，不代表 MissNet 单独占用空间。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 MissNetListDivider()
                 ListItem(
@@ -298,6 +331,27 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        StatusBadge(
+                            text = "稳定优先",
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        StatusBadge(
+                            text = "Wi‑Fi 下载后续",
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        StatusBadge(
+                            text = "倍速配置后续",
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -348,12 +402,14 @@ fun SettingsSectionTitle(
     subtitle: String? = null
 ) {
     Column(
-        modifier = Modifier.padding(
-            start = ContainerTokens.ScreenCompactHorizontalPadding,
-            end = ContainerTokens.ScreenCompactHorizontalPadding,
-            top = 8.dp
-        ),
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+        modifier = Modifier
+            .padding(
+                start = ContainerTokens.ScreenCompactHorizontalPadding,
+                end = ContainerTokens.ScreenCompactHorizontalPadding,
+                top = 8.dp
+            )
+            .animateContentSize(animationSpec = MotionTokens.standard()),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
             text = text,
@@ -376,7 +432,8 @@ fun EliteSettingsCard(content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = Modifier
             .padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding)
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = MotionTokens.standard()),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))

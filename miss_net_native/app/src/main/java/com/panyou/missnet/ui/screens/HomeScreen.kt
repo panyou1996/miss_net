@@ -5,6 +5,7 @@ package com.panyou.missnet.ui.screens
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -76,6 +77,7 @@ import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.components.VerticalVideoCard
 import com.panyou.missnet.ui.theme.ActionTokens
 import com.panyou.missnet.ui.theme.ContainerTokens
+import com.panyou.missnet.ui.theme.MotionTokens
 import com.panyou.missnet.ui.theme.ThumbnailShape
 import com.panyou.missnet.ui.viewmodel.HomeViewModel
 
@@ -173,7 +175,8 @@ fun HomeScreen(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding, vertical = 4.dp),
+                                .padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding, vertical = 4.dp)
+                                .animateContentSize(animationSpec = MotionTokens.standard()),
                             shape = MaterialTheme.shapes.large,
                             color = MaterialTheme.colorScheme.surface,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
@@ -216,7 +219,8 @@ private fun TaskRecoverySection(
             .padding(
                 horizontal = ContainerTokens.ScreenCompactHorizontalPadding,
                 vertical = ContainerTokens.ScreenCompactVerticalPadding
-            ),
+            )
+            .animateContentSize(animationSpec = MotionTokens.standard()),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))

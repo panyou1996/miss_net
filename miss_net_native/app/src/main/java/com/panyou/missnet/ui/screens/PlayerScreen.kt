@@ -21,8 +21,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -81,6 +81,7 @@ import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.theme.ActionTokens
 import com.panyou.missnet.ui.theme.ContainerTokens
+import com.panyou.missnet.ui.theme.MotionTokens
 import com.panyou.missnet.ui.theme.ThumbnailShape
 import com.panyou.missnet.ui.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
@@ -786,7 +787,7 @@ private fun VideoInfoSection(
         (safeTags.size - collapsedTags.size).coerceAtLeast(0)
 
     Column(
-        modifier = modifier.animateContentSize(),
+        modifier = modifier.animateContentSize(animationSpec = MotionTokens.standard()),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
@@ -936,7 +937,7 @@ private fun PlayerLoadingOverlay(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.animateContentSize(animationSpec = MotionTokens.standard()),
         shape = MaterialTheme.shapes.large,
         color = Color.Black.copy(alpha = 0.56f)
     ) {
@@ -1127,8 +1128,10 @@ fun PlayerControls(
 
     AnimatedVisibility(
         visible = showControls,
-        enter = fadeIn(animationSpec = tween(180)) + scaleIn(initialScale = 0.98f, animationSpec = tween(180)),
-        exit = fadeOut(animationSpec = tween(140)) + scaleOut(targetScale = 0.98f, animationSpec = tween(140))
+        enter = fadeIn(animationSpec = MotionTokens.standard(MotionTokens.DurationShort4)) +
+            scaleIn(initialScale = 0.98f, animationSpec = MotionTokens.standard(MotionTokens.DurationShort4)),
+        exit = fadeOut(animationSpec = MotionTokens.exit(MotionTokens.DurationShort3)) +
+            scaleOut(targetScale = 0.98f, animationSpec = MotionTokens.exit(MotionTokens.DurationShort3))
     ) {
         Box(
             modifier = Modifier
@@ -1184,7 +1187,19 @@ fun PlayerControls(
             }
 
             Column(modifier = Modifier.align(Alignment.BottomCenter)) {
-                AnimatedVisibility(visible = dragValue != null) {
+                AnimatedVisibility(
+                    visible = dragValue != null,
+                    enter = fadeIn(animationSpec = MotionTokens.standard(MotionTokens.DurationShort3)) +
+                        slideInVertically(
+                            initialOffsetY = { it / 3 },
+                            animationSpec = MotionTokens.standard(MotionTokens.DurationShort3)
+                        ),
+                    exit = fadeOut(animationSpec = MotionTokens.exit(MotionTokens.DurationShort2)) +
+                        slideOutVertically(
+                            targetOffsetY = { it / 3 },
+                            animationSpec = MotionTokens.exit(MotionTokens.DurationShort2)
+                        )
+                ) {
                     Surface(
                         color = Color.Black.copy(alpha = 0.48f),
                         shape = MaterialTheme.shapes.small,
@@ -1259,12 +1274,12 @@ private fun OverlayControlButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = tween(durationMillis = 120),
+        animationSpec = MotionTokens.standard(MotionTokens.DurationShort3),
         label = "overlay-control-scale"
     )
     val backgroundAlpha by animateFloatAsState(
         targetValue = if (isPressed) 0.52f else 0.36f,
-        animationSpec = tween(durationMillis = 120),
+        animationSpec = MotionTokens.standard(MotionTokens.DurationShort3),
         label = "overlay-control-bg"
     )
 
@@ -1276,7 +1291,7 @@ private fun OverlayControlButton(
             .background(Color.Black.copy(alpha = backgroundAlpha))
             .clickable(
                 interactionSource = interactionSource,
-                indication = null,
+                indication = LocalIndication.current,
                 onClick = onClick
             ),
         contentAlignment = Alignment.Center
@@ -1300,7 +1315,7 @@ private fun CenterPlayPauseButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.94f else 1f,
-        animationSpec = tween(durationMillis = 120),
+        animationSpec = MotionTokens.standard(MotionTokens.DurationShort3),
         label = "play-pause-scale"
     )
 
@@ -1310,12 +1325,16 @@ private fun CenterPlayPauseButton(
             .scale(scale)
             .clickable(
                 interactionSource = interactionSource,
-                indication = null,
+                indication = LocalIndication.current,
                 onClick = onClick
             ),
         contentAlignment = Alignment.Center
     ) {
-        Crossfade(targetState = isPlaying, label = "play-pause-icon") { playing ->
+        Crossfade(
+            targetState = isPlaying,
+            animationSpec = MotionTokens.standard(MotionTokens.DurationShort4),
+            label = "play-pause-icon"
+        ) { playing ->
             Icon(
                 imageVector = if (playing) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
                 contentDescription = if (playing) "暂停" else "播放",

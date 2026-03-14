@@ -1,8 +1,14 @@
 package com.panyou.missnet.ui.screens
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,10 +54,11 @@ import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
-import com.panyou.missnet.ui.components.MissNetStateCard
+import com.panyou.missnet.ui.components.MissNetStatePane
 import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.components.VideoCard
 import com.panyou.missnet.ui.theme.ContainerTokens
+import com.panyou.missnet.ui.theme.MotionTokens
 import com.panyou.missnet.ui.viewmodel.SearchViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
@@ -175,31 +182,54 @@ fun SearchScreen(
                             uiState.results.isNotEmpty() -> "点击卡片进入播放页，可继续浏览详情。"
                             else -> "试试更短的关键词，或更换标题片段。"
                         },
+                        footer = if (uiState.query.isBlank() && uiState.history.isNotEmpty()) {
+                            {
+                                Text(
+                                    text = "最近搜索 ${uiState.history.size} 条",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            null
+                        },
                         modifier = Modifier.padding(ContainerTokens.ScreenContentPadding)
                     )
 
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        when {
-                            uiState.isLoading -> {
-                                MissNetLoading()
-                            }
+                    AnimatedContent(
+                        targetState = when {
+                            uiState.isLoading -> SearchContentState.Loading
+                            uiState.errorMessage != null && uiState.query.isNotBlank() -> SearchContentState.Error
+                            uiState.results.isNotEmpty() -> SearchContentState.Results
+                            uiState.query.isBlank() -> SearchContentState.Idle
+                            else -> SearchContentState.Empty
+                        },
+                        transitionSpec = {
+                            fadeIn(animationSpec = MotionTokens.standard(MotionTokens.DurationShort4)) +
+                                scaleIn(initialScale = 0.98f, animationSpec = MotionTokens.standard(MotionTokens.DurationShort4)) togetherWith
+                                fadeOut(animationSpec = MotionTokens.exit(MotionTokens.DurationShort3)) +
+                                scaleOut(targetScale = 0.98f, animationSpec = MotionTokens.exit(MotionTokens.DurationShort3))
+                        },
+                        label = "search-content-state",
+                        modifier = Modifier.fillMaxSize()
+                    ) { contentState ->
+                        when (contentState) {
+                            SearchContentState.Loading -> MissNetLoading()
 
-                            uiState.errorMessage != null && uiState.query.isNotBlank() -> {
-                                MissNetErrorState(
-                                    message = uiState.errorMessage ?: "搜索失败",
-                                    onRetry = viewModel::retry
-                                )
-                            }
+                            SearchContentState.Error -> MissNetErrorState(
+                                message = uiState.errorMessage ?: "搜索失败",
+                                onRetry = viewModel::retry
+                            )
 
-                            uiState.results.isNotEmpty() -> {
+                            SearchContentState.Results -> {
                                 LazyVerticalGrid(
-                                    columns = GridCells.Fixed(ContainerTokens.GridColumns),
+                                    columns = GridCells.Adaptive(minSize = 160.dp),
                                     contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
                                     horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
                                     verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
                                     modifier = Modifier.fillMaxSize()
                                 ) {
-                                    items(uiState.results) { video ->
+                                    items(uiState.results, key = { it.id }) { video ->
                                         VideoCard(
                                             videoId = video.id,
                                             title = video.title,
@@ -214,21 +244,25 @@ fun SearchScreen(
                                 }
                             }
 
-                            uiState.query.isBlank() -> {
-                                SearchState(
-                                    icon = Icons.Default.Search,
-                                    title = "输入标题关键词开始搜索",
-                                    subtitle = "当前版本仅支持按视频标题搜索，可从上方搜索框开始。"
-                                )
-                            }
+                            SearchContentState.Idle -> SearchState(
+                                icon = Icons.Default.Search,
+                                title = "输入标题关键词开始搜索",
+                                subtitle = "当前版本仅支持按视频标题搜索，可从上方搜索框开始。",
+                                actionLabel = if (uiState.history.isNotEmpty()) "查看最近搜索" else null,
+                                onAction = if (uiState.history.isNotEmpty()) {
+                                    { viewModel.onActiveChange(true) }
+                                } else {
+                                    null
+                                }
+                            )
 
-                            else -> {
-                                SearchState(
-                                    icon = Icons.Default.History,
-                                    title = "暂未找到匹配内容",
-                                    subtitle = "试试更短的标题关键词，或换一个标题片段。"
-                                )
-                            }
+                            SearchContentState.Empty -> SearchState(
+                                icon = Icons.Default.History,
+                                title = "暂未找到匹配内容",
+                                subtitle = "试试更短的标题关键词，或换一个标题片段。",
+                                actionLabel = "清空关键词",
+                                onAction = { viewModel.onQueryChange("") }
+                            )
                         }
                     }
                 }
@@ -237,21 +271,33 @@ fun SearchScreen(
     }
 }
 
+private enum class SearchContentState {
+    Loading,
+    Error,
+    Results,
+    Idle,
+    Empty
+}
+
 @Composable
 private fun SearchState(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
-    subtitle: String
+    subtitle: String,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
 ) {
     Box(
         modifier = Modifier
             .fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        MissNetStateCard(
+        MissNetStatePane(
             icon = icon,
             title = title,
             subtitle = subtitle,
+            actionLabel = actionLabel,
+            onAction = onAction,
             modifier = Modifier.padding(horizontal = 24.dp)
         )
     }

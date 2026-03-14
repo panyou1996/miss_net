@@ -1,5 +1,6 @@
 package com.panyou.missnet.ui.components
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -25,19 +26,21 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.panyou.missnet.ui.theme.MotionTokens
 
 @Composable
 fun MissNetLoading(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary,
-    title: String = "正在整理内容",
-    subtitle: String = "请稍候，当前页面内容正在同步。"
+    title: String = "正在整理页面内容",
+    subtitle: String = "请稍候，当前页面正在同步最新状态。"
 ) {
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Surface(
+            modifier = Modifier.animateContentSize(animationSpec = MotionTokens.standard()),
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f))
@@ -74,7 +77,8 @@ fun MissNetErrorState(
     message: String,
     onRetry: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
-    title: String = "暂时无法加载"
+    title: String = "暂时无法显示内容",
+    actionLabel: String = "重新加载"
 ) {
     Box(
         modifier = modifier.fillMaxSize(),
@@ -84,7 +88,7 @@ fun MissNetErrorState(
             icon = Icons.Outlined.CloudOff,
             title = title,
             subtitle = message,
-            actionLabel = if (onRetry != null) "重新加载" else null,
+            actionLabel = if (onRetry != null) actionLabel else null,
             onAction = onRetry,
             modifier = Modifier
                 .fillMaxWidth()
@@ -103,7 +107,7 @@ fun MissNetStateCard(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.animateContentSize(animationSpec = MotionTokens.standard()),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
@@ -153,7 +157,9 @@ fun MissNetStatePane(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = MotionTokens.standard()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         MissNetStateCard(

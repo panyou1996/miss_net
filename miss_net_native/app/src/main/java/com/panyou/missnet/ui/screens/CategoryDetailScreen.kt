@@ -1,13 +1,19 @@
 package com.panyou.missnet.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -54,14 +60,16 @@ import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
-import com.panyou.missnet.ui.components.MissNetStateCard
+import com.panyou.missnet.ui.components.MissNetStatePane
 import com.panyou.missnet.ui.components.SecondaryPageSurface
+import com.panyou.missnet.ui.components.SmallBadge
 import com.panyou.missnet.ui.theme.ContainerTokens
+import com.panyou.missnet.ui.theme.MotionTokens
 import com.panyou.missnet.ui.theme.ThumbnailShape
 import com.panyou.missnet.ui.util.bouncyClick
 import com.panyou.missnet.ui.viewmodel.CategoryDetailViewModel
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun CategoryDetailScreen(
     category: String?,
@@ -76,7 +84,7 @@ fun CategoryDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val pageTitle = remember(category, actor) { resolveCategoryPageTitle(category, actor) }
-    val pageHelper = if (actor != null) "点击卡片可查看该演员相关内容。" else "点击卡片可继续进入播放页。"
+    val pageHelper = if (actor != null) "点击卡片进入播放页，也可继续浏览该演员相关内容。" else "点击卡片可继续进入播放页。"
 
     LaunchedEffect(category, actor) {
         viewModel.init(category, actor)
@@ -120,7 +128,7 @@ fun CategoryDetailScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                MissNetStateCard(
+                                MissNetStatePane(
                                     icon = Icons.Default.PlayArrow,
                                     title = "暂未收录内容",
                                     subtitle = "当前入口还没有可展示的视频内容。",
@@ -147,10 +155,33 @@ fun CategoryDetailScreen(
                                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                         ) {
                             item {
+                                val carouselVideos = uiState.videos.take(5)
                                 BrowseSummaryCard(
                                     title = pageTitle,
                                     summary = "共 ${uiState.videos.size} 项 · 默认按最新收录排序",
                                     helper = pageHelper,
+                                    footer = {
+                                        FlowRow(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            SmallBadge(
+                                                text = "列表 ${uiState.videos.size}",
+                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            SmallBadge(
+                                                text = "精选 ${carouselVideos.size}",
+                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                            SmallBadge(
+                                                text = "默认最新",
+                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
                                     modifier = Modifier.padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding)
                                 )
                             }
@@ -159,35 +190,43 @@ fun CategoryDetailScreen(
                                 val carouselVideos = uiState.videos.take(5)
                                 val carouselState = rememberCarouselState { carouselVideos.size }
 
-                                HorizontalMultiBrowseCarousel(
-                                    state = carouselState,
-                                    preferredItemWidth = 320.dp,
-                                    itemSpacing = 12.dp,
-                                    contentPadding = PaddingValues(horizontal = ContainerTokens.ScreenCompactHorizontalPadding),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(220.dp)
-                                ) { index ->
-                                    Box(modifier = Modifier.fillMaxSize().padding(vertical = 4.dp)) {
-                                        HeroCarouselItem(
-                                            video = carouselVideos[index],
-                                            modifier = Modifier.fillMaxSize(),
-                                            onClick = { onVideoClick(carouselVideos[index].id) },
-                                            sharedTransitionScope = null,
-                                            animatedVisibilityScope = null
-                                        )
+                                AnimatedVisibility(
+                                    visible = carouselVideos.size > 1,
+                                    enter = fadeIn(animationSpec = MotionTokens.standard()) + expandVertically(animationSpec = MotionTokens.standard()),
+                                    exit = fadeOut(animationSpec = MotionTokens.exit())
+                                ) {
+                                    HorizontalMultiBrowseCarousel(
+                                        state = carouselState,
+                                        preferredItemWidth = 320.dp,
+                                        itemSpacing = 12.dp,
+                                        contentPadding = PaddingValues(horizontal = ContainerTokens.ScreenCompactHorizontalPadding),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(220.dp)
+                                    ) { index ->
+                                        Box(modifier = Modifier.fillMaxSize().padding(vertical = 4.dp)) {
+                                            HeroCarouselItem(
+                                                video = carouselVideos[index],
+                                                modifier = Modifier.fillMaxSize(),
+                                                onClick = { onVideoClick(carouselVideos[index].id) },
+                                                sharedTransitionScope = null,
+                                                animatedVisibilityScope = null
+                                            )
+                                        }
                                     }
                                 }
                             }
 
-                            itemsIndexed(uiState.videos, key = { _, video -> video.id }) { _, video ->
+                            itemsIndexed(uiState.videos, key = { _, video -> video.id }) { index, video ->
                                 CategoryVideoItem(
                                     video = video,
                                     onClick = { onVideoClick(video.id) },
                                     sharedTransitionScope = sharedTransitionScope,
                                     animatedVisibilityScope = animatedVisibilityScope
                                 )
-                                MissNetListDivider()
+                                if (index < uiState.videos.lastIndex) {
+                                    MissNetListDivider()
+                                }
                             }
 
                             if (uiState.isMoreLoading) {

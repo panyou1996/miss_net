@@ -6,9 +6,14 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -76,6 +81,7 @@ import com.panyou.missnet.ui.components.DurationBadge
 import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.theme.ActionTokens
 import com.panyou.missnet.ui.theme.ContainerTokens
+import com.panyou.missnet.ui.theme.MotionTokens
 import com.panyou.missnet.ui.theme.ThumbnailShape
 import com.panyou.missnet.ui.viewmodel.LibraryViewModel
 import java.util.Locale
@@ -127,41 +133,50 @@ fun LibraryScreen(
                     .fillMaxWidth()
                     .weight(1f)
             ) {
-                when (LibraryTab.entries[selectedTab]) {
-                    LibraryTab.Downloads -> DownloadsPage(
-                        downloads = uiState.downloads,
-                        onVideoClick = onVideoClick,
-                        actionLabel = "去首页发现内容",
-                        onAction = onHomeClick,
-                        onPause = viewModel::pauseDownload,
-                        onResume = viewModel::resumeDownload,
-                        onRetry = viewModel::retryDownload,
-                        onRemove = viewModel::removeDownload,
-                        onExport = viewModel::exportDownload
-                    )
-                    LibraryTab.History -> ContinueWatchingPage(
-                        entries = uiState.historyEntries,
-                        isLoading = uiState.isLoading,
-                        onVideoClick = onVideoClick,
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        actionLabel = "去首页发现内容",
-                        onAction = onHomeClick
-                    )
-                    LibraryTab.Likes -> VideoGridPage(
-                        title = "收藏",
-                        emptyTitle = "暂无收藏",
-                        emptySubtitle = "你收藏的内容会集中显示在这里。",
-                        icon = Icons.Rounded.Favorite,
-                        isLoading = uiState.isLoading,
-                        videos = uiState.likes,
-                        historyProgress = emptyMap(),
-                        onVideoClick = onVideoClick,
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        actionLabel = "去搜索发现内容",
-                        onAction = onSearchClick
-                    )
+                AnimatedContent(
+                    targetState = LibraryTab.entries[selectedTab],
+                    transitionSpec = {
+                        fadeIn(animationSpec = MotionTokens.standard(MotionTokens.DurationShort4)) togetherWith
+                            fadeOut(animationSpec = MotionTokens.exit(MotionTokens.DurationShort3))
+                    },
+                    label = "library-tab-content"
+                ) { currentTab ->
+                    when (currentTab) {
+                        LibraryTab.Downloads -> DownloadsPage(
+                            downloads = uiState.downloads,
+                            onVideoClick = onVideoClick,
+                            actionLabel = "去首页发现内容",
+                            onAction = onHomeClick,
+                            onPause = viewModel::pauseDownload,
+                            onResume = viewModel::resumeDownload,
+                            onRetry = viewModel::retryDownload,
+                            onRemove = viewModel::removeDownload,
+                            onExport = viewModel::exportDownload
+                        )
+                        LibraryTab.History -> ContinueWatchingPage(
+                            entries = uiState.historyEntries,
+                            isLoading = uiState.isLoading,
+                            onVideoClick = onVideoClick,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            actionLabel = "去首页发现内容",
+                            onAction = onHomeClick
+                        )
+                        LibraryTab.Likes -> VideoGridPage(
+                            title = "收藏",
+                            emptyTitle = "暂无收藏",
+                            emptySubtitle = "你收藏的内容会集中显示在这里。",
+                            icon = Icons.Rounded.Favorite,
+                            isLoading = uiState.isLoading,
+                            videos = uiState.likes,
+                            historyProgress = emptyMap(),
+                            onVideoClick = onVideoClick,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            actionLabel = "去搜索发现内容",
+                            onAction = onSearchClick
+                        )
+                    }
                 }
             }
         }
@@ -336,7 +351,9 @@ private fun ContinueWatchingCard(
 ) {
     ElevatedCard(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = MotionTokens.standard()),
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
@@ -659,6 +676,7 @@ private fun DownloadCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .animateContentSize(animationSpec = MotionTokens.standard())
             .then(if (clickable) Modifier.clickable(onClick = onClick) else Modifier),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
