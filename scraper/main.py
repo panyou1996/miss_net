@@ -186,6 +186,7 @@ DETAIL_FETCH_POLICY = os.environ.get("DETAIL_FETCH_POLICY", "").strip().lower()
 DISCOVER_MISSAV_SOURCES = env_bool("DISCOVER_MISSAV_SOURCES", False)
 DISCOVERED_SOURCE_LIMIT = env_positive_int("DISCOVERED_SOURCE_LIMIT", 60)
 NULL_COVER_QUEUE_JSON = os.environ.get("NULL_COVER_QUEUE_JSON", "").strip()
+METADATA_QUEUE_JSON = os.environ.get("METADATA_QUEUE_JSON", "").strip()
 CATEGORY_HUB_URLS = [
     "https://missav.ws/genres",
 ]
@@ -442,6 +443,18 @@ def apply_cover_patch(existing: dict, cover_url: str | None) -> dict:
     return patched
 
 
+def apply_metadata_patch(existing: dict, details: dict | None) -> dict:
+    details = details or {}
+    patched = dict(existing or {})
+    patched["release_date"] = normalize_release_date_text(details.get("release_date")) or normalize_release_date_text(existing.get("release_date"))
+    patched["actors"] = ordered_unique(details.get("actors") or existing.get("actors") or [])
+    patched["tags"] = ordered_unique(details.get("tags") or existing.get("tags") or [])
+    patched["cover_status"] = classify_cover_status(patched.get("cover_url"))
+    patched["inventory_status"] = classify_inventory_status(patched)
+    patched["detail_status"] = classify_detail_status(patched)
+    return patched
+
+
 def parse_null_cover_queue(raw: str | None):
     if not raw:
         return []
@@ -449,6 +462,36 @@ def parse_null_cover_queue(raw: str | None):
         payload = json.loads(raw)
     except Exception as e:
         print(f"[Config] Invalid NULL_COVER_QUEUE_JSON: {e}")
+        return []
+    if isinstance(payload, dict):
+        payload = payload.get("rows", [])
+    if not isinstance(payload, list):
+        return []
+
+    output = []
+    for row in payload:
+        if not isinstance(row, dict):
+            continue
+        external_id = str(row.get("external_id") or "").strip()
+        source_url = str(row.get("source_url") or "").strip()
+        if not external_id or not source_url:
+            continue
+        output.append({
+            "external_id": external_id,
+            "source_url": source_url,
+            "source_site": row.get("source_site") or infer_source_site(source_url),
+            "title": row.get("title") or external_id,
+        })
+    return output
+
+
+def parse_metadata_queue(raw: str | None):
+    if not raw:
+        return []
+    try:
+        payload = json.loads(raw)
+    except Exception as e:
+        print(f"[Config] Invalid METADATA_QUEUE_JSON: {e}")
         return []
     if isinstance(payload, dict):
         payload = payload.get("rows", [])
@@ -1321,6 +1364,70 @@ async def process_null_cover_queue(targets, detail_pages, supabase, semaphore):
     return queue_stats
 
 
+async def process_metadata_queue(targets, detail_pages, supabase, semaphore):
+    queue_stats = make_run_stats()
+    queue_stats["pages_scanned"] = len(targets)
+    queue_stats["discovered_count"] = len(targets)
+
+    external_ids = [item["external_id"] for item in targets]
+    metadata_map = {}
+    if supabase and external_ids:
+        try:
+            res = await execute_with_retry(
+                label="metadata-queue-check",
+                fn=lambda: supabase.table("videos").select(
+                    "external_id, title, cover_url, cover_status, source_url, source_site, duration, actors, release_date, tags, categories, detail_status, detail_fetched_at, inventory_status"
+                ).in_("external_id", external_ids).execute()
+            )
+            for record in res.data:
+                metadata_map[record["external_id"]] = record
+        except Exception as e:
+            print(f"[MetadataQueue] Batch Check Error: {e}")
+
+    rows_to_upsert = []
+    tasks = []
+    for target in targets:
+        existing = metadata_map.get(target["external_id"])
+        if not existing:
+            continue
+        if classify_detail_status(existing) == "success":
+            queue_stats["existing_complete_count"] += 1
+            continue
+
+        queue_stats["detail_attempted_count"] += 1
+
+        async def fetch_metadata(target=target, existing=existing):
+            async with semaphore:
+                page = detail_pages.pop()
+                try:
+                    details = await get_video_details(page, target["source_url"])
+                    status = (details or {}).get("_status", "success")
+                    if status == "blocked":
+                        queue_stats["blocked_count"] += 1
+                        return
+
+                    patched = apply_metadata_patch(existing, details)
+                    if classify_detail_status(patched) == "success":
+                        rows_to_upsert.append(patched)
+                        queue_stats["detail_success_count"] += 1
+                    else:
+                        queue_stats["detail_fail_count"] += 1
+                except Exception as e:
+                    queue_stats["detail_fail_count"] += 1
+                    print(f"[MetadataQueue] Detail Fetch Error: {target['source_url']}: {e}")
+                finally:
+                    detail_pages.append(page)
+
+        tasks.append(fetch_metadata())
+
+    if tasks:
+        await asyncio.gather(*tasks)
+
+    upsert_result = await batch_upsert_videos(rows_to_upsert, supabase, "METADATA PATCH")
+    merge_stats(queue_stats, upsert_result)
+    return queue_stats
+
+
 async def scrape_null_cover_backfill(supabase, context, semaphore):
     targets = parse_null_cover_queue(NULL_COVER_QUEUE_JSON)
     if not targets:
@@ -1342,12 +1449,34 @@ async def scrape_null_cover_backfill(supabase, context, semaphore):
     return stats, {"null_cover": dict(stats)}
 
 
+async def scrape_metadata_backfill(supabase, context, semaphore):
+    targets = parse_metadata_queue(METADATA_QUEUE_JSON)
+    if not targets:
+        print("[MetadataQueue] No targets provided. Exiting.")
+        return make_run_stats(), {"metadata_queue": make_run_stats()}
+
+    stealth = Stealth()
+    detail_pages = []
+    for _ in range(CONCURRENT_DETAIL_PAGES):
+        dp = await context.new_page()
+        await stealth.apply_stealth_async(dp)
+        detail_pages.append(dp)
+
+    stats = await process_metadata_queue(targets, detail_pages, supabase, semaphore)
+
+    for page in detail_pages:
+        await page.close()
+
+    return stats, {"metadata_queue": dict(stats)}
+
+
 async def scrape_videos():
     supabase: Client = None
     if SUPABASE_URL and SUPABASE_KEY:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     null_cover_targets = parse_null_cover_queue(NULL_COVER_QUEUE_JSON)
-    run_config = None if SCRAPER_RUN_MODE == "null_cover" else resolve_run_configuration()
+    metadata_targets = parse_metadata_queue(METADATA_QUEUE_JSON)
+    run_config = None if SCRAPER_RUN_MODE in {"null_cover", "metadata_queue"} else resolve_run_configuration()
     
     HEADLESS = os.environ.get("HEADLESS", "true").lower() == "true"
     USER_DATA_DIR = os.environ.get("USER_DATA_DIR", os.path.join(os.getcwd(), "user_data"))
@@ -1359,6 +1488,15 @@ async def scrape_videos():
         )
         if not null_cover_targets:
             print("[Config] No null-cover targets selected. Exiting without work.")
+            return
+    elif SCRAPER_RUN_MODE == "metadata_queue":
+        print(
+            f"[Config] HEADLESS={HEADLESS} | RUN_MODE=metadata_queue | TARGETS={len(metadata_targets)} | "
+            f"CONCURRENT_DETAIL_PAGES={CONCURRENT_DETAIL_PAGES} | UPSERT_CHUNK={SUPABASE_UPSERT_CHUNK_SIZE} | "
+            f"RETRIES={SUPABASE_MAX_RETRIES} | BLOCK_HEAVY_RESOURCES={BLOCK_HEAVY_RESOURCES}"
+        )
+        if not metadata_targets:
+            print("[Config] No metadata targets selected. Exiting without work.")
             return
     else:
         print(
@@ -1377,7 +1515,12 @@ async def scrape_videos():
     semaphore = asyncio.Semaphore(CONCURRENT_DETAIL_PAGES)
     run_stats = make_run_stats()
     source_breakdown = {}
-    run_id = await create_scrape_run(supabase, "null_cover_backfill" if SCRAPER_RUN_MODE == "null_cover" else "daily_scraper")
+    run_source = "daily_scraper"
+    if SCRAPER_RUN_MODE == "null_cover":
+        run_source = "null_cover_backfill"
+    elif SCRAPER_RUN_MODE == "metadata_queue":
+        run_source = "metadata_backfill"
+    run_id = await create_scrape_run(supabase, run_source)
     run_error = None
 
     try:
@@ -1405,6 +1548,9 @@ async def scrape_videos():
 
             if SCRAPER_RUN_MODE == "null_cover":
                 run_stats, source_breakdown = await scrape_null_cover_backfill(supabase, context, semaphore)
+                await context.close()
+            elif SCRAPER_RUN_MODE == "metadata_queue":
+                run_stats, source_breakdown = await scrape_metadata_backfill(supabase, context, semaphore)
                 await context.close()
             else:
                 stealth = Stealth()
