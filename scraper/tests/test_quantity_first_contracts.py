@@ -69,6 +69,30 @@ class QuantityFirstContractsTest(unittest.TestCase):
         self.assertFalse(self.main.should_fetch_details(existing, detail_fetch_policy="none"))
         self.assertTrue(self.main.should_fetch_details(existing, detail_fetch_policy="smart"))
 
+    def test_index_mode_discovery_is_not_restricted_to_seed_tags(self):
+        seeds = [
+            {"url": "https://missav.ws/new", "tag": "new"},
+            {"url": "https://missav.ws/dm169/weekly-hot?sort=weekly_views", "tag": "weekly_hot"},
+            {"url": "https://missav.ws/dm263/monthly-hot?sort=monthly_views", "tag": "monthly_hot"},
+            {"url": "https://missav.ws/chinese-subtitle", "tag": "subtitled"},
+        ]
+        discovered = [
+            {"url": "https://missav.ws/dm114/genres/%E5%B7%A8%E4%B9%B3", "tag": "big_tits"},
+            {"url": "https://missav.ws/dm127/genres/%E4%B8%AD%E5%87%BA", "tag": "creampie"},
+        ]
+
+        widened = self.main.filter_discovered_sources_for_run(
+            seed_sources=seeds,
+            discovered_sources=discovered,
+            selected_tags={"new", "weekly_hot", "monthly_hot", "subtitled"},
+            run_mode="index",
+            manual_source_tags=False,
+        )
+
+        tags = {item["tag"] for item in widened}
+        self.assertIn("big_tits", tags)
+        self.assertIn("creampie", tags)
+
 
 if __name__ == "__main__":
     unittest.main()

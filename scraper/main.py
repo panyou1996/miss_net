@@ -331,6 +331,7 @@ def merge_stats(target: dict, delta: dict | None):
 
 def resolve_run_configuration():
     selected_tags = set(SCRAPER_SOURCE_TAGS)
+    manual_source_tags = bool(SCRAPER_SOURCE_TAGS)
     detail_fetch_policy = DETAIL_FETCH_POLICY or "smart"
 
     if SCRAPER_RUN_MODE == "index":
@@ -370,6 +371,7 @@ def resolve_run_configuration():
         "run_51cg_mrds": run_51cg_mrds,
         "detail_fetch_policy": detail_fetch_policy,
         "discover_missav_sources": DISCOVER_MISSAV_SOURCES or SCRAPER_RUN_MODE == "index",
+        "manual_source_tags": manual_source_tags,
     }
 
 
@@ -477,6 +479,24 @@ def dedupe_sources(sources: list[dict]) -> list[dict]:
     return output
 
 
+def filter_discovered_sources_for_run(
+    seed_sources: list[dict],
+    discovered_sources: list[dict],
+    selected_tags: set[str],
+    run_mode: str,
+    manual_source_tags: bool,
+) -> list[dict]:
+    if manual_source_tags and selected_tags:
+        filtered_discovered = [source for source in discovered_sources if source.get("tag") in selected_tags]
+    elif run_mode == "index":
+        filtered_discovered = list(discovered_sources)
+    elif selected_tags:
+        filtered_discovered = [source for source in discovered_sources if source.get("tag") in selected_tags]
+    else:
+        filtered_discovered = list(discovered_sources)
+    return dedupe_sources(seed_sources + filtered_discovered)
+
+
 async def discover_missav_sources(page, seed_sources: list[dict], selected_tags: set[str], limit: int) -> list[dict]:
     discovered = []
     seen = {source["url"] for source in seed_sources}
@@ -500,8 +520,6 @@ async def discover_missav_sources(page, seed_sources: list[dict], selected_tags:
                     continue
                 tag = canonicalize_taxonomy_value(link.get("text")) or derive_source_tag_from_url(href)
                 if not tag:
-                    continue
-                if selected_tags and tag not in selected_tags:
                     continue
                 if href not in seen:
                     seen.add(href)
@@ -1215,11 +1233,18 @@ async def scrape_videos():
 
             missav_sources = run_config["missav_sources"]
             if run_config["discover_missav_sources"] and missav_sources:
-                missav_sources = await discover_missav_sources(
+                discovered_sources = await discover_missav_sources(
                     list_page,
                     missav_sources,
                     set(run_config["selected_tags"]),
                     DISCOVERED_SOURCE_LIMIT,
+                )
+                missav_sources = filter_discovered_sources_for_run(
+                    seed_sources=run_config["missav_sources"],
+                    discovered_sources=[source for source in discovered_sources if source not in run_config["missav_sources"]],
+                    selected_tags=set(run_config["selected_tags"]),
+                    run_mode=run_config["mode"],
+                    manual_source_tags=run_config["manual_source_tags"],
                 )
                 print(f"[Discovery] Using {len(missav_sources)} MissAV sources after discovery.")
 
