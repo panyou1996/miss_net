@@ -5,6 +5,44 @@ on:
     # Runs at 03:00 UTC every day
     - cron: '0 3 * * *'
   workflow_dispatch:
+    inputs:
+      run_mode:
+        description: 'Run mode: sample for quick validation, full for daily breadth'
+        required: true
+        default: 'sample'
+        type: choice
+        options:
+          - sample
+          - full
+      source_tags:
+        description: 'Comma-separated source tags (e.g. new,weekly_hot,monthly_hot). Empty means all/default for mode.'
+        required: false
+        default: 'new,weekly_hot,monthly_hot'
+      missav_max_pages:
+        description: 'Max MissAV pages to scan'
+        required: false
+        default: '5'
+      cg_max_pages:
+        description: 'Max 51CG pages to scan'
+        required: false
+        default: '1'
+      skip_51cg:
+        description: 'Skip 51CG sources during manual runs'
+        required: true
+        default: true
+        type: boolean
+      concurrent_detail_pages:
+        description: 'Concurrent detail pages'
+        required: false
+        default: '4'
+      early_stop_streak:
+        description: 'Consecutive stale pages before early stop'
+        required: false
+        default: '2'
+      early_stop_min_page:
+        description: 'Minimum page before early stop can kick in'
+        required: false
+        default: '3'
 
 concurrency:
   group: daily-video-scraper
@@ -47,9 +85,14 @@ jobs:
         SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         HEADLESS: "true"
         USER_DATA_DIR: scraper/user_data
-        MISSAV_MAX_PAGES: ${{ vars.MISSAV_MAX_PAGES || '50' }}
-        CG_MAX_PAGES: ${{ vars.CG_MAX_PAGES || '3' }}
-        CONCURRENT_DETAIL_PAGES: ${{ vars.CONCURRENT_DETAIL_PAGES || '4' }}
+        SCRAPER_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && (inputs.run_mode || 'sample') || 'full' }}
+        SCRAPER_SOURCE_TAGS: ${{ github.event_name == 'workflow_dispatch' && inputs.source_tags || '' }}
+        MISSAV_MAX_PAGES: ${{ github.event_name == 'workflow_dispatch' && (inputs.missav_max_pages || '5') || (vars.MISSAV_MAX_PAGES || '50') }}
+        CG_MAX_PAGES: ${{ github.event_name == 'workflow_dispatch' && (inputs.cg_max_pages || '1') || (vars.CG_MAX_PAGES || '3') }}
+        CONCURRENT_DETAIL_PAGES: ${{ github.event_name == 'workflow_dispatch' && (inputs.concurrent_detail_pages || '4') || (vars.CONCURRENT_DETAIL_PAGES || '4') }}
+        SKIP_51CG: ${{ github.event_name == 'workflow_dispatch' && (inputs.skip_51cg && 'true' || 'false') || 'false' }}
+        EARLY_STOP_STREAK: ${{ github.event_name == 'workflow_dispatch' && (inputs.early_stop_streak || '2') || (vars.EARLY_STOP_STREAK || '3') }}
+        EARLY_STOP_MIN_PAGE: ${{ github.event_name == 'workflow_dispatch' && (inputs.early_stop_min_page || '3') || (vars.EARLY_STOP_MIN_PAGE || '5') }}
         SUPABASE_UPSERT_CHUNK_SIZE: ${{ vars.SUPABASE_UPSERT_CHUNK_SIZE || '150' }}
         SUPABASE_MAX_RETRIES: ${{ vars.SUPABASE_MAX_RETRIES || '4' }}
         SUPABASE_RETRY_BASE_SECONDS: ${{ vars.SUPABASE_RETRY_BASE_SECONDS || '1.2' }}

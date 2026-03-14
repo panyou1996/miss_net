@@ -131,6 +131,13 @@ def env_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in ("1", "true", "yes", "on")
 
 
+def env_csv(name: str) -> list[str]:
+    value = os.environ.get(name, "")
+    if not value:
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
 MISSAV_MAX_PAGES = env_positive_int("MISSAV_MAX_PAGES", 50)
 CG_MAX_PAGES = env_positive_int("CG_MAX_PAGES", 3)
 CONCURRENT_DETAIL_PAGES = env_positive_int("CONCURRENT_DETAIL_PAGES", 4)
@@ -149,6 +156,9 @@ BLOCK_HEAVY_RESOURCES = env_bool("BLOCK_HEAVY_RESOURCES", True)
 BLOCKED_RESOURCE_TYPES = {"image", "media", "font"}
 EARLY_STOP_STREAK = env_positive_int("EARLY_STOP_STREAK", 3)
 EARLY_STOP_MIN_PAGE = env_positive_int("EARLY_STOP_MIN_PAGE", 5)
+SCRAPER_RUN_MODE = os.environ.get("SCRAPER_RUN_MODE", "full").strip().lower()
+SCRAPER_SOURCE_TAGS = env_csv("SCRAPER_SOURCE_TAGS")
+SKIP_51CG = env_bool("SKIP_51CG", False)
 
 
 def ordered_unique(items):
@@ -254,6 +264,39 @@ def merge_stats(target: dict, delta: dict | None):
     for key in target.keys():
         target[key] += int(delta.get(key, 0))
     return target
+
+
+def resolve_run_configuration():
+    selected_tags = set(SCRAPER_SOURCE_TAGS)
+
+    if SCRAPER_RUN_MODE == "sample":
+        if not selected_tags:
+            selected_tags = {"new", "weekly_hot", "monthly_hot"}
+        missav_pages = min(MISSAV_MAX_PAGES, 5)
+        cg_pages = min(CG_MAX_PAGES, 1)
+        early_stop_streak = min(EARLY_STOP_STREAK, 2)
+        early_stop_min_page = min(EARLY_STOP_MIN_PAGE, 3)
+    else:
+        missav_pages = MISSAV_MAX_PAGES
+        cg_pages = CG_MAX_PAGES
+        early_stop_streak = EARLY_STOP_STREAK
+        early_stop_min_page = EARLY_STOP_MIN_PAGE
+
+    missav_sources = [source for source in SOURCES if not selected_tags or source["tag"] in selected_tags]
+    run_51cg_main = not SKIP_51CG and (not selected_tags or "51cg" in selected_tags)
+    run_51cg_mrds = not SKIP_51CG and (not selected_tags or "51mrds" in selected_tags)
+
+    return {
+        "mode": SCRAPER_RUN_MODE,
+        "selected_tags": sorted(selected_tags),
+        "missav_pages": missav_pages,
+        "cg_pages": cg_pages,
+        "early_stop_streak": early_stop_streak,
+        "early_stop_min_page": early_stop_min_page,
+        "missav_sources": missav_sources,
+        "run_51cg_main": run_51cg_main,
+        "run_51cg_mrds": run_51cg_mrds,
+    }
 
 
 def merge_video_record(video: dict, existing: dict | None) -> dict:
@@ -817,14 +860,15 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_t
     page_stats["stale_page"] = False
     return page_stats
 
-async def scrape_51cg_feed(context, supabase, semaphore, detail_pages, base_url, source_tag="51cg"):
+async def scrape_51cg_feed(context, supabase, semaphore, detail_pages, base_url, source_tag="51cg", max_pages=None):
     print(f"\n>>> Starting Source: {source_tag.upper()} ({base_url}) <<<")
     
     list_page = await context.new_page()
     source_stats = make_run_stats()
+    total_pages = max_pages or CG_MAX_PAGES
     
     try:
-        for page_num in range(1, CG_MAX_PAGES + 1):
+        for page_num in range(1, total_pages + 1):
             url = base_url if page_num == 1 else f"{base_url}page/{page_num}/"
             print(f"[{source_tag.upper()}] Page {page_num}...")
             
@@ -925,16 +969,22 @@ async def scrape_videos():
     supabase: Client = None
     if SUPABASE_URL and SUPABASE_KEY:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    run_config = resolve_run_configuration()
     
     HEADLESS = os.environ.get("HEADLESS", "true").lower() == "true"
     USER_DATA_DIR = os.environ.get("USER_DATA_DIR", os.path.join(os.getcwd(), "user_data"))
     print(
-        f"[Config] HEADLESS={HEADLESS} | MISSAV_MAX_PAGES={MISSAV_MAX_PAGES} | "
-        f"CG_MAX_PAGES={CG_MAX_PAGES} | CONCURRENT_DETAIL_PAGES={CONCURRENT_DETAIL_PAGES} | "
+        f"[Config] HEADLESS={HEADLESS} | RUN_MODE={run_config['mode']} | "
+        f"MISSAV_MAX_PAGES={run_config['missav_pages']} | "
+        f"CG_MAX_PAGES={run_config['cg_pages']} | CONCURRENT_DETAIL_PAGES={CONCURRENT_DETAIL_PAGES} | "
         f"UPSERT_CHUNK={SUPABASE_UPSERT_CHUNK_SIZE} | RETRIES={SUPABASE_MAX_RETRIES} | "
-        f"EARLY_STOP_STREAK={EARLY_STOP_STREAK} | EARLY_STOP_MIN_PAGE={EARLY_STOP_MIN_PAGE} | "
+        f"EARLY_STOP_STREAK={run_config['early_stop_streak']} | EARLY_STOP_MIN_PAGE={run_config['early_stop_min_page']} | "
+        f"SOURCE_TAGS={run_config['selected_tags'] or 'ALL'} | SKIP_51CG={SKIP_51CG} | "
         f"BLOCK_HEAVY_RESOURCES={BLOCK_HEAVY_RESOURCES}"
     )
+    if not run_config["missav_sources"] and not run_config["run_51cg_main"] and not run_config["run_51cg_mrds"]:
+        print("[Config] No sources selected. Exiting without work.")
+        return
     semaphore = asyncio.Semaphore(CONCURRENT_DETAIL_PAGES)
     run_stats = make_run_stats()
     source_breakdown = {}
@@ -975,22 +1025,40 @@ async def scrape_videos():
                 await stealth.apply_stealth_async(dp)
                 detail_pages.append(dp)
 
-            source_stats = await scrape_51cg_feed(context, supabase, semaphore, detail_pages, "https://51cg1.com/", "51cg")
-            source_breakdown["51cg"] = source_stats
-            merge_stats(run_stats, source_stats)
+            if run_config["run_51cg_main"]:
+                source_stats = await scrape_51cg_feed(
+                    context,
+                    supabase,
+                    semaphore,
+                    detail_pages,
+                    "https://51cg1.com/",
+                    "51cg",
+                    max_pages=run_config["cg_pages"],
+                )
+                source_breakdown["51cg"] = source_stats
+                merge_stats(run_stats, source_stats)
 
-            source_stats = await scrape_51cg_feed(context, supabase, semaphore, detail_pages, "https://51cg1.com/category/mrds/", "51mrds")
-            source_breakdown["51mrds"] = source_stats
-            merge_stats(run_stats, source_stats)
+            if run_config["run_51cg_mrds"]:
+                source_stats = await scrape_51cg_feed(
+                    context,
+                    supabase,
+                    semaphore,
+                    detail_pages,
+                    "https://51cg1.com/category/mrds/",
+                    "51mrds",
+                    max_pages=run_config["cg_pages"],
+                )
+                source_breakdown["51mrds"] = source_stats
+                merge_stats(run_stats, source_stats)
 
-            for source in SOURCES:
+            for source in run_config["missav_sources"]:
                 base_url = source["url"]
                 tag = source["tag"]
                 source_stats = make_run_stats()
                 stale_streak = 0
                 print(f"\n>>> Starting Category: {tag} <<<")
 
-                for page_num in range(1, MISSAV_MAX_PAGES + 1):
+                for page_num in range(1, run_config["missav_pages"] + 1):
                     current_url = build_paged_url(base_url, page_num)
                     print(f"[{tag.upper()}] Page {page_num}...")
                     try:
@@ -1072,7 +1140,7 @@ async def scrape_videos():
                         else:
                             stale_streak = 0
 
-                        if page_num >= EARLY_STOP_MIN_PAGE and stale_streak >= EARLY_STOP_STREAK:
+                        if page_num >= run_config["early_stop_min_page"] and stale_streak >= run_config["early_stop_streak"]:
                             print(f"[{tag.upper()}] Early stop after {stale_streak} stale pages (page {page_num}).")
                             break
 
