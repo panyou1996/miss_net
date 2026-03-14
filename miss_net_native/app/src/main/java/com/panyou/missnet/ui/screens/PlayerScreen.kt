@@ -1387,7 +1387,7 @@ fun RecommendItem(video: Video, onClick: () -> Unit, modifier: Modifier = Modifi
                     modifier = Modifier.fillMaxSize()
                 )
                 // 播放时长徽章
-                video.duration?.let { dur ->
+                video.displayDurationOrNull?.let { dur ->
                     DurationBadge(
                         text = dur,
                         modifier = Modifier
@@ -1413,7 +1413,7 @@ fun RecommendItem(video: Video, onClick: () -> Unit, modifier: Modifier = Modifi
                 )
                 Text(
                     text = buildString {
-                        append(video.actors.firstOrNull() ?: "未知演员")
+                        append(video.primaryActorOrNull ?: video.metadataStatusLabel)
                         video.displayDate?.takeIf { it.isNotBlank() }?.let {
                             append(" · ")
                             append(it)
@@ -1425,7 +1425,7 @@ fun RecommendItem(video: Video, onClick: () -> Unit, modifier: Modifier = Modifi
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = video.tags.take(2).joinToString(" · ").ifBlank { "点击后切换当前播放内容" },
+                    text = video.tags.take(2).joinToString(" · ").ifBlank { video.metadataStatusLabel },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

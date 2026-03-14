@@ -21,8 +21,8 @@ import com.panyou.missnet.ui.theme.ContainerTokens
 @Composable
 fun RelatedVideoItem(
     title: String,
-    coverUrl: String,
-    duration: String,
+    coverUrl: String?,
+    duration: String?,
     views: String,
     date: String,
     onClick: () -> Unit
@@ -48,12 +48,14 @@ fun RelatedVideoItem(
                 modifier = Modifier.fillMaxSize()
             )
             // Duration badge - using unified DurationBadge
-            DurationBadge(
-                text = duration,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(6.dp)
-            )
+            duration?.let {
+                DurationBadge(
+                    text = it,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(6.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(12.dp))

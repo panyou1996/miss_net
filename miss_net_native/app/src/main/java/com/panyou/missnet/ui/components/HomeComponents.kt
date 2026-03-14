@@ -110,7 +110,7 @@ fun VerticalVideoCard(
             overflow = TextOverflow.Ellipsis
         )
         Text(
-            text = video.actors.firstOrNull() ?: "未知演员",
+            text = video.primaryActorOrNull ?: video.metadataStatusLabel,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1
@@ -182,7 +182,7 @@ fun HeroCarouselItem(
                     // Actor tag - using unified SmallBadge
                     if (video.actors.isNotEmpty()) {
                         SmallBadge(
-                            text = video.actors.first(),
+                            text = video.primaryActorOrNull ?: video.metadataStatusLabel,
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -243,7 +243,7 @@ fun VideoFeedCard(
                     )
                     // Duration Badge - using unified component
                     DurationBadge(
-                        text = video.duration ?: "HD",
+                        text = video.displayDurationOrNull ?: video.metadataStatusLabel,
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(4.dp)
@@ -269,7 +269,7 @@ fun VideoFeedCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (video.actors.isNotEmpty()) {
                             Text(
-                                text = video.actors.first(),
+                                text = video.primaryActorOrNull ?: video.metadataStatusLabel,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )

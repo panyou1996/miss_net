@@ -218,6 +218,8 @@ private data class HomePayloadRow(
     @SerialName("created_at") val createdAt: String? = null,
     val actors: List<String> = emptyList(),
     val tags: List<String> = emptyList(),
+    @SerialName("inventory_status") val inventoryStatus: String? = null,
+    @SerialName("detail_status") val detailStatus: String? = null,
 ) {
     fun toVideo(): Video = Video(
         id = id,
@@ -229,7 +231,9 @@ private data class HomePayloadRow(
         sourceReleaseDate = sourceReleaseDate,
         createdAt = createdAt,
         actors = actors,
-        tags = tags
+        tags = tags,
+        inventoryStatus = inventoryStatus,
+        detailStatus = detailStatus
     )
 }
 

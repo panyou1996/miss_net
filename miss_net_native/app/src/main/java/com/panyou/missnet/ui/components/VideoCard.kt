@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.sp
 fun VideoCard(
     videoId: String,
     title: String,
-    coverUrl: String,
+    coverUrl: String?,
     duration: String? = null,
     progress: Float? = null,
     showFavoriteBadge: Boolean = false,
