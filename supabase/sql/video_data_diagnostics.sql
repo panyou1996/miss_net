@@ -9,6 +9,12 @@ from public.videos
 group by cover_status
 order by count(*) desc;
 
+-- Inventory status distribution
+select inventory_status, count(*)
+from public.videos
+group by inventory_status
+order by count(*) desc;
+
 -- Detail status distribution
 select detail_status, count(*)
 from public.videos

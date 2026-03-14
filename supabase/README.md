@@ -38,6 +38,20 @@ Use `workflow_dispatch` with these values first, instead of a full scrape:
 
 This keeps validation closer to a 10–20 minute sample run instead of a broad multi-hour sweep.
 
+## Quantity-first indexing run
+
+For fast, low-cost coverage expansion, prefer a manual run like:
+
+- `run_mode=index`
+- `detail_fetch_policy=none`
+- `discover_missav_sources=true`
+- `discovered_source_limit=60`
+- `missav_max_pages=20`
+- `cg_max_pages=0`
+- `skip_51cg=true`
+
+This mode prioritizes list-page indexing into Supabase and avoids detail-page cost.
+
 ## Targeted backfill workflow
 
 There is also a dedicated GitHub Action:

@@ -12,6 +12,9 @@ as $$
   end;
 $$;
 
+alter table public.videos
+  add column if not exists inventory_status text;
+
 create or replace function public.video_has_meaningful_duration(input_duration text)
 returns boolean
 language sql
@@ -21,6 +24,32 @@ as $$
     when input_duration is null then false
     when btrim(input_duration) in ('', '0', '00:00', '00:00:00', 'Unknown') then false
     else true
+  end;
+$$;
+
+create or replace function public.video_inventory_status(
+  input_external_id text,
+  input_title text,
+  input_source_url text,
+  input_cover_url text,
+  input_release_date text,
+  input_actors text[],
+  input_tags text[]
+)
+returns text
+language sql
+immutable
+as $$
+  select case
+    when coalesce(btrim(input_external_id), '') = '' or coalesce(btrim(input_title), '') = '' or coalesce(btrim(input_source_url), '') = '' then 'pending'
+    when public.video_cover_status(input_cover_url) = 'valid'
+      and (
+        public.video_has_release_date(input_release_date)
+        or coalesce(array_length(input_actors, 1), 0) > 0
+        or coalesce(array_length(input_tags, 1), 0) > 0
+      ) then 'detail_ready'
+    when public.video_cover_status(input_cover_url) = 'valid' then 'cover_ready'
+    else 'indexed'
   end;
 $$;
 
@@ -49,14 +78,12 @@ immutable
 as $$
   select case
     when public.video_cover_status(input_cover_url) = 'valid'
-      and public.video_has_meaningful_duration(input_duration)
       and (
         public.video_has_release_date(input_release_date)
         or coalesce(array_length(input_actors, 1), 0) > 0
         or coalesce(array_length(input_tags, 1), 0) > 0
       ) then 'success'
     when public.video_cover_status(input_cover_url) = 'valid'
-      or public.video_has_meaningful_duration(input_duration)
       or public.video_has_release_date(input_release_date)
       or coalesce(array_length(input_actors, 1), 0) > 0
       or coalesce(array_length(input_tags, 1), 0) > 0 then 'partial'
@@ -66,6 +93,7 @@ $$;
 
 update public.videos
 set cover_status = public.video_cover_status(cover_url),
+    inventory_status = public.video_inventory_status(external_id, title, source_url, cover_url, release_date, actors, tags),
     detail_status = public.video_detail_status(cover_url, duration, release_date, actors, tags),
     detail_fetched_at = case
       when public.video_detail_status(cover_url, duration, release_date, actors, tags) in ('success', 'partial')
@@ -85,6 +113,7 @@ where release_date is not null
 
 update public.videos
 set cover_status = public.video_cover_status(cover_url),
+    inventory_status = public.video_inventory_status(external_id, title, source_url, cover_url, release_date, actors, tags),
     detail_status = public.video_detail_status(cover_url, duration, release_date, actors, tags),
     detail_fetched_at = case
       when public.video_detail_status(cover_url, duration, release_date, actors, tags) in ('success', 'partial')

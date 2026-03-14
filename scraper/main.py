@@ -8,7 +8,7 @@ import json
 import random
 import re
 from datetime import datetime, timezone
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse, unquote
 
 # Load environment variables from .env file if present
 load_dotenv()
@@ -159,6 +159,9 @@ EARLY_STOP_MIN_PAGE = env_positive_int("EARLY_STOP_MIN_PAGE", 5)
 SCRAPER_RUN_MODE = os.environ.get("SCRAPER_RUN_MODE", "full").strip().lower()
 SCRAPER_SOURCE_TAGS = env_csv("SCRAPER_SOURCE_TAGS")
 SKIP_51CG = env_bool("SKIP_51CG", False)
+DETAIL_FETCH_POLICY = os.environ.get("DETAIL_FETCH_POLICY", "").strip().lower()
+DISCOVER_MISSAV_SOURCES = env_bool("DISCOVER_MISSAV_SOURCES", False)
+DISCOVERED_SOURCE_LIMIT = env_positive_int("DISCOVERED_SOURCE_LIMIT", 60)
 
 
 def ordered_unique(items):
@@ -263,20 +266,41 @@ def has_non_empty_list(items) -> bool:
     return len(ordered_unique(items or [])) > 0
 
 
+def has_index_minimum(record: dict | None) -> bool:
+    if not record:
+        return False
+    return bool(str(record.get("external_id") or "").strip()) and bool(str(record.get("title") or "").strip()) and bool(str(record.get("source_url") or "").strip())
+
+
+def classify_inventory_status(record: dict | None) -> str:
+    if not has_index_minimum(record):
+        return "pending"
+
+    has_cover = has_valid_cover(record.get("cover_url"))
+    has_date = has_release_date(record.get("release_date"))
+    has_actors = has_non_empty_list(record.get("actors"))
+    has_tags = has_non_empty_list(record.get("tags"))
+
+    if has_cover and (has_date or has_actors or has_tags):
+        return "detail_ready"
+    if has_cover:
+        return "cover_ready"
+    return "indexed"
+
+
 def classify_detail_status(record: dict | None) -> str:
     if not record:
         return "pending"
 
     has_cover = has_valid_cover(record.get("cover_url"))
-    has_duration = has_meaningful_duration(record.get("duration"))
     has_date = has_release_date(record.get("release_date"))
     has_actors = has_non_empty_list(record.get("actors"))
     has_tags = has_non_empty_list(record.get("tags"))
 
-    if has_cover and has_duration and (has_date or has_actors or has_tags):
+    if has_cover and (has_date or has_actors or has_tags):
         return "success"
 
-    if has_cover or has_duration or has_date or has_actors or has_tags:
+    if has_cover or has_date or has_actors or has_tags:
         return "partial"
 
     return "pending"
@@ -307,8 +331,17 @@ def merge_stats(target: dict, delta: dict | None):
 
 def resolve_run_configuration():
     selected_tags = set(SCRAPER_SOURCE_TAGS)
+    detail_fetch_policy = DETAIL_FETCH_POLICY or "smart"
 
-    if SCRAPER_RUN_MODE == "sample":
+    if SCRAPER_RUN_MODE == "index":
+        if not selected_tags:
+            selected_tags = {"new", "weekly_hot", "monthly_hot", "subtitled"}
+        missav_pages = max(MISSAV_MAX_PAGES, 20)
+        cg_pages = 0 if SKIP_51CG else min(CG_MAX_PAGES, 1)
+        early_stop_streak = max(EARLY_STOP_STREAK, 6)
+        early_stop_min_page = max(EARLY_STOP_MIN_PAGE, 8)
+        detail_fetch_policy = "none"
+    elif SCRAPER_RUN_MODE == "sample":
         if not selected_tags:
             selected_tags = {"new", "weekly_hot", "monthly_hot"}
         missav_pages = min(MISSAV_MAX_PAGES, 5)
@@ -335,6 +368,8 @@ def resolve_run_configuration():
         "missav_sources": missav_sources,
         "run_51cg_main": run_51cg_main,
         "run_51cg_mrds": run_51cg_mrds,
+        "detail_fetch_policy": detail_fetch_policy,
+        "discover_missav_sources": DISCOVER_MISSAV_SOURCES or SCRAPER_RUN_MODE == "index",
     }
 
 
@@ -358,6 +393,7 @@ def merge_video_record(video: dict, existing: dict | None) -> dict:
     merged["tags"] = normalize_taxonomy_values((existing.get("tags") or []) + (merged.get("tags") or []))
     merged["categories"] = normalize_taxonomy_values((existing.get("categories") or []) + (merged.get("categories") or []))
     merged["cover_status"] = classify_cover_status(merged.get("cover_url"))
+    merged["inventory_status"] = classify_inventory_status(merged)
     merged["detail_status"] = classify_detail_status(merged)
     merged["detail_fetched_at"] = (
         datetime.now(timezone.utc).isoformat()
@@ -368,7 +404,12 @@ def merge_video_record(video: dict, existing: dict | None) -> dict:
     return merged
 
 
-def should_fetch_details(existing: dict | None) -> bool:
+def should_fetch_details(existing: dict | None, detail_fetch_policy: str = "smart") -> bool:
+    policy = (detail_fetch_policy or "smart").strip().lower()
+    if policy == "none":
+        return False
+    if policy == "force":
+        return True
     if not existing:
         return True
     return classify_detail_status(existing) != "success"
@@ -409,6 +450,69 @@ def build_paged_url(base_url: str, page_num: int) -> str:
     return urlunparse(parsed._replace(query=urlencode(query)))
 
 
+def derive_source_tag_from_url(source_url: str) -> str | None:
+    parsed = urlparse(source_url)
+    path = parsed.path.strip("/")
+    if not path:
+        return None
+    last_segment = unquote(path.split("/")[-1])
+    if not last_segment:
+        return None
+    candidate = canonicalize_taxonomy_value(last_segment.replace("-", "_"))
+    if candidate:
+        return candidate
+    return re.sub(r"[^a-z0-9]+", "_", last_segment.lower()).strip("_") or None
+
+
+def dedupe_sources(sources: list[dict]) -> list[dict]:
+    seen_urls = set()
+    output = []
+    for source in sources:
+        url = str(source.get("url") or "").strip()
+        tag = str(source.get("tag") or "").strip()
+        if not url or not tag or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        output.append({"url": url, "tag": tag})
+    return output
+
+
+async def discover_missav_sources(page, seed_sources: list[dict], selected_tags: set[str], limit: int) -> list[dict]:
+    discovered = []
+    seen = {source["url"] for source in seed_sources}
+    seed_candidates = seed_sources[: min(len(seed_sources), 6)]
+    for seed in seed_candidates:
+        try:
+            await page.goto(seed["url"], timeout=60000, wait_until="domcontentloaded")
+            await jitter_sleep(0.15, 0.35)
+            links = await page.evaluate("""() => {
+                return Array.from(document.querySelectorAll('a[href]'))
+                  .map((node) => ({
+                    href: node.href || '',
+                    text: (node.innerText || node.textContent || '').trim()
+                  }))
+            }""")
+            for link in links:
+                href = str(link.get("href") or "").strip()
+                if not href.startswith("https://missav.ws/"):
+                    continue
+                if "/genres/" not in href and "chinese-subtitle" not in href and "uncensored-leak" not in href:
+                    continue
+                tag = canonicalize_taxonomy_value(link.get("text")) or derive_source_tag_from_url(href)
+                if not tag:
+                    continue
+                if selected_tags and tag not in selected_tags:
+                    continue
+                if href not in seen:
+                    seen.add(href)
+                    discovered.append({"url": href.split("?")[0], "tag": tag})
+                if len(discovered) >= limit:
+                    return dedupe_sources(seed_sources + discovered)
+        except Exception as e:
+            print(f"[Discovery] Seed {seed['tag']} failed: {e}")
+    return dedupe_sources(seed_sources + discovered)
+
+
 def normalize_video_record(video: dict) -> dict:
     record = dict(video)
     record["is_active"] = True
@@ -420,6 +524,7 @@ def normalize_video_record(video: dict) -> dict:
     record["release_date"] = normalize_release_date_text(record.get("release_date"))
     record["cover_url"] = normalize_cover_url(record.get("cover_url"))
     record["cover_status"] = classify_cover_status(record.get("cover_url"))
+    record["inventory_status"] = classify_inventory_status(record)
     record["detail_status"] = classify_detail_status(record)
     if record["detail_status"] in {"success", "partial"}:
         record["detail_fetched_at"] = record.get("detail_fetched_at") or datetime.now(timezone.utc).isoformat()
@@ -724,7 +829,7 @@ async def get_51cg_details(page, url):
         print(f"  51CG Detail Fetch Error: {e}")
         return {"_status": "error", "tags": [], "actors": [], "title": None, "release_date": None, "videos": []}
 
-async def process_page_batch(videos, source_tag, detail_pages, supabase, semaphore):
+async def process_page_batch(videos, source_tag, detail_pages, supabase, semaphore, detail_fetch_policy="smart"):
     if not videos:
         return {"stale_page": True, **make_run_stats()}
 
@@ -738,7 +843,7 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
             res = await execute_with_retry(
                 label=f"{source_tag}-metadata-check",
                 fn=lambda: supabase.table("videos").select(
-                    "external_id, title, cover_url, cover_status, source_url, source_site, duration, actors, release_date, tags, categories, detail_status, detail_fetched_at"
+                    "external_id, title, cover_url, cover_status, source_url, source_site, duration, actors, release_date, tags, categories, detail_status, detail_fetched_at, inventory_status"
                 ).in_("external_id", external_ids).execute()
             )
             for record in res.data:
@@ -757,7 +862,7 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
             page_stats["new_external_count"] += 1
         elif classify_cover_status(existing.get("cover_url")) == "missing":
             cover_needed_count += 1
-        if not should_fetch_details(existing):
+        if not should_fetch_details(existing, detail_fetch_policy=detail_fetch_policy):
             print(f"  [Skip] {v['title'][:30]}... (Metadata exists)")
             page_stats["existing_complete_count"] += 1
             rows_to_upsert.append(
@@ -812,7 +917,7 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
     page_stats["stale_page"] = page_stats["new_external_count"] == 0 and details_needed_count == 0 and cover_needed_count == 0
     return page_stats
 
-async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_tag="51cg"):
+async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_tag="51cg", detail_fetch_policy="smart"):
     if not videos:
         return {"stale_page": True, **make_run_stats()}
 
@@ -826,7 +931,7 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_t
             res = await execute_with_retry(
                 label=f"{source_tag}-metadata-check",
                 fn=lambda: supabase.table("videos").select(
-                    "external_id, title, cover_url, cover_status, source_url, source_site, duration, actors, release_date, tags, categories, detail_status, detail_fetched_at"
+                    "external_id, title, cover_url, cover_status, source_url, source_site, duration, actors, release_date, tags, categories, detail_status, detail_fetched_at, inventory_status"
                 ).in_("external_id", external_ids).execute()
             )
             for record in res.data:
@@ -839,6 +944,12 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_t
     for v in videos:
         if not metadata_map.get(v["external_id"]):
             page_stats["new_external_count"] += 1
+        if not should_fetch_details(metadata_map.get(v["external_id"]), detail_fetch_policy=detail_fetch_policy):
+            v['categories'] = normalize_taxonomy_values([source_tag] + (v.get('categories') or []) + ["51吃瓜"])
+            v['tags'] = normalize_taxonomy_values([source_tag] + (v.get('tags') or []))
+            rows_to_upsert.append(merge_video_record(v, metadata_map.get(v['external_id'])))
+            page_stats["existing_complete_count"] += 1
+            continue
         page_stats["detail_attempted_count"] += 1
         async def scrape_and_prepare(vid=v):
             async with semaphore:
@@ -908,7 +1019,7 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_t
     page_stats["stale_page"] = False
     return page_stats
 
-async def scrape_51cg_feed(context, supabase, semaphore, detail_pages, base_url, source_tag="51cg", max_pages=None):
+async def scrape_51cg_feed(context, supabase, semaphore, detail_pages, base_url, source_tag="51cg", max_pages=None, detail_fetch_policy="smart"):
     print(f"\n>>> Starting Source: {source_tag.upper()} ({base_url}) <<<")
     
     list_page = await context.new_page()
@@ -1003,7 +1114,7 @@ async def scrape_51cg_feed(context, supabase, semaphore, detail_pages, base_url,
                 print(f"[{source_tag.upper()}] No videos found on this page.")
                 break
 
-            page_stats = await process_51cg_batch(videos, detail_pages, supabase, semaphore, source_tag)
+            page_stats = await process_51cg_batch(videos, detail_pages, supabase, semaphore, source_tag, detail_fetch_policy=detail_fetch_policy)
             merge_stats(source_stats, page_stats)
             await jitter_sleep(INTER_PAGE_DELAY_MIN, INTER_PAGE_DELAY_MAX)
 
@@ -1027,7 +1138,8 @@ async def scrape_videos():
         f"CG_MAX_PAGES={run_config['cg_pages']} | CONCURRENT_DETAIL_PAGES={CONCURRENT_DETAIL_PAGES} | "
         f"UPSERT_CHUNK={SUPABASE_UPSERT_CHUNK_SIZE} | RETRIES={SUPABASE_MAX_RETRIES} | "
         f"EARLY_STOP_STREAK={run_config['early_stop_streak']} | EARLY_STOP_MIN_PAGE={run_config['early_stop_min_page']} | "
-        f"SOURCE_TAGS={run_config['selected_tags'] or 'ALL'} | SKIP_51CG={SKIP_51CG} | "
+        f"SOURCE_TAGS={run_config['selected_tags'] or 'ALL'} | DETAIL_FETCH_POLICY={run_config['detail_fetch_policy']} | "
+        f"DISCOVER_MISSAV_SOURCES={run_config['discover_missav_sources']} | SKIP_51CG={SKIP_51CG} | "
         f"BLOCK_HEAVY_RESOURCES={BLOCK_HEAVY_RESOURCES}"
     )
     if not run_config["missav_sources"] and not run_config["run_51cg_main"] and not run_config["run_51cg_mrds"]:
@@ -1082,6 +1194,7 @@ async def scrape_videos():
                     "https://51cg1.com/",
                     "51cg",
                     max_pages=run_config["cg_pages"],
+                    detail_fetch_policy=run_config["detail_fetch_policy"],
                 )
                 source_breakdown["51cg"] = source_stats
                 merge_stats(run_stats, source_stats)
@@ -1095,11 +1208,22 @@ async def scrape_videos():
                     "https://51cg1.com/category/mrds/",
                     "51mrds",
                     max_pages=run_config["cg_pages"],
+                    detail_fetch_policy=run_config["detail_fetch_policy"],
                 )
                 source_breakdown["51mrds"] = source_stats
                 merge_stats(run_stats, source_stats)
 
-            for source in run_config["missav_sources"]:
+            missav_sources = run_config["missav_sources"]
+            if run_config["discover_missav_sources"] and missav_sources:
+                missav_sources = await discover_missav_sources(
+                    list_page,
+                    missav_sources,
+                    set(run_config["selected_tags"]),
+                    DISCOVERED_SOURCE_LIMIT,
+                )
+                print(f"[Discovery] Using {len(missav_sources)} MissAV sources after discovery.")
+
+            for source in missav_sources:
                 base_url = source["url"]
                 tag = source["tag"]
                 source_stats = make_run_stats()
@@ -1181,7 +1305,14 @@ async def scrape_videos():
                             print(f"[{tag.upper()}] No videos found.")
                             break
 
-                        page_stats = await process_page_batch(videos, tag, detail_pages, supabase, semaphore)
+                        page_stats = await process_page_batch(
+                            videos,
+                            tag,
+                            detail_pages,
+                            supabase,
+                            semaphore,
+                            detail_fetch_policy=run_config["detail_fetch_policy"],
+                        )
                         merge_stats(source_stats, page_stats)
                         if page_stats.get("stale_page"):
                             stale_streak += 1

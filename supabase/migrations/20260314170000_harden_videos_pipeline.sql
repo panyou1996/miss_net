@@ -44,6 +44,7 @@ alter table public.videos
   add column if not exists source_release_date date,
   add column if not exists first_seen_at timestamptz,
   add column if not exists last_seen_at timestamptz,
+  add column if not exists inventory_status text,
   add column if not exists cover_status text,
   add column if not exists detail_status text,
   add column if not exists detail_fetched_at timestamptz,
@@ -56,6 +57,7 @@ alter table public.videos
 alter table public.videos
   alter column detail_fail_count set default 0,
   alter column verify_fail_count set default 0,
+  alter column inventory_status set default 'pending',
   alter column cover_status set default 'missing',
   alter column detail_status set default 'pending',
   alter column verify_status set default 'pending';
