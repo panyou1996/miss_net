@@ -234,6 +234,7 @@ def merge_video_record(video: dict, existing: dict | None) -> dict:
     if not merged.get("source_url") and existing.get("source_url"):
         merged["source_url"] = existing.get("source_url")
 
+    merged["source_site"] = merged.get("source_site") or existing.get("source_site") or infer_source_site(merged.get("source_url"))
     merged["cover_url"] = normalize_cover_url(merged.get("cover_url")) or normalize_cover_url(existing.get("cover_url"))
     merged["duration"] = normalize_duration_text(merged.get("duration")) or normalize_duration_text(existing.get("duration"))
     merged["release_date"] = normalize_release_date_text(merged.get("release_date")) or normalize_release_date_text(existing.get("release_date"))
@@ -255,6 +256,15 @@ def should_fetch_details(existing: dict | None) -> bool:
     return not (duration and (release_date or actors))
 
 
+def infer_source_site(source_url: str | None, fallback: str = "missav") -> str:
+    url = (source_url or "").lower()
+    if "51cg1.com" in url or "51cg" in url:
+        return "51cg"
+    if "missav" in url or "fourhoi.com" in url:
+        return "missav"
+    return fallback
+
+
 def build_paged_url(base_url: str, page_num: int) -> str:
     parsed = urlparse(base_url)
     query = dict(parse_qsl(parsed.query, keep_blank_values=True))
@@ -265,6 +275,7 @@ def build_paged_url(base_url: str, page_num: int) -> str:
 def normalize_video_record(video: dict) -> dict:
     record = dict(video)
     record["is_active"] = True
+    record["source_site"] = record.get("source_site") or infer_source_site(record.get("source_url"))
     record["tags"] = normalize_taxonomy_values(record.get("tags", []))
     record["categories"] = normalize_taxonomy_values(record.get("categories", []))
     record["actors"] = ordered_unique(record.get("actors", []))
@@ -494,7 +505,7 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
             res = await execute_with_retry(
                 label=f"{source_tag}-metadata-check",
                 fn=lambda: supabase.table("videos").select(
-                    "external_id, title, cover_url, source_url, duration, actors, release_date, tags, categories"
+                    "external_id, title, cover_url, source_url, source_site, duration, actors, release_date, tags, categories"
                 ).in_("external_id", external_ids).execute()
             )
             for record in res.data:
@@ -557,7 +568,7 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_t
             res = await execute_with_retry(
                 label=f"{source_tag}-metadata-check",
                 fn=lambda: supabase.table("videos").select(
-                    "external_id, title, cover_url, source_url, duration, actors, release_date, tags, categories"
+                    "external_id, title, cover_url, source_url, source_site, duration, actors, release_date, tags, categories"
                 ).in_("external_id", external_ids).execute()
             )
             for record in res.data:

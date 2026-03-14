@@ -1,6 +1,6 @@
 create extension if not exists pg_trgm;
 
-create or replace function public.normalize_known_taxonomy_aliases(values text[])
+create or replace function public.normalize_known_taxonomy_aliases(input_values text[])
 returns text[]
 language sql
 immutable
@@ -34,7 +34,7 @@ as $$
       when lower(btrim(value)) in ('51cg', '51mrds') then lower(btrim(value))
       else btrim(value)
     end as normalized
-    from unnest(coalesce(values, '{}'::text[])) as value
+    from unnest(coalesce(input_values, '{}'::text[])) as value
   ) mapped
   where normalized is not null;
 $$;
@@ -79,7 +79,7 @@ set source_site = case
     else coalesce(nullif(source_site, ''), 'unknown')
   end,
   source_release_date = case
-    when release_date ~ '^\\d{4}-\\d{2}-\\d{2}$' then release_date::date
+    when btrim(coalesce(release_date, '')) ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then btrim(release_date)::date
     else source_release_date
   end,
   first_seen_at = coalesce(first_seen_at, created_at),
