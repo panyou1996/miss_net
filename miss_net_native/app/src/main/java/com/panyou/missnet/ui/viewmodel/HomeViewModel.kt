@@ -87,7 +87,7 @@ class HomeViewModel @Inject constructor(
                 val monthlyDeferred = async { repository.getRecentVideos(limit = 10, category = "monthly_hot") }
                 val weeklyDeferred = async { repository.getRecentVideos(limit = 15, category = "weekly_hot") }
                 val uncensoredDeferred = async { repository.getRecentVideos(limit = 10, category = "uncensored") }
-                val subtitleDeferred = async { repository.getRecentVideos(limit = 10, category = "chinese_subtitle") }
+                val subtitleDeferred = async { repository.getRecentVideos(limit = 10, category = "subtitled") }
                 val vrDeferred = async { repository.getRecentVideos(limit = 10, category = "vr") }
                 val chiguaDeferred = async { repository.getRecentVideos(limit = 10, category = "51cg") }
 

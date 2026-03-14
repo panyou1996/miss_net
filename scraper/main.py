@@ -13,22 +13,57 @@ load_dotenv()
 
 # Category Mapping Rules
 CATEGORY_MAP = {
-    "School": ["校园", "学生", "制服", "女教师", "学校", "女学生", "School", "Student", "女高中生"],
-    "Office": ["OL", "职场", "公司", "秘书", "同事", "Office", "Business"],
-    "Mature": ["熟女", "人妻", "妈妈", "姨", "Mature", "Milf", "Married Woman"],
-    "Subtitled": ["中文字幕", "中文", "Subtitles", "Chinese"],
-    "Exclusive": ["独家", "Exclusive", "獨家"],
-    "Nympho": ["痴女", "Nympho", "淫亂", "淫乱"],
-    "Voyeur": ["偷拍", "盗撮", "Voyeur", "自拍"],
-    "Sister": ["姐姐", "姐", "Big Sister"],
-    "Story": ["剧情", "Drama", "Story", "劇情"],
-    "Amateur": ["素人", "业余", "Amateur"],
-    "BigTits": ["巨乳", "大胸", "Big Tits", "美乳"],
-    "Creampie": ["中出", "Creampie"],
-    "Single": ["单体", "單體作品", "Single"],
-    "Beautiful": ["美少女", "Girl"],
-    "Oral": ["口交", "Oral"],
-    "Group": ["多人", "多人数", "多人運動"],
+    "school": ["校园", "学生", "制服", "女教师", "学校", "女学生", "School", "Student", "女高中生"],
+    "office": ["OL", "职场", "公司", "秘书", "同事", "Office", "Business"],
+    "mature": ["熟女", "人妻", "妈妈", "姨", "Mature", "Milf", "Married Woman"],
+    "subtitled": ["中文字幕", "中文", "Subtitles", "Chinese"],
+    "exclusive": ["独家", "Exclusive", "獨家"],
+    "nympho": ["痴女", "Nympho", "淫亂", "淫乱"],
+    "voyeur": ["偷拍", "盗撮", "Voyeur", "自拍"],
+    "sister": ["姐姐", "姐", "Big Sister"],
+    "story": ["剧情", "Drama", "Story", "劇情"],
+    "amateur": ["素人", "业余", "Amateur"],
+    "big_tits": ["巨乳", "大胸", "Big Tits", "美乳"],
+    "creampie": ["中出", "Creampie"],
+    "single": ["单体", "單體作品", "Single"],
+    "beautiful": ["美少女", "Girl"],
+    "oral": ["口交", "Oral"],
+    "group": ["多人", "多人数", "多人運動"],
+}
+
+TAXONOMY_ALIASES = {
+    "new": "new",
+    "new_release": "new",
+    "new_releases": "new",
+    "monthly_hot": "monthly_hot",
+    "monthly": "monthly_hot",
+    "weekly_hot": "weekly_hot",
+    "weekly": "weekly_hot",
+    "uncensored": "uncensored",
+    "subtitled": "subtitled",
+    "subtitles": "subtitled",
+    "chinese_subtitle": "subtitled",
+    "中文字幕": "subtitled",
+    "exclusive": "exclusive",
+    "creampie": "creampie",
+    "single": "single",
+    "bigtits": "big_tits",
+    "big_tits": "big_tits",
+    "mature": "mature",
+    "amateur": "amateur",
+    "beautiful": "beautiful",
+    "oral": "oral",
+    "group": "group",
+    "nympho": "nympho",
+    "school": "school",
+    "voyeur": "voyeur",
+    "story": "story",
+    "sister": "sister",
+    "office": "office",
+    "pov": "pov",
+    "vr": "vr",
+    "51cg": "51cg",
+    "51mrds": "51mrds",
 }
 
 # Target URLs
@@ -37,26 +72,26 @@ SOURCES = [
     {"url": "https://missav.ws/dm263/monthly-hot?sort=monthly_views", "tag": "monthly_hot"},
     {"url": "https://missav.ws/dm169/weekly-hot?sort=weekly_views", "tag": "weekly_hot"},
     {"url": "https://missav.ws/dm628/uncensored-leak", "tag": "uncensored"},
-    {"url": "https://missav.ws/chinese-subtitle", "tag": "Subtitled"},
-    {"url": "https://missav.ws/dm136/genres/%E7%8D%A8%E5%AE%B6", "tag": "Exclusive"},
-    {"url": "https://missav.ws/dm127/genres/%E4%B8%AD%E5%87%BA", "tag": "Creampie"},
-    {"url": "https://missav.ws/dm119/genres/%E5%96%AE%E9%AB%94%E4%BD%9C%E5%93%81", "tag": "Single"},
-    {"url": "https://missav.ws/dm114/genres/%E5%B7%A8%E4%B9%B3", "tag": "BigTits"},
-    {"url": "https://missav.ws/dm68/genres/%E4%BA%BA%E5%A6%BB", "tag": "Mature"},
-    {"url": "https://missav.ws/dm107/genres/%E7%86%9F%E5%A5%B3", "tag": "Mature"},
-    {"url": "https://missav.ws/dm98/genres/%E7%B4%A0%E4%BA%BA", "tag": "Amateur"},
-    {"url": "https://missav.ws/dm434/genres/%E7%BE%8E%E5%B0%91%E5%A5%B3", "tag": "Beautiful"},
-    {"url": "https://missav.ws/dm1295/genres/%E5%8F%A3%E4%BA%A4", "tag": "Oral"},
-    {"url": "https://missav.ws/dm311/genres/%E5%A4%9A%E4%BA%BA%E9%81%8B%E5%8B%95", "tag": "Group"},
-    {"url": "https://missav.ws/dm312/genres/%E7%97%B4%E5%A5%B3", "tag": "Nympho"},
-    {"url": "https://missav.ws/dm4420/genres/%E5%A5%B3%E9%AB%98%E4%B8%AD%E7%94%9F", "tag": "School"},
-    {"url": "https://missav.ws/dm483/genres/%E5%81%B7%E6%8B%8D", "tag": "Voyeur"},
-    {"url": "https://missav.ws/dm94/genres/%E5%8A%87%E6%83%85", "tag": "Story"},
-    {"url": "https://missav.ws/dm784/genres/%E5%A7%90%E5%A7%90", "tag": "Sister"},
-    {"url": "https://missav.ws/dm253/genres/%E5%B1%81%E8%82%A1%E5%81%8F%E5%A5%BD", "tag": "Sister"},
-    {"url": "https://missav.ws/dm546/genres/%E4%B8%BB%E8%A7%80%E8%A6%96%E8%A7%92", "tag": "POV"},
-    {"url": "https://missav.ws/dm45/genres/%E6%B7%AB%E8%AA%9E", "tag": "Subtitled"},
-    {"url": "https://missav.ws/dm467/genres/%E7%B5%B2%E8%A5%AA", "tag": "Exclusive"}
+    {"url": "https://missav.ws/chinese-subtitle", "tag": "subtitled"},
+    {"url": "https://missav.ws/dm136/genres/%E7%8D%A8%E5%AE%B6", "tag": "exclusive"},
+    {"url": "https://missav.ws/dm127/genres/%E4%B8%AD%E5%87%BA", "tag": "creampie"},
+    {"url": "https://missav.ws/dm119/genres/%E5%96%AE%E9%AB%94%E4%BD%9C%E5%93%81", "tag": "single"},
+    {"url": "https://missav.ws/dm114/genres/%E5%B7%A8%E4%B9%B3", "tag": "big_tits"},
+    {"url": "https://missav.ws/dm68/genres/%E4%BA%BA%E5%A6%BB", "tag": "mature"},
+    {"url": "https://missav.ws/dm107/genres/%E7%86%9F%E5%A5%B3", "tag": "mature"},
+    {"url": "https://missav.ws/dm98/genres/%E7%B4%A0%E4%BA%BA", "tag": "amateur"},
+    {"url": "https://missav.ws/dm434/genres/%E7%BE%8E%E5%B0%91%E5%A5%B3", "tag": "beautiful"},
+    {"url": "https://missav.ws/dm1295/genres/%E5%8F%A3%E4%BA%A4", "tag": "oral"},
+    {"url": "https://missav.ws/dm311/genres/%E5%A4%9A%E4%BA%BA%E9%81%8B%E5%8B%95", "tag": "group"},
+    {"url": "https://missav.ws/dm312/genres/%E7%97%B4%E5%A5%B3", "tag": "nympho"},
+    {"url": "https://missav.ws/dm4420/genres/%E5%A5%B3%E9%AB%98%E4%B8%AD%E7%94%9F", "tag": "school"},
+    {"url": "https://missav.ws/dm483/genres/%E5%81%B7%E6%8B%8D", "tag": "voyeur"},
+    {"url": "https://missav.ws/dm94/genres/%E5%8A%87%E6%83%85", "tag": "story"},
+    {"url": "https://missav.ws/dm784/genres/%E5%A7%90%E5%A7%90", "tag": "sister"},
+    {"url": "https://missav.ws/dm253/genres/%E5%B1%81%E8%82%A1%E5%81%8F%E5%A5%BD", "tag": "sister"},
+    {"url": "https://missav.ws/dm546/genres/%E4%B8%BB%E8%A7%80%E8%A6%96%E8%A7%92", "tag": "pov"},
+    {"url": "https://missav.ws/dm45/genres/%E6%B7%AB%E8%AA%9E", "tag": "subtitled"},
+    {"url": "https://missav.ws/dm467/genres/%E7%B5%B2%E8%A5%AA", "tag": "exclusive"}
 ]
 
 # Supabase Setup
@@ -125,6 +160,101 @@ def ordered_unique(items):
     return output
 
 
+def canonicalize_taxonomy_value(value: str):
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+
+    lowered = text.lower()
+    snake = re.sub(r"[^a-z0-9]+", "_", lowered).strip("_")
+
+    for key in (text, lowered, snake):
+        if key in TAXONOMY_ALIASES:
+            return TAXONOMY_ALIASES[key]
+
+    return text
+
+
+def normalize_taxonomy_values(items):
+    normalized = []
+    for item in items or []:
+        value = canonicalize_taxonomy_value(item)
+        if value:
+            normalized.append(value)
+    return ordered_unique(normalized)
+
+
+def normalize_duration_text(value):
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text or text in {"0", "00:00", "00:00:00"} or text.lower() == "unknown":
+        return None
+    return text
+
+
+def normalize_release_date_text(value):
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text or text.lower() == "unknown":
+        return None
+    return text
+
+
+def normalize_cover_url(value):
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if text.startswith("//"):
+        text = f"https:{text}"
+    lowered = text.lower()
+    if lowered.startswith("data:image") or lowered.startswith("blob:") or lowered.startswith("about:blank"):
+        return None
+    if not (lowered.startswith("http://") or lowered.startswith("https://")):
+        return None
+    if "cover-t.jpg" in text:
+        text = text.replace("cover-t.jpg", "cover-n.jpg")
+    return text
+
+
+def merge_video_record(video: dict, existing: dict | None) -> dict:
+    if not existing:
+        return video
+
+    merged = dict(video)
+
+    if (not merged.get("title") or len(str(merged.get("title")).strip()) < 2) and existing.get("title"):
+        merged["title"] = existing.get("title")
+
+    if not merged.get("source_url") and existing.get("source_url"):
+        merged["source_url"] = existing.get("source_url")
+
+    merged["cover_url"] = normalize_cover_url(merged.get("cover_url")) or normalize_cover_url(existing.get("cover_url"))
+    merged["duration"] = normalize_duration_text(merged.get("duration")) or normalize_duration_text(existing.get("duration"))
+    merged["release_date"] = normalize_release_date_text(merged.get("release_date")) or normalize_release_date_text(existing.get("release_date"))
+    merged["actors"] = ordered_unique((existing.get("actors") or []) + (merged.get("actors") or []))
+    merged["tags"] = normalize_taxonomy_values((existing.get("tags") or []) + (merged.get("tags") or []))
+    merged["categories"] = normalize_taxonomy_values((existing.get("categories") or []) + (merged.get("categories") or []))
+
+    return merged
+
+
+def should_fetch_details(existing: dict | None) -> bool:
+    if not existing:
+        return True
+
+    duration = normalize_duration_text(existing.get("duration"))
+    release_date = normalize_release_date_text(existing.get("release_date"))
+    actors = ordered_unique(existing.get("actors") or [])
+
+    return not (duration and (release_date or actors))
+
+
 def build_paged_url(base_url: str, page_num: int) -> str:
     parsed = urlparse(base_url)
     query = dict(parse_qsl(parsed.query, keep_blank_values=True))
@@ -135,11 +265,12 @@ def build_paged_url(base_url: str, page_num: int) -> str:
 def normalize_video_record(video: dict) -> dict:
     record = dict(video)
     record["is_active"] = True
-    record["tags"] = ordered_unique(record.get("tags", []))
-    record["categories"] = ordered_unique(record.get("categories", []))
+    record["tags"] = normalize_taxonomy_values(record.get("tags", []))
+    record["categories"] = normalize_taxonomy_values(record.get("categories", []))
     record["actors"] = ordered_unique(record.get("actors", []))
-    if not record.get("duration") or record.get("duration") == "Unknown":
-        record["duration"] = "0"
+    record["duration"] = normalize_duration_text(record.get("duration"))
+    record["release_date"] = normalize_release_date_text(record.get("release_date"))
+    record["cover_url"] = normalize_cover_url(record.get("cover_url"))
     return record
 
 
@@ -362,7 +493,9 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
         try:
             res = await execute_with_retry(
                 label=f"{source_tag}-metadata-check",
-                fn=lambda: supabase.table("videos").select("external_id, duration, actors").in_("external_id", external_ids).execute()
+                fn=lambda: supabase.table("videos").select(
+                    "external_id, title, cover_url, source_url, duration, actors, release_date, tags, categories"
+                ).in_("external_id", external_ids).execute()
             )
             for record in res.data:
                 metadata_map[record['external_id']] = record
@@ -374,27 +507,34 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
     for v in videos:
         ext_id = v['external_id']
         existing = metadata_map.get(ext_id)
-        duration = existing.get('duration') if existing else None
-        
-        has_real_metadata = duration and duration != "Unknown" and duration != ""
-        
-        if has_real_metadata:
+        if not should_fetch_details(existing):
             print(f"  [Skip] {v['title'][:30]}... (Metadata exists)")
+            rows_to_upsert.append(
+                merge_video_record(
+                    {
+                        **v,
+                        "categories": normalize_taxonomy_values([source_tag] + (v.get("categories") or [])),
+                        "tags": normalize_taxonomy_values([source_tag] + (v.get("tags") or [])),
+                    },
+                    existing,
+                )
+            )
         else:
             async def scrape_and_prepare(vid=v):
                 async with semaphore:
                     page = detail_pages.pop()
                     try:
                         details = await get_video_details(page, vid['source_url'])
+                        existing_record = metadata_map.get(vid['external_id'])
                         if details and (details.get('duration') or details.get('actors')):
                             vid.update(details)
-                            vid['categories'] = map_categories(vid['title'], vid.get('tags', []))
-                            vid['tags'] = ordered_unique([source_tag] + vid.get('tags', []))
-                            rows_to_upsert.append(vid)
+                            vid['categories'] = normalize_taxonomy_values([source_tag] + map_categories(vid['title'], vid.get('tags', [])))
+                            vid['tags'] = normalize_taxonomy_values([source_tag] + vid.get('tags', []))
+                            rows_to_upsert.append(merge_video_record(vid, existing_record))
                         else:
-                            vid['categories'] = map_categories(vid['title'], [])
-                            vid['tags'] = ordered_unique([source_tag] + vid.get('tags', []))
-                            rows_to_upsert.append(vid)
+                            vid['categories'] = normalize_taxonomy_values([source_tag] + map_categories(vid['title'], []))
+                            vid['tags'] = normalize_taxonomy_values([source_tag] + vid.get('tags', []))
+                            rows_to_upsert.append(merge_video_record(vid, existing_record))
                     except Exception as e:
                         print(f"  [Detail Error] {vid.get('source_url')}: {e}")
                     finally:
@@ -409,6 +549,21 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
 async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_tag="51cg"):
     if not videos:
         return
+
+    external_ids = [v['external_id'] for v in videos]
+    metadata_map = {}
+    if supabase:
+        try:
+            res = await execute_with_retry(
+                label=f"{source_tag}-metadata-check",
+                fn=lambda: supabase.table("videos").select(
+                    "external_id, title, cover_url, source_url, duration, actors, release_date, tags, categories"
+                ).in_("external_id", external_ids).execute()
+            )
+            for record in res.data:
+                metadata_map[record['external_id']] = record
+        except Exception as e:
+            print(f"  [51CG Batch Check Error] {e}")
 
     rows_to_upsert = []
     tasks = []
@@ -430,11 +585,11 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_t
                         refined_cats = map_categories(vid['title'], vid_tags)
                         
                         # Merge with list-page categories
-                        final_cats = ordered_unique(vid.get('categories', []) + refined_cats + ["51吃瓜"])
+                        final_cats = normalize_taxonomy_values([source_tag] + vid.get('categories', []) + refined_cats + ["51吃瓜"])
                         
                         vid.update({k: v for k, v in details.items() if k not in ['title', 'tags', 'videos']})
                         vid['categories'] = final_cats
-                        vid['tags'] = ordered_unique(vid_tags + [source_tag])
+                        vid['tags'] = normalize_taxonomy_values(vid_tags + [source_tag])
 
                         # Handle multiple videos
                         videos_to_sync = []
@@ -454,9 +609,11 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_t
                             videos_to_sync.append(vid)
 
                         for v_sync in videos_to_sync:
-                            rows_to_upsert.append(v_sync)
+                            rows_to_upsert.append(merge_video_record(v_sync, metadata_map.get(v_sync['external_id'])))
                     else:
-                        rows_to_upsert.append(vid)
+                        vid['categories'] = normalize_taxonomy_values([source_tag] + (vid.get('categories') or []) + ["51吃瓜"])
+                        vid['tags'] = normalize_taxonomy_values([source_tag] + (vid.get('tags') or []))
+                        rows_to_upsert.append(merge_video_record(vid, metadata_map.get(vid['external_id'])))
                 except Exception as e:
                     print(f"  [51CG Detail Error] {vid.get('source_url')}: {e}")
 
@@ -547,7 +704,7 @@ async def scrape_51cg_feed(context, supabase, semaphore, detail_pages, base_url,
                                 title: t,
                                 cover_url: cover,
                                 source_url: href,
-                                duration: "0",
+                                duration: null,
                                 actors: [],
                                 categories: cats,
                                 tags: []
@@ -664,9 +821,33 @@ async def scrape_videos():
                                             if (te) t = te.innerText;
                                         }
                                         if (t.length > 5) {
-                                            let c = img.src;
+                                            const candidates = [
+                                                img.getAttribute('data-src'),
+                                                img.getAttribute('data-original'),
+                                                img.getAttribute('data-lazy-src'),
+                                                img.getAttribute('data-cfsrc'),
+                                                img.getAttribute('data-xkrkllgl'),
+                                                img.currentSrc,
+                                                img.src
+                                            ].filter(Boolean);
+
+                                            let c = "";
+                                            for (const candidate of candidates) {
+                                                if (!candidate.startsWith('data:image')) {
+                                                    c = candidate;
+                                                    break;
+                                                }
+                                            }
+                                            if (!c && candidates.length > 0) {
+                                                c = candidates[0];
+                                            }
                                             if (c.includes('cover-t.jpg')) c = c.replace('cover-t.jpg', 'cover-n.jpg');
-                                            resMap.set(id, { external_id: id, title: t.trim(), cover_url: c, source_url: href });
+                                            resMap.set(id, {
+                                                external_id: id,
+                                                title: t.trim(),
+                                                cover_url: c,
+                                                source_url: href
+                                            });
                                         }
                                     }
                                 }
