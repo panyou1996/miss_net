@@ -11,10 +11,15 @@ data class Video(
     @SerialName("cover_url") val coverUrl: String? = null,
     @SerialName("source_url") val sourceUrl: String = "",
     val duration: String? = null,
+    @SerialName("source_release_date") val sourceReleaseDate: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     val actors: List<String> = emptyList(), 
     val tags: List<String> = emptyList()
-)
+) {
+    val displayDate: String?
+        get() = sourceReleaseDate?.takeIf { it.isNotBlank() }
+            ?: createdAt?.take(10)?.takeIf { it.isNotBlank() }
+}
 
 @Serializable
 data class ActorInfo(

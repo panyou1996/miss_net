@@ -559,7 +559,7 @@ private fun FavoriteGlanceCard(
                 )
                 Text(
                     text = buildString {
-                        append(video.createdAt?.take(10) ?: "最近更新")
+                        append(video.displayDate ?: "最近更新")
                         video.duration?.takeIf { it.isNotBlank() }?.let {
                             append(" · ")
                             append(it)

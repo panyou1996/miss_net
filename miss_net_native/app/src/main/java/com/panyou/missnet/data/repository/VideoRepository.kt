@@ -25,6 +25,7 @@ class VideoRepository @Inject constructor(
                         }
                     }
                 }
+                order("source_release_date", Order.DESCENDING)
                 order("created_at", Order.DESCENDING)
                 range(offset.toLong(), (offset + limit - 1).toLong())
             }.decodeList<Video>()
@@ -43,6 +44,7 @@ class VideoRepository @Inject constructor(
                     eq("is_active", true)
                     contains("actors", listOf(actor))
                 }
+                order("source_release_date", Order.DESCENDING)
                 order("created_at", Order.DESCENDING)
                 range(offset.toLong(), (offset + limit - 1).toLong())
             }.decodeList<Video>()
@@ -95,6 +97,7 @@ class VideoRepository @Inject constructor(
                     eq("is_active", true)
                     ilike("title", "%$query%")
                 }
+                order("source_release_date", Order.DESCENDING)
                 order("created_at", Order.DESCENDING)
                 limit(limit.toLong())
             }.decodeList<Video>()

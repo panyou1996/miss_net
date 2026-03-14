@@ -509,7 +509,7 @@ fun PlayerScreen(
                             item {
                                 VideoInfoSection(
                                     title = uiState.video?.title ?: "加载中...",
-                                    createdAt = uiState.video?.createdAt,
+                                    primaryDate = uiState.video?.displayDate,
                                     lastPositionMs = uiState.lastPositionMs,
                                     tags = uiState.video?.tags ?: emptyList(),
                                     actors = uiState.video?.actors ?: emptyList(),
@@ -770,7 +770,7 @@ private fun RecommendSectionHeader(modifier: Modifier = Modifier) {
 @Composable
 private fun VideoInfoSection(
     title: String,
-    createdAt: String?,
+    primaryDate: String?,
     lastPositionMs: Long,
     tags: List<String>,
     actors: List<String>,
@@ -778,7 +778,7 @@ private fun VideoInfoSection(
     onActorClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var expandedMeta by remember(title, createdAt, tags, actors) { mutableStateOf(false) }
+    var expandedMeta by remember(title, primaryDate, tags, actors) { mutableStateOf(false) }
     val safeActors = remember(actors) { actors.filter { it.isNotBlank() }.distinct() }
     val safeTags = remember(tags) { tags.filter { it.isNotBlank() }.distinct() }
     val collapsedActors = if (expandedMeta) safeActors else safeActors.take(2)
@@ -805,7 +805,7 @@ private fun VideoInfoSection(
         ) {
             InfoMetaChip(
                 icon = Icons.Default.CalendarToday,
-                text = "发布于 ${createdAt?.take(10) ?: "最近"}"
+                text = "发布于 ${primaryDate ?: "最近"}"
             )
             if (lastPositionMs > 0L) {
                 InfoMetaChip(
@@ -1414,7 +1414,7 @@ fun RecommendItem(video: Video, onClick: () -> Unit, modifier: Modifier = Modifi
                 Text(
                     text = buildString {
                         append(video.actors.firstOrNull() ?: "未知演员")
-                        video.createdAt?.take(10)?.takeIf { it.isNotBlank() }?.let {
+                        video.displayDate?.takeIf { it.isNotBlank() }?.let {
                             append(" · ")
                             append(it)
                         }

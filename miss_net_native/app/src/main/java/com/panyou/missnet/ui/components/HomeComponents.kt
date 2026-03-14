@@ -280,7 +280,7 @@ fun VideoFeedCard(
                             )
                         }
                         Text(
-                            text = video.createdAt?.take(10) ?: "Recent",
+                            text = video.displayDate ?: "Recent",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
