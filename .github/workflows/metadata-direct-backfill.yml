@@ -1,6 +1,9 @@
 name: Metadata Direct Backfill
 
 on:
+  schedule:
+    # Runs at 04:30 UTC every day to steadily convert partial rows into success
+    - cron: '30 4 * * *'
   workflow_dispatch:
     inputs:
       source_site:
@@ -64,8 +67,8 @@ jobs:
       run: |
         set -euo pipefail
         python3 scripts/select_metadata_queue.py \
-          --source-site '${{ inputs.source_site }}' \
-          --limit '${{ inputs.batch_size }}' \
+          --source-site '${{ github.event_name == 'workflow_dispatch' && inputs.source_site || (vars.METADATA_DIRECT_SOURCE_SITE || 'missav') }}' \
+          --limit '${{ github.event_name == 'workflow_dispatch' && (inputs.batch_size || '40') || (vars.METADATA_DIRECT_DAILY_BATCH_SIZE || '1000') }}' \
           --output env > /tmp/metadata_queue.env
         cat /tmp/metadata_queue.env
         source /tmp/metadata_queue.env
@@ -79,8 +82,8 @@ jobs:
         {
           echo '## Metadata direct backfill selection'
           echo
-          echo "- source_site: ${{ inputs.source_site }}"
-          echo "- batch_size: ${{ inputs.batch_size }}"
+          echo "- source_site: ${{ github.event_name == 'workflow_dispatch' && inputs.source_site || (vars.METADATA_DIRECT_SOURCE_SITE || 'missav') }}"
+          echo "- batch_size: ${{ github.event_name == 'workflow_dispatch' && (inputs.batch_size || '40') || (vars.METADATA_DIRECT_DAILY_BATCH_SIZE || '1000') }}"
           echo "- selected_rows: ${METADATA_QUEUE_COUNT:-0}"
         } >> "$GITHUB_STEP_SUMMARY"
 
@@ -93,7 +96,7 @@ jobs:
         USER_DATA_DIR: scraper/user_data
         SCRAPER_RUN_MODE: metadata_queue
         METADATA_QUEUE_JSON: ${{ steps.queue.outputs.queue_json }}
-        CONCURRENT_DETAIL_PAGES: ${{ inputs.concurrent_detail_pages }}
+        CONCURRENT_DETAIL_PAGES: ${{ github.event_name == 'workflow_dispatch' && (inputs.concurrent_detail_pages || '4') || (vars.METADATA_DIRECT_DAILY_CONCURRENT_DETAIL_PAGES || '4') }}
         SUPABASE_UPSERT_CHUNK_SIZE: ${{ vars.SUPABASE_UPSERT_CHUNK_SIZE || '150' }}
         SUPABASE_MAX_RETRIES: ${{ vars.SUPABASE_MAX_RETRIES || '4' }}
         SUPABASE_RETRY_BASE_SECONDS: ${{ vars.SUPABASE_RETRY_BASE_SECONDS || '1.2' }}

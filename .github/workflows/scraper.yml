@@ -2,7 +2,7 @@ name: Daily Video Scraper
 
 on:
   schedule:
-    # Runs at 03:00 UTC every day
+    # Runs at 03:00 UTC every day for breadth-first MissAV indexing
     - cron: '0 3 * * *'
   workflow_dispatch:
     inputs:
@@ -104,17 +104,17 @@ jobs:
         SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         HEADLESS: "true"
         USER_DATA_DIR: scraper/user_data
-        SCRAPER_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && (inputs.run_mode || 'sample') || 'full' }}
+        SCRAPER_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && (inputs.run_mode || 'sample') || (vars.DAILY_SCRAPER_RUN_MODE || 'index') }}
         SCRAPER_SOURCE_TAGS: ${{ github.event_name == 'workflow_dispatch' && (((inputs.run_mode == 'index') && !(inputs.source_tags)) && '' || inputs.source_tags) || '' }}
-        MISSAV_MAX_PAGES: ${{ github.event_name == 'workflow_dispatch' && (inputs.missav_max_pages || '5') || (vars.MISSAV_MAX_PAGES || '50') }}
-        CG_MAX_PAGES: ${{ github.event_name == 'workflow_dispatch' && (inputs.cg_max_pages || '1') || (vars.CG_MAX_PAGES || '3') }}
-        CONCURRENT_DETAIL_PAGES: ${{ github.event_name == 'workflow_dispatch' && (inputs.concurrent_detail_pages || '4') || (vars.CONCURRENT_DETAIL_PAGES || '4') }}
-        DETAIL_FETCH_POLICY: ${{ github.event_name == 'workflow_dispatch' && (inputs.detail_fetch_policy || 'smart') || (vars.DETAIL_FETCH_POLICY || 'smart') }}
-        DISCOVER_MISSAV_SOURCES: ${{ github.event_name == 'workflow_dispatch' && (inputs.discover_missav_sources && 'true' || 'false') || (vars.DISCOVER_MISSAV_SOURCES || 'false') }}
-        DISCOVERED_SOURCE_LIMIT: ${{ github.event_name == 'workflow_dispatch' && (inputs.discovered_source_limit || '60') || (vars.DISCOVERED_SOURCE_LIMIT || '60') }}
-        SKIP_51CG: ${{ github.event_name == 'workflow_dispatch' && (inputs.skip_51cg && 'true' || 'false') || 'false' }}
-        EARLY_STOP_STREAK: ${{ github.event_name == 'workflow_dispatch' && (inputs.early_stop_streak || '2') || (vars.EARLY_STOP_STREAK || '3') }}
-        EARLY_STOP_MIN_PAGE: ${{ github.event_name == 'workflow_dispatch' && (inputs.early_stop_min_page || '3') || (vars.EARLY_STOP_MIN_PAGE || '5') }}
+        MISSAV_MAX_PAGES: ${{ github.event_name == 'workflow_dispatch' && (inputs.missav_max_pages || '5') || (vars.DAILY_MISSAV_MAX_PAGES || '30') }}
+        CG_MAX_PAGES: ${{ github.event_name == 'workflow_dispatch' && (inputs.cg_max_pages || '1') || (vars.DAILY_CG_MAX_PAGES || '1') }}
+        CONCURRENT_DETAIL_PAGES: ${{ github.event_name == 'workflow_dispatch' && (inputs.concurrent_detail_pages || '4') || (vars.DAILY_CONCURRENT_DETAIL_PAGES || '4') }}
+        DETAIL_FETCH_POLICY: ${{ github.event_name == 'workflow_dispatch' && (inputs.detail_fetch_policy || 'smart') || (vars.DAILY_DETAIL_FETCH_POLICY || 'none') }}
+        DISCOVER_MISSAV_SOURCES: ${{ github.event_name == 'workflow_dispatch' && (inputs.discover_missav_sources && 'true' || 'false') || (vars.DAILY_DISCOVER_MISSAV_SOURCES || 'true') }}
+        DISCOVERED_SOURCE_LIMIT: ${{ github.event_name == 'workflow_dispatch' && (inputs.discovered_source_limit || '60') || (vars.DAILY_DISCOVERED_SOURCE_LIMIT || '120') }}
+        SKIP_51CG: ${{ github.event_name == 'workflow_dispatch' && (inputs.skip_51cg && 'true' || 'false') || (vars.DAILY_SKIP_51CG || 'true') }}
+        EARLY_STOP_STREAK: ${{ github.event_name == 'workflow_dispatch' && (inputs.early_stop_streak || '2') || (vars.DAILY_EARLY_STOP_STREAK || '8') }}
+        EARLY_STOP_MIN_PAGE: ${{ github.event_name == 'workflow_dispatch' && (inputs.early_stop_min_page || '3') || (vars.DAILY_EARLY_STOP_MIN_PAGE || '10') }}
         SUPABASE_UPSERT_CHUNK_SIZE: ${{ vars.SUPABASE_UPSERT_CHUNK_SIZE || '150' }}
         SUPABASE_MAX_RETRIES: ${{ vars.SUPABASE_MAX_RETRIES || '4' }}
         SUPABASE_RETRY_BASE_SECONDS: ${{ vars.SUPABASE_RETRY_BASE_SECONDS || '1.2' }}
