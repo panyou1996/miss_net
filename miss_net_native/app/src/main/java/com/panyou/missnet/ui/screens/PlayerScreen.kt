@@ -67,8 +67,6 @@ import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.media3.ui.PlayerView
-import coil.compose.AsyncImage
-import coil.compose.SubcomposeAsyncImage
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.panyou.missnet.data.media.DownloadMetadata
@@ -78,7 +76,7 @@ import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.service.MissNetDownloadService
 import com.panyou.missnet.service.PlaybackService
 import com.panyou.missnet.ui.components.DurationBadge
-import com.panyou.missnet.ui.components.MediaPlaceholder
+import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.theme.ActionTokens
@@ -421,10 +419,9 @@ fun PlayerScreen(
                                 (uiState.isLoading && uiState.streamUrl == null))
 
                     if (showPosterArtwork) {
-                        AsyncImage(
-                            model = uiState.video?.coverUrl,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
+                        MissNetCoverImage(
+                            coverUrl = uiState.video?.coverUrl,
+                            contentDescription = uiState.video?.title,
                             modifier = Modifier.fillMaxSize()
                         )
                         Box(
@@ -1349,23 +1346,11 @@ fun RecommendItem(video: Video, onClick: () -> Unit, modifier: Modifier = Modifi
                     .clip(ThumbnailShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                val coverUrl = video.coverUrl?.takeIf { it.isNotBlank() }
-                if (coverUrl != null) {
-                    SubcomposeAsyncImage(
-                        model = coverUrl,
-                        contentDescription = "推荐视频封面",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                        loading = {
-                            MediaPlaceholder(label = "封面加载中")
-                        },
-                        error = {
-                            MediaPlaceholder(label = "暂无封面")
-                        }
-                    )
-                } else {
-                    MediaPlaceholder(label = "暂无封面")
-                }
+                MissNetCoverImage(
+                    coverUrl = video.coverUrl,
+                    contentDescription = video.title,
+                    modifier = Modifier.fillMaxSize()
+                )
                 // 播放时长徽章
                 video.duration?.let { dur ->
                     DurationBadge(

@@ -28,7 +28,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.SubcomposeAsyncImage
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -70,32 +69,13 @@ fun VideoCard(
                     Modifier
                 }
 
-                val effectiveCoverUrl = coverUrl.takeIf { it.isNotBlank() }
-                if (effectiveCoverUrl != null) {
-                    SubcomposeAsyncImage(
-                        model = effectiveCoverUrl,
-                        contentDescription = title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .then(imageModifier),
-                        loading = {
-                            MediaPlaceholder(label = "封面加载中")
-                        },
-                        error = {
-                            MediaPlaceholder(label = "暂无封面")
-                        }
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .then(imageModifier),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        MediaPlaceholder(label = "暂无封面")
-                    }
-                }
+                MissNetCoverImage(
+                    coverUrl = coverUrl,
+                    contentDescription = title,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(imageModifier)
+                )
             }
 
             Box(

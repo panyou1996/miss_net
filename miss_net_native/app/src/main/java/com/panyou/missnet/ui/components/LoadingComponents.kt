@@ -143,6 +143,37 @@ fun MissNetStateCard(
     }
 }
 
+@Composable
+fun MissNetStatePane(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        MissNetStateCard(
+            icon = icon,
+            title = title,
+            subtitle = subtitle,
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (actionLabel != null && onAction != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = onAction,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(actionLabel)
+            }
+        }
+    }
+}
+
 
 
 /**

@@ -18,12 +18,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.SubcomposeAsyncImage
 import com.panyou.missnet.data.model.ActorInfo
 import com.panyou.missnet.ui.components.BrowseSummaryCard
-import com.panyou.missnet.ui.components.MediaPlaceholder
+import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.components.MissNetLoading
-import com.panyou.missnet.ui.components.MissNetStateCard
+import com.panyou.missnet.ui.components.MissNetStatePane
 import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.components.SmallBadge
 import com.panyou.missnet.ui.theme.ContainerTokens
@@ -53,10 +52,10 @@ fun ActressScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            MissNetStateCard(
+                            MissNetStatePane(
                                 icon = Icons.Rounded.People,
-                                title = "暂无演员数据",
-                                subtitle = "请尝试其他筛选条件",
+                                title = "暂无可浏览演员",
+                                subtitle = "当前还没有可展示的演员入口，请稍后再试。",
                                 modifier = Modifier.padding(horizontal = 24.dp)
                             )
                         }
@@ -64,8 +63,8 @@ fun ActressScreen(
                         Column(modifier = Modifier.fillMaxSize()) {
                             BrowseSummaryCard(
                                 title = "热门演员",
-                                summary = "共 ${actresses.size} 位 · 优先展示常用浏览入口",
-                                helper = "点击卡片查看该演员相关内容",
+                                summary = "共 ${actresses.size} 位 · 常用浏览入口优先展示",
+                                helper = "点击卡片查看该演员相关内容。",
                                 modifier = Modifier.padding(ContainerTokens.ScreenContentPadding)
                             )
                             HorizontalDivider(
@@ -113,23 +112,12 @@ fun ActressItem(actor: ActorInfo, isFeatured: Boolean, onClick: () -> Unit) {
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                val coverUrl = actor.coverUrl?.takeIf { it.isNotBlank() }
-                if (coverUrl != null) {
-                    SubcomposeAsyncImage(
-                        model = coverUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                        loading = {
-                            MediaPlaceholder(label = "封面加载中")
-                        },
-                        error = {
-                            MediaPlaceholder(label = "资料待补充")
-                        }
-                    )
-                } else {
-                    MediaPlaceholder(label = "资料待补充")
-                }
+                MissNetCoverImage(
+                    coverUrl = actor.coverUrl,
+                    contentDescription = actor.name,
+                    modifier = Modifier.fillMaxSize(),
+                    emptyLabel = "资料待补充"
+                )
                 if (isFeatured) {
                     SmallBadge(
                         text = "热门",

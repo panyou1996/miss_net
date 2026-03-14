@@ -63,15 +63,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.exoplayer.offline.Download
-import coil.compose.SubcomposeAsyncImage
 import com.panyou.missnet.ui.components.BrowseSummaryCard
-import com.panyou.missnet.ui.components.MediaPlaceholder
 import com.panyou.missnet.data.media.DownloadStatusEntry
 import com.panyou.missnet.data.media.ExportState
 import com.panyou.missnet.data.local.WatchProgressEntry
 import com.panyou.missnet.data.model.Video
-import com.panyou.missnet.ui.components.MissNetStateCard
+import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.components.MissNetLoading
+import com.panyou.missnet.ui.components.MissNetStatePane
 import com.panyou.missnet.ui.components.VideoCard
 import com.panyou.missnet.ui.components.DurationBadge
 import com.panyou.missnet.ui.components.StatusBadge
@@ -152,7 +151,7 @@ fun LibraryScreen(
                     LibraryTab.Likes -> VideoGridPage(
                         title = "收藏",
                         emptyTitle = "暂无收藏",
-                        emptySubtitle = "你收藏的内容会出现在这里",
+                        emptySubtitle = "你收藏的内容会集中显示在这里。",
                         icon = Icons.Rounded.Favorite,
                         isLoading = uiState.isLoading,
                         videos = uiState.likes,
@@ -228,7 +227,7 @@ private fun VideoGridPage(
             BrowseSummaryCard(
                 title = title,
                 summary = "共 ${videos.size} 项 · 以卡片形式集中浏览",
-                helper = if (title == "收藏") "可从这里快速进入已收藏内容" else "保留最近可访问的视频内容",
+                helper = if (title == "收藏") "点击卡片可快速进入已收藏内容。" else "点击卡片可继续浏览对应内容。",
                 modifier = Modifier.padding(ContainerTokens.ScreenContentPadding)
             )
             LazyVerticalGrid(
@@ -285,8 +284,8 @@ private fun ContinueWatchingPage(
         ) {
             LibraryEmptyStateCard(
                 icon = Icons.Rounded.History,
-                title = "暂无继续观看内容",
-                subtitle = "你看过但还没看完的内容会显示在这里",
+                title = "暂无继续看内容",
+                subtitle = "你看过但还没看完的内容会集中显示在这里。",
                 actionLabel = actionLabel,
                 onAction = onAction,
                 modifier = Modifier.padding(top = 56.dp)
@@ -316,7 +315,7 @@ private fun ContinueWatchingPage(
                 BrowseSummaryCard(
                     title = "继续看",
                     summary = "共 ${entries.size} 项 · 优先恢复最近未完成内容",
-                    helper = "点整卡或右侧按钮都可以继续播放"
+                    helper = "点整卡或右侧按钮都可以继续播放。"
                 )
             }
             items(entries.sortedByDescending { it.updatedAt }) { entry ->
@@ -353,19 +352,11 @@ private fun ContinueWatchingCard(
                     .clip(ThumbnailShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                val coverUrl = entry.video.coverUrl?.takeIf { it.isNotBlank() }
-                if (coverUrl != null) {
-                    SubcomposeAsyncImage(
-                        model = coverUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                        loading = { MediaPlaceholder(label = "封面加载中") },
-                        error = { MediaPlaceholder(label = "暂无封面") }
-                    )
-                } else {
-                    MediaPlaceholder(label = "暂无封面")
-                }
+                MissNetCoverImage(
+                    coverUrl = entry.video.coverUrl,
+                    contentDescription = entry.video.title,
+                    modifier = Modifier.fillMaxSize()
+                )
                 entry.video.duration?.let { dur ->
                     DurationBadge(
                         text = dur,
@@ -472,26 +463,14 @@ private fun LibraryEmptyStateCard(
     onAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.fillMaxWidth()
-    ) {
-        MissNetStateCard(
-            icon = icon,
-            title = title,
-            subtitle = subtitle,
-            modifier = Modifier.fillMaxWidth()
-        )
-        if (actionLabel != null && onAction != null) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = onAction,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(actionLabel)
-            }
-        }
-    }
+    MissNetStatePane(
+        icon = icon,
+        title = title,
+        subtitle = subtitle,
+        actionLabel = actionLabel,
+        onAction = onAction,
+        modifier = modifier
+    )
 }
 
 
@@ -521,7 +500,7 @@ private fun DownloadsPage(
             LibraryEmptyStateCard(
                 icon = Icons.Default.Downloading,
                 title = "暂无任务",
-                subtitle = "下载、导出和失败恢复会集中显示在这里",
+                subtitle = "下载、导出和失败恢复会统一显示在这里。",
                 actionLabel = actionLabel,
                 onAction = onAction,
                 modifier = Modifier.padding(top = 56.dp)
@@ -616,35 +595,23 @@ private fun DownloadOverviewCard(
     completedCount: Int
 ) {
     ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-        Column(
+        BrowseSummaryCard(
+            title = "任务与资产状态",
+            summary = "进行中 $activeCount 项 · 需要处理 $failedCount 项 · 最近完成 $completedCount 项",
+            helper = if (failedCount > 0) {
+                "建议优先处理需要处理项，避免旧任务长期堆积。"
+            } else {
+                "优先处理进行中任务，已完成内容可快速打开或导出。"
+            },
             modifier = Modifier.padding(ContainerTokens.CardPadding),
-            verticalArrangement = Arrangement.spacedBy(ContainerTokens.ListItemVerticalPadding)
-        ) {
-            Text("任务与资产状态中心", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(
-                "优先处理正在进行的任务、失败恢复，以及已完成资产的快速访问。",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OverviewChip(icon = Icons.Default.Downloading, label = "进行中 $activeCount")
-                OverviewChip(icon = Icons.Rounded.WarningAmber, label = "需要处理 $failedCount")
-                OverviewChip(icon = Icons.Default.DownloadDone, label = "最近完成 $completedCount")
-            }
-            if (failedCount > 0) {
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.85f),
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Text(
-                        text = "建议优先处理需要处理项，避免旧任务长期堆积。",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
+            footer = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OverviewChip(icon = Icons.Default.Downloading, label = "进行中 $activeCount")
+                    OverviewChip(icon = Icons.Rounded.WarningAmber, label = "需要处理 $failedCount")
+                    OverviewChip(icon = Icons.Default.DownloadDone, label = "最近完成 $completedCount")
                 }
             }
-        }
+        )
     }
 }
 
@@ -705,21 +672,12 @@ private fun DownloadCard(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    val coverUrl = item.coverUrl?.takeIf { it.isNotBlank() }
-                    if (coverUrl != null) {
-                        SubcomposeAsyncImage(
-                            model = coverUrl,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
-                            loading = { MediaPlaceholder(label = "封面加载中") },
-                            error = { MediaPlaceholder(label = "暂无封面") }
-                        )
-                    } else {
-                        MediaPlaceholder(
-                            label = if (item.state == Download.STATE_COMPLETED) "已缓存" else "封面待同步"
-                        )
-                    }
+                    MissNetCoverImage(
+                        coverUrl = item.coverUrl,
+                        contentDescription = item.title,
+                        modifier = Modifier.fillMaxSize(),
+                        emptyLabel = if (item.state == Download.STATE_COMPLETED) "已缓存" else "封面待同步"
+                    )
                 }
 
                 Spacer(modifier = Modifier.width(ContainerTokens.ScreenContentPadding))

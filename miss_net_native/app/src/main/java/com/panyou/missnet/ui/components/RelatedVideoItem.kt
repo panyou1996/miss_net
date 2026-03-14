@@ -1,6 +1,5 @@
 package com.panyou.missnet.ui.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,12 +12,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberAsyncImagePainter
 import com.panyou.missnet.ui.theme.ContainerTokens
 
 @Composable
@@ -45,10 +42,9 @@ fun RelatedVideoItem(
                 .clip(MaterialTheme.shapes.medium)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            Image(
-                painter = rememberAsyncImagePainter(coverUrl),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
+            MissNetCoverImage(
+                coverUrl = coverUrl,
+                contentDescription = title,
                 modifier = Modifier.fillMaxSize()
             )
             // Duration badge - using unified DurationBadge

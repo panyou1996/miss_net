@@ -61,14 +61,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.exoplayer.offline.Download
-import coil.compose.SubcomposeAsyncImage
 import com.panyou.missnet.data.local.WatchProgressEntry
 import com.panyou.missnet.data.media.DownloadStatusEntry
 import com.panyou.missnet.data.media.ExportState
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.HeroCarouselItem
-import com.panyou.missnet.ui.components.MediaPlaceholder
+import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
 import com.panyou.missnet.ui.components.SectionHeader
@@ -521,28 +520,14 @@ private fun MediaThumbnail(
     label: String,
     modifier: Modifier = Modifier
 ) {
-    val effectiveCoverUrl = coverUrl?.takeIf { it.isNotBlank() }
-    if (effectiveCoverUrl != null) {
-        SubcomposeAsyncImage(
-            model = effectiveCoverUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            loading = {
-                MediaPlaceholder(label = "封面加载中")
-            },
-            error = {
-                MediaPlaceholder(label = label)
-            }
-        )
-    } else {
-        MediaPlaceholder(
-            modifier = modifier.fillMaxSize(),
-            label = label
-        )
-    }
+    MissNetCoverImage(
+        coverUrl = coverUrl,
+        contentDescription = null,
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        emptyLabel = label
+    )
 }
 
 @Composable

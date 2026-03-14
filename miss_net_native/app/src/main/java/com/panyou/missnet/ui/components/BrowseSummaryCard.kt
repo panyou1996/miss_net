@@ -18,7 +18,8 @@ fun BrowseSummaryCard(
     title: String,
     summary: String,
     helper: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    footer: (@Composable () -> Unit)? = null
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -45,6 +46,7 @@ fun BrowseSummaryCard(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.86f)
             )
+            footer?.invoke()
         }
     }
 }

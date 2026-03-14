@@ -18,7 +18,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.MissNetLoading
-import com.panyou.missnet.ui.components.MissNetStateCard
+import com.panyou.missnet.ui.components.MissNetStatePane
 import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.components.SmallBadge
 import com.panyou.missnet.ui.theme.ContainerTokens
@@ -44,10 +44,10 @@ fun TagsScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            MissNetStateCard(
+                            MissNetStatePane(
                                 icon = Icons.Rounded.Star,
-                                title = "暂无标签数据",
-                                subtitle = "稍后重试，或等待抓取任务同步最新标签",
+                                title = "暂无可浏览标签",
+                                subtitle = "当前还没有可展示的标签入口，请稍后再试。",
                                 modifier = Modifier.padding(horizontal = 24.dp)
                             )
                         }
@@ -55,8 +55,8 @@ fun TagsScreen(
                         Column(modifier = Modifier.fillMaxSize()) {
                             BrowseSummaryCard(
                                 title = "热门标签",
-                                summary = "共 ${uiState.tags.size} 项 · 默认按热度与常用程度排序",
-                                helper = "点击标签即可进入对应内容列表",
+                                summary = "共 ${uiState.tags.size} 项 · 按热度排序，常用标签优先",
+                                helper = "点击标签即可查看对应聚合内容。",
                                 modifier = Modifier.padding(ContainerTokens.ScreenContentPadding)
                             )
                             HorizontalDivider(

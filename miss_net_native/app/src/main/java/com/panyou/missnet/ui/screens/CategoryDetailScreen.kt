@@ -47,10 +47,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.HeroCarouselItem
+import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
@@ -258,10 +258,9 @@ fun CategoryVideoItem(
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .then(imageModifier)
                 ) {
-                    AsyncImage(
-                        model = video.coverUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
+                    MissNetCoverImage(
+                        coverUrl = video.coverUrl,
+                        contentDescription = video.title,
                         modifier = Modifier.fillMaxSize()
                     )
                 }

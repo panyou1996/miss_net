@@ -20,8 +20,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.compose.SubcomposeAsyncImage
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.theme.MotionTokens
@@ -93,27 +91,11 @@ fun VerticalVideoCard(
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .then(imageModifier)
             ) {
-                val effectiveCoverUrl = video.coverUrl?.takeIf { it.isNotBlank() }
-                if (effectiveCoverUrl != null) {
-                    SubcomposeAsyncImage(
-                        model = effectiveCoverUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                        loading = {
-                            Box(
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                MediaPlaceholder(label = "封面加载中")
-                            }
-                        },
-                        error = {
-                            MediaPlaceholder(label = "暂无封面")
-                        }
-                    )
-                } else {
-                    MediaPlaceholder(label = "暂无封面")
-                }
+                MissNetCoverImage(
+                    coverUrl = video.coverUrl,
+                    contentDescription = video.title,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
         
@@ -167,23 +149,12 @@ fun HeroCarouselItem(
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
-                SubcomposeAsyncImage(
-                    model = video.coverUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
+                MissNetCoverImage(
+                    coverUrl = video.coverUrl,
+                    contentDescription = video.title,
                     modifier = Modifier
                         .fillMaxSize()
-                        .then(imageModifier),
-                    loading = {
-                        Box(
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            MediaPlaceholder(label = "封面加载中")
-                        }
-                    },
-                    error = {
-                        MediaPlaceholder(label = "暂无封面")
-                    }
+                        .then(imageModifier)
                 )
                 
                 // Gradient Overlay for text readability
@@ -265,10 +236,9 @@ fun VideoFeedCard(
                         .aspectRatio(16f/9f)
                         .clip(MaterialTheme.shapes.medium)
                 ) {
-                    AsyncImage(
-                        model = video.coverUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
+                    MissNetCoverImage(
+                        coverUrl = video.coverUrl,
+                        contentDescription = video.title,
                         modifier = Modifier.fillMaxSize()
                     )
                     // Duration Badge - using unified component
