@@ -52,7 +52,27 @@ def resolve_fallback_tags(focus: str, source_site: str, include_51cg: bool) -> l
     return [tag for tag in ordered_unique(tags) if tag in AVAILABLE_TAGS]
 
 
+def metadata_gap_count(row: dict) -> int:
+    partial = int(row.get('partial_count') or 0)
+    missing_cover = int(row.get('missing_cover_count') or 0)
+    return max(partial - missing_cover, 0)
+
+
+def has_meaningful_metadata_backlog(row: dict) -> bool:
+    pending = int(row.get('pending_count') or 0)
+    partial = int(row.get('partial_count') or 0)
+    gap = metadata_gap_count(row)
+    if pending > 0:
+        return True
+    if partial <= 0:
+        return False
+    return gap >= max(5, int(partial * 0.2))
+
+
 def select_tags_from_rows(rows, limit: int, focus: str, source_site: str, include_51cg: bool) -> list[str]:
+    if focus == 'metadata':
+        meaningful_rows = [row for row in rows if has_meaningful_metadata_backlog(row)]
+        rows = meaningful_rows if meaningful_rows else []
     selected = [str(row.get('tag') or '').strip() for row in rows]
     selected = [tag for tag in selected if tag in AVAILABLE_TAGS and (include_51cg or tag not in {'51cg', '51mrds'})]
     fallback = resolve_fallback_tags(focus=focus, source_site=source_site, include_51cg=include_51cg)
@@ -87,7 +107,7 @@ def build_query(limit: int, source_site: str, include_51cg: bool, focus: str) ->
     if focus == 'cover':
         order_clause = "missing_cover_count desc, backlog_count desc, latest_release_date desc nulls last, tag asc"
     elif focus == 'metadata':
-        order_clause = "partial_count desc, pending_count desc, backlog_count desc, latest_release_date desc nulls last, tag asc"
+        order_clause = "metadata_gap_count desc, pending_count desc, partial_count desc, latest_release_date desc nulls last, tag asc"
     else:
         order_clause = "(missing_cover_count * 2 + partial_count + pending_count) desc, latest_release_date desc nulls last, tag asc"
 
@@ -101,6 +121,11 @@ with source_tags(tag) as (
     count(v.id) filter (where v.cover_url is null)::int as missing_cover_count,
     count(v.id) filter (where v.detail_status = 'pending')::int as pending_count,
     count(v.id) filter (where v.detail_status = 'partial')::int as partial_count,
+    greatest(
+      count(v.id) filter (where v.detail_status = 'partial')
+      - count(v.id) filter (where v.cover_url is null),
+      0
+    )::int as metadata_gap_count,
     count(v.id) filter (where v.source_site = 'missav')::int as missav_count,
     count(v.id) filter (where v.source_site = '51cg')::int as cg_count,
     max(v.source_release_date) as latest_release_date

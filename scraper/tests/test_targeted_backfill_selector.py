@@ -39,6 +39,35 @@ class TargetedBackfillSelectorTest(unittest.TestCase):
         )
         self.assertEqual(['big_tits', 'exclusive', 'creampie', 'single'], selected)
 
+
+    def test_metadata_focus_ignores_cover_only_rows_and_falls_back(self):
+        rows = [
+            {'tag': 'single', 'missing_cover_count': 1643, 'pending_count': 0, 'partial_count': 1643},
+            {'tag': 'exclusive', 'missing_cover_count': 1463, 'pending_count': 0, 'partial_count': 1469},
+        ]
+        selected = self.selector.select_tags_from_rows(
+            rows,
+            limit=4,
+            focus='metadata',
+            source_site='missav',
+            include_51cg=False,
+        )
+        self.assertEqual(['new', 'weekly_hot', 'monthly_hot', 'subtitled'], selected)
+
+    def test_metadata_focus_keeps_rows_with_true_metadata_backlog(self):
+        rows = [
+            {'tag': 'new', 'missing_cover_count': 10, 'pending_count': 5, 'partial_count': 14},
+            {'tag': 'subtitled', 'missing_cover_count': 2, 'pending_count': 0, 'partial_count': 7},
+        ]
+        selected = self.selector.select_tags_from_rows(
+            rows,
+            limit=4,
+            focus='metadata',
+            source_site='missav',
+            include_51cg=False,
+        )
+        self.assertEqual(['new', 'subtitled', 'weekly_hot', 'monthly_hot'], selected)
+
     def test_select_tags_for_51cg_prefers_51cg_family(self):
         rows = []
         selected = self.selector.select_tags_from_rows(
