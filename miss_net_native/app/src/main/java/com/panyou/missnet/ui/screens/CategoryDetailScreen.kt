@@ -49,10 +49,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.panyou.missnet.data.model.Video
+import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.HeroCarouselItem
 import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
+import com.panyou.missnet.ui.components.MissNetStateCard
 import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.theme.ThumbnailShape
@@ -73,6 +75,8 @@ fun CategoryDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
+    val pageTitle = remember(category, actor) { resolveCategoryPageTitle(category, actor) }
+    val pageHelper = if (actor != null) "点击卡片可查看该演员相关内容。" else "点击卡片可继续进入播放页。"
 
     LaunchedEffect(category, actor) {
         viewModel.init(category, actor)
@@ -101,6 +105,34 @@ fun CategoryDetailScreen(
             )
         }
 
+        uiState.videos.isEmpty() -> {
+            Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+                    SecondaryPageSurface {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            BrowseSummaryCard(
+                                title = pageTitle,
+                                summary = "当前暂无可浏览内容",
+                                helper = "请稍后再试，或返回首页继续浏览其他内容。",
+                                modifier = Modifier.padding(ContainerTokens.ScreenContentPadding)
+                            )
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                MissNetStateCard(
+                                    icon = Icons.Default.PlayArrow,
+                                    title = "暂未收录内容",
+                                    subtitle = "当前入口还没有可展示的视频内容。",
+                                    modifier = Modifier.padding(horizontal = 24.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         else -> {
             Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
@@ -114,38 +146,37 @@ fun CategoryDetailScreen(
                                 .fillMaxSize()
                                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                         ) {
-                            if (uiState.videos.isNotEmpty()) {
-                                item {
-                                    val carouselVideos = uiState.videos.take(5)
-                                    val carouselState = rememberCarouselState { carouselVideos.size }
+                            item {
+                                BrowseSummaryCard(
+                                    title = pageTitle,
+                                    summary = "共 ${uiState.videos.size} 项 · 默认按最新收录排序",
+                                    helper = pageHelper,
+                                    modifier = Modifier.padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding)
+                                )
+                            }
 
-                                    HorizontalMultiBrowseCarousel(
-                                        state = carouselState,
-                                        preferredItemWidth = 320.dp,
-                                        itemSpacing = 12.dp,
-                                        contentPadding = PaddingValues(horizontal = ContainerTokens.ScreenCompactHorizontalPadding),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(220.dp)
-                                    ) { index ->
-                                        Box(modifier = Modifier.fillMaxSize().padding(vertical = 4.dp)) {
-                                            HeroCarouselItem(
-                                                video = carouselVideos[index],
-                                                modifier = Modifier.fillMaxSize(),
-                                                onClick = { onVideoClick(carouselVideos[index].id) },
-                                                // 避免与列表同 key 的 shared element 在同屏叠加，导致 Hero 视觉重叠。
-                                                sharedTransitionScope = null,
-                                                animatedVisibilityScope = null
-                                            )
-                                        }
+                            item {
+                                val carouselVideos = uiState.videos.take(5)
+                                val carouselState = rememberCarouselState { carouselVideos.size }
+
+                                HorizontalMultiBrowseCarousel(
+                                    state = carouselState,
+                                    preferredItemWidth = 320.dp,
+                                    itemSpacing = 12.dp,
+                                    contentPadding = PaddingValues(horizontal = ContainerTokens.ScreenCompactHorizontalPadding),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(220.dp)
+                                ) { index ->
+                                    Box(modifier = Modifier.fillMaxSize().padding(vertical = 4.dp)) {
+                                        HeroCarouselItem(
+                                            video = carouselVideos[index],
+                                            modifier = Modifier.fillMaxSize(),
+                                            onClick = { onVideoClick(carouselVideos[index].id) },
+                                            sharedTransitionScope = null,
+                                            animatedVisibilityScope = null
+                                        )
                                     }
-                                }
-
-                                item {
-                                    CategorySummaryCard(
-                                        count = uiState.videos.size,
-                                        subtitle = "当前按最新收录排序，向下滚动可继续浏览。"
-                                    )
                                 }
                             }
 
@@ -177,51 +208,6 @@ fun CategoryDetailScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun CategorySummaryCard(
-    count: Int,
-    subtitle: String
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = "共 $count 项",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Text(
-                text = "最新",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
         }
     }
 }
@@ -324,5 +310,17 @@ fun CategoryVideoItem(
                 modifier = Modifier.size(ContainerTokens.ListTrailingIconSize)
             )
         }
+    }
+}
+
+private fun resolveCategoryPageTitle(category: String?, actor: String?): String {
+    actor?.takeIf { it.isNotBlank() }?.let { return it }
+    return when (category) {
+        "new" -> "最新发布"
+        "monthly_hot" -> "本月热选"
+        "weekly_hot" -> "本周热门"
+        "uncensored" -> "无码资源"
+        "subtitled" -> "字幕内容"
+        else -> "内容列表"
     }
 }

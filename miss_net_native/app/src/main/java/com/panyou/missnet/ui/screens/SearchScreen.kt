@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
@@ -157,57 +158,77 @@ fun SearchScreen(
             }
 
             SecondaryPageSurface {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    when {
-                        uiState.isLoading -> {
-                            MissNetLoading()
-                        }
+                Column(modifier = Modifier.fillMaxSize()) {
+                    BrowseSummaryCard(
+                        title = when {
+                            uiState.query.isBlank() -> "标题搜索"
+                            uiState.results.isNotEmpty() -> "搜索结果"
+                            else -> "继续搜索"
+                        },
+                        summary = when {
+                            uiState.query.isBlank() -> "当前仅支持按视频标题搜索。"
+                            uiState.results.isNotEmpty() -> "“${uiState.query}” · 共 ${uiState.results.size} 条结果"
+                            else -> "“${uiState.query}” 暂未找到匹配内容"
+                        },
+                        helper = when {
+                            uiState.query.isBlank() -> "输入标题关键词，或从最近搜索开始。"
+                            uiState.results.isNotEmpty() -> "点击卡片进入播放页，可继续浏览详情。"
+                            else -> "试试更短的关键词，或更换标题片段。"
+                        },
+                        modifier = Modifier.padding(ContainerTokens.ScreenContentPadding)
+                    )
 
-                        uiState.errorMessage != null && uiState.query.isNotBlank() -> {
-                            MissNetErrorState(
-                                message = uiState.errorMessage ?: "搜索失败",
-                                onRetry = viewModel::retry,
-                                title = if (uiState.results.isEmpty()) "未找到结果" else "搜索失败"
-                            )
-                        }
-
-                        uiState.results.isNotEmpty() -> {
-                            LazyVerticalGrid(
-                                columns = GridCells.Fixed(ContainerTokens.GridColumns),
-                                contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
-                                horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
-                                verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                items(uiState.results) { video ->
-                                    VideoCard(
-                                        videoId = video.id,
-                                        title = video.title,
-                                        coverUrl = video.coverUrl ?: "",
-                                        duration = video.duration,
-                                        onClick = { onVideoClick(video.id) },
-                                        sharedTransitionScope = sharedTransitionScope,
-                                        animatedVisibilityScope = animatedVisibilityScope
-                                    )
-                                }
-                                item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        when {
+                            uiState.isLoading -> {
+                                MissNetLoading()
                             }
-                        }
 
-                        uiState.query.isBlank() -> {
-                            SearchState(
-                                icon = Icons.Default.Search,
-                                title = "输入关键词开始搜索",
-                                subtitle = "当前版本支持视频标题搜索"
-                            )
-                        }
+                            uiState.errorMessage != null && uiState.query.isNotBlank() -> {
+                                MissNetErrorState(
+                                    message = uiState.errorMessage ?: "搜索失败",
+                                    onRetry = viewModel::retry
+                                )
+                            }
 
-                        else -> {
-                            SearchState(
-                                icon = Icons.Default.History,
-                                title = "未找到相关内容",
-                                subtitle = "试试更短的关键词或不同标签"
-                            )
+                            uiState.results.isNotEmpty() -> {
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(ContainerTokens.GridColumns),
+                                    contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+                                    horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
+                                    verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    items(uiState.results) { video ->
+                                        VideoCard(
+                                            videoId = video.id,
+                                            title = video.title,
+                                            coverUrl = video.coverUrl ?: "",
+                                            duration = video.duration,
+                                            onClick = { onVideoClick(video.id) },
+                                            sharedTransitionScope = sharedTransitionScope,
+                                            animatedVisibilityScope = animatedVisibilityScope
+                                        )
+                                    }
+                                    item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
+                                }
+                            }
+
+                            uiState.query.isBlank() -> {
+                                SearchState(
+                                    icon = Icons.Default.Search,
+                                    title = "输入标题关键词开始搜索",
+                                    subtitle = "当前版本仅支持按视频标题搜索，可从上方搜索框开始。"
+                                )
+                            }
+
+                            else -> {
+                                SearchState(
+                                    icon = Icons.Default.History,
+                                    title = "暂未找到匹配内容",
+                                    subtitle = "试试更短的标题关键词，或换一个标题片段。"
+                                )
+                            }
                         }
                     }
                 }

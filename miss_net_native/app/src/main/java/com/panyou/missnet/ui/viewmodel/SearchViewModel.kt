@@ -79,7 +79,7 @@ class SearchViewModel @Inject constructor(
                     history = localStore.getSearchHistory(),
                     isLoading = false,
                     active = false,
-                    errorMessage = if (results.isEmpty()) "未找到相关内容，请尝试更短的关键词或更换搜索词。" else null
+                    errorMessage = null
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(

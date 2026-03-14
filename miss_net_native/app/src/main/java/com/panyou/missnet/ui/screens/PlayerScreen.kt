@@ -20,10 +20,13 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,6 +39,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -137,6 +141,7 @@ fun PlayerScreen(
     var showSpeedSheet by remember { mutableStateOf(false) }
     var playbackSpeed by remember { mutableStateOf(1.0f) }
     var isBuffering by remember { mutableStateOf(true) }
+    var bufferedPos by remember { mutableStateOf(0L) }
     var playbackError by remember { mutableStateOf<String?>(null) }
     var hasRequestedExit by remember { mutableStateOf(false) }
 
@@ -228,6 +233,7 @@ fun PlayerScreen(
 
                     override fun onEvents(player: Player, events: Player.Events) {
                         duration = player.duration.coerceAtLeast(0L)
+                        bufferedPos = player.bufferedPosition.coerceAtLeast(0L)
                     }
                 })
             } catch (e: Exception) {
@@ -289,6 +295,7 @@ fun PlayerScreen(
             currentPos = player?.currentPosition ?: 0L
             val currentDuration = player?.duration?.coerceAtLeast(0L) ?: 0L
             duration = currentDuration
+            bufferedPos = player?.bufferedPosition?.coerceAtLeast(0L) ?: 0L
             if (currentDuration > 0L) {
                 viewModel.updatePlaybackProgress(currentPos, currentDuration)
             }
@@ -432,6 +439,11 @@ fun PlayerScreen(
                         PlayerLoadingOverlay(
                             title = if (uiState.streamUrl == null) "正在加载播放源" else "正在缓冲",
                             subtitle = if (uiState.streamUrl == null) "即将进入播放" else "网络波动时会自动恢复",
+                            progress = if (duration > 0L && bufferedPos > 0L) {
+                                (bufferedPos.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+                            } else {
+                                null
+                            },
                             modifier = Modifier.align(Alignment.Center)
                         )
                     }
@@ -777,7 +789,7 @@ private fun VideoInfoSection(
         (safeTags.size - collapsedTags.size).coerceAtLeast(0)
 
     Column(
-        modifier = modifier,
+        modifier = modifier.animateContentSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
@@ -923,6 +935,7 @@ private fun PlayerLoadingState(
 private fun PlayerLoadingOverlay(
     title: String,
     subtitle: String,
+    progress: Float? = null,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -951,6 +964,22 @@ private fun PlayerLoadingOverlay(
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.78f)
             )
+            if (progress != null) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(CircleShape),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = Color.White.copy(alpha = 0.18f)
+                )
+                Text(
+                    text = "已缓存 ${(progress * 100).toInt()}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.74f)
+                )
+            }
         }
     }
 }
@@ -1096,7 +1125,14 @@ fun PlayerControls(
     onBack: () -> Unit,
     onSpeed: () -> Unit
 ) {
-    AnimatedVisibility(visible = showControls, enter = fadeIn(), exit = fadeOut()) {
+    var dragValue by remember(duration) { mutableStateOf<Float?>(null) }
+    val displayedPosition = (dragValue?.toLong() ?: currentPos).coerceAtLeast(0L)
+
+    AnimatedVisibility(
+        visible = showControls,
+        enter = fadeIn(animationSpec = tween(180)) + scaleIn(initialScale = 0.98f, animationSpec = tween(180)),
+        exit = fadeOut(animationSpec = tween(140)) + scaleOut(targetScale = 0.98f, animationSpec = tween(140))
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -1136,14 +1172,11 @@ fun PlayerControls(
                     iconSize = 28.dp,
                     buttonSize = 52.dp
                 )
-                IconButton(onClick = onTogglePlay, modifier = Modifier.size(if (isFullscreen) 88.dp else 76.dp)) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
-                        contentDescription = if (isPlaying) "暂停" else "播放",
-                        tint = Color.White,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+                CenterPlayPauseButton(
+                    isPlaying = isPlaying,
+                    isFullscreen = isFullscreen,
+                    onClick = onTogglePlay
+                )
                 OverlayControlButton(
                     onClick = onSeekForward,
                     icon = Icons.Default.Forward10,
@@ -1154,18 +1187,36 @@ fun PlayerControls(
             }
 
             Column(modifier = Modifier.align(Alignment.BottomCenter)) {
+                AnimatedVisibility(visible = dragValue != null) {
+                    Surface(
+                        color = Color.Black.copy(alpha = 0.48f),
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    ) {
+                        Text(
+                            text = "定位到 ${formatTime(displayedPosition)}",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White
+                        )
+                    }
+                }
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     // Current time with better visibility
                     Text(
-                        text = formatTime(currentPos),
+                        text = formatTime(displayedPosition),
                         color = Color.White,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium
                     )
                     // MD3 Slider with primary color
                     Slider(
-                        value = currentPos.toFloat(),
-                        onValueChange = { onSeekTo(it.toLong()) },
+                        value = dragValue ?: currentPos.toFloat(),
+                        onValueChange = { dragValue = it },
+                        onValueChangeFinished = {
+                            dragValue?.let { onSeekTo(it.toLong()) }
+                            dragValue = null
+                        },
                         valueRange = 0f..(duration.toFloat().coerceAtLeast(1f)),
                         modifier = Modifier
                             .weight(1f)
@@ -1207,11 +1258,31 @@ private fun OverlayControlButton(
     iconSize: Dp = 24.dp,
     buttonSize: Dp = 44.dp
 ) {
-    IconButton(
-        onClick = onClick,
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = tween(durationMillis = 120),
+        label = "overlay-control-scale"
+    )
+    val backgroundAlpha by animateFloatAsState(
+        targetValue = if (isPressed) 0.52f else 0.36f,
+        animationSpec = tween(durationMillis = 120),
+        label = "overlay-control-bg"
+    )
+
+    Box(
         modifier = Modifier
             .size(buttonSize)
-            .background(Color.Black.copy(alpha = 0.36f), CircleShape)
+            .scale(scale)
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = backgroundAlpha))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
@@ -1219,6 +1290,42 @@ private fun OverlayControlButton(
             tint = Color.White,
             modifier = Modifier.size(iconSize)
         )
+    }
+}
+
+@Composable
+private fun CenterPlayPauseButton(
+    isPlaying: Boolean,
+    isFullscreen: Boolean,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        animationSpec = tween(durationMillis = 120),
+        label = "play-pause-scale"
+    )
+
+    Box(
+        modifier = Modifier
+            .size(if (isFullscreen) 88.dp else 76.dp)
+            .scale(scale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Crossfade(targetState = isPlaying, label = "play-pause-icon") { playing ->
+            Icon(
+                imageVector = if (playing) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
+                contentDescription = if (playing) "暂停" else "播放",
+                tint = Color.White,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }
 

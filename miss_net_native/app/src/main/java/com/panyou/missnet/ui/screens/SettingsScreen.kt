@@ -61,6 +61,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.theme.ContainerTokens
@@ -83,7 +84,14 @@ fun SettingsScreen(
                 .padding(contentPadding),
             verticalArrangement = Arrangement.spacedBy(ContainerTokens.SectionVerticalSpacing)
         ) {
-            SettingsSectionTitle("同步")
+            BrowseSummaryCard(
+                title = "设置与偏好",
+                summary = "当前以本机存储为主，优先保证播放器、资源库与状态语言稳定。",
+                helper = "主题、隐私与存储偏好会保存在本机；云端同步将在后续版本接入。",
+                modifier = Modifier.padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding)
+            )
+
+            SettingsSectionTitle("同步", "账号状态与本机数据策略")
             EliteSettingsCard {
                 if (!uiState.isLoggedIn) {
                     ListItem(
@@ -150,7 +158,7 @@ fun SettingsScreen(
                 }
             }
 
-            SettingsSectionTitle("外观")
+            SettingsSectionTitle("外观", "深色模式、动态色彩与主题颜色")
             EliteSettingsCard {
                 SettingsToggleItem(
                     icon = Icons.Rounded.DarkMode,
@@ -203,7 +211,7 @@ fun SettingsScreen(
                 }
             }
 
-            SettingsSectionTitle("隐私")
+            SettingsSectionTitle("隐私", "无痕模式、应用锁与本机保护")
             EliteSettingsCard {
                 SettingsToggleItem(
                     icon = Icons.Rounded.VisibilityOff,
@@ -222,7 +230,7 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsSectionTitle("存储")
+            SettingsSectionTitle("存储", "设备占用参考与封面缓存管理")
             EliteSettingsCard {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -276,7 +284,7 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsSectionTitle("播放与下载")
+            SettingsSectionTitle("播放与下载", "当前版本优先保证稳定性与可交付")
             EliteSettingsCard {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
@@ -310,7 +318,7 @@ fun SettingsScreen(
                 }
             }
 
-            SettingsSectionTitle("关于")
+            SettingsSectionTitle("关于", "版本信息与基础说明")
             EliteSettingsCard {
                 ListItem(
                     headlineContent = { Text("版本") },
@@ -335,18 +343,32 @@ fun SettingsScreen(
 }
 
 @Composable
-fun SettingsSectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontWeight = FontWeight.SemiBold,
+fun SettingsSectionTitle(
+    text: String,
+    subtitle: String? = null
+) {
+    Column(
         modifier = Modifier.padding(
             start = ContainerTokens.ScreenCompactHorizontalPadding,
             end = ContainerTokens.ScreenCompactHorizontalPadding,
             top = 8.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold
         )
-    )
+        subtitle?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.88f)
+            )
+        }
+    }
 }
 
 @Composable

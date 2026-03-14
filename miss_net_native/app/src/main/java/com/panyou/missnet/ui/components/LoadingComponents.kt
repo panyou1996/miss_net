@@ -29,18 +29,43 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun MissNetLoading(
     modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.primary
+    color: Color = MaterialTheme.colorScheme.primary,
+    title: String = "正在整理内容",
+    subtitle: String = "请稍候，当前页面内容正在同步。"
 ) {
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(48.dp),
-            color = color,
-            strokeWidth = 4.dp,
-            trackColor = color.copy(alpha = 0.1f)
-        )
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f))
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 22.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(44.dp),
+                    color = color,
+                    strokeWidth = 4.dp,
+                    trackColor = color.copy(alpha = 0.1f)
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
     }
 }
 
@@ -49,7 +74,7 @@ fun MissNetErrorState(
     message: String,
     onRetry: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
-    title: String = "加载失败"
+    title: String = "暂时无法加载"
 ) {
     Box(
         modifier = modifier.fillMaxSize(),
@@ -59,7 +84,7 @@ fun MissNetErrorState(
             icon = Icons.Outlined.CloudOff,
             title = title,
             subtitle = message,
-            actionLabel = if (onRetry != null) "重试" else null,
+            actionLabel = if (onRetry != null) "重新加载" else null,
             onAction = onRetry,
             modifier = Modifier
                 .fillMaxWidth()
@@ -153,8 +178,8 @@ fun MissNetEmptyStateNoResults(
 ) {
     MissNetEmptyState(
         icon = Icons.Outlined.SearchOff,
-        title = "未找到结果",
-        subtitle = keyword?.let { "未找到与 \"$it\" 相关的内容" } ?: "暂无相关内容",
+        title = "暂未找到匹配内容",
+        subtitle = keyword?.let { "未找到与 \"$it\" 相关的内容，请尝试更短的标题关键词。" } ?: "当前暂无可展示的内容，请稍后再试。",
         modifier = modifier
     )
 }
@@ -165,8 +190,8 @@ fun MissNetEmptyStateNoDownloads(
 ) {
     MissNetEmptyState(
         icon = Icons.Default.CloudDownload,
-        title = "暂无下载",
-        subtitle = "下载的视频将显示在这里",
+        title = "暂无任务",
+        subtitle = "下载、导出与失败恢复会统一显示在这里。",
         modifier = modifier
     )
 }
@@ -178,7 +203,7 @@ fun MissNetEmptyStateNoFavorites(
     MissNetEmptyState(
         icon = Icons.Default.FavoriteBorder,
         title = "暂无收藏",
-        subtitle = "收藏的视频将显示在这里",
+        subtitle = "你收藏的内容会集中显示在这里。",
         modifier = modifier
     )
 }

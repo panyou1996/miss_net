@@ -55,7 +55,7 @@ class CategoryDetailViewModel @Inject constructor(
                     isLoading = false,
                     videos = videos,
                     endOfPaginationReached = videos.size < pageSize,
-                    errorMessage = if (videos.isEmpty()) "当前分类暂无内容，或加载失败。" else null
+                    errorMessage = null
                 )
                 currentOffset = videos.size
             } catch (e: Exception) {
