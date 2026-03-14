@@ -47,23 +47,46 @@ TAXONOMY_ALIASES = {
     "chinese_subtitle": "subtitled",
     "中文字幕": "subtitled",
     "exclusive": "exclusive",
+    "獨家": "exclusive",
+    "独家": "exclusive",
     "creampie": "creampie",
+    "中出": "creampie",
     "single": "single",
+    "單體作品": "single",
+    "单体作品": "single",
     "bigtits": "big_tits",
     "big_tits": "big_tits",
+    "巨乳": "big_tits",
     "mature": "mature",
+    "人妻": "mature",
+    "熟女": "mature",
     "amateur": "amateur",
+    "素人": "amateur",
     "beautiful": "beautiful",
+    "美少女": "beautiful",
     "oral": "oral",
+    "口交": "oral",
     "group": "group",
+    "多人運動": "group",
+    "多人运动": "group",
     "nympho": "nympho",
+    "痴女": "nympho",
     "school": "school",
+    "女高中生": "school",
     "voyeur": "voyeur",
+    "偷拍": "voyeur",
+    "自拍": "voyeur",
     "story": "story",
+    "劇情": "story",
+    "剧情": "story",
     "sister": "sister",
+    "姐姐": "sister",
     "office": "office",
     "pov": "pov",
+    "主觀視角": "pov",
+    "主观视角": "pov",
     "vr": "vr",
+    "高清": "hd",
     "51cg": "51cg",
     "51mrds": "51mrds",
 }
@@ -162,6 +185,9 @@ SKIP_51CG = env_bool("SKIP_51CG", False)
 DETAIL_FETCH_POLICY = os.environ.get("DETAIL_FETCH_POLICY", "").strip().lower()
 DISCOVER_MISSAV_SOURCES = env_bool("DISCOVER_MISSAV_SOURCES", False)
 DISCOVERED_SOURCE_LIMIT = env_positive_int("DISCOVERED_SOURCE_LIMIT", 60)
+CATEGORY_HUB_URLS = [
+    "https://missav.ws/genres",
+]
 
 
 def ordered_unique(items):
@@ -466,6 +492,43 @@ def derive_source_tag_from_url(source_url: str) -> str | None:
     return re.sub(r"[^a-z0-9]+", "_", last_segment.lower()).strip("_") or None
 
 
+def normalize_discovered_source_url(source_url: str) -> str | None:
+    parsed = urlparse(source_url)
+    if parsed.scheme not in {"http", "https"} or parsed.netloc != "missav.ws":
+        return None
+    parts = [part for part in parsed.path.split("/") if part]
+    if not parts:
+        return None
+    if parts == ["genres"]:
+        return None
+    if "genres" not in parts:
+        return None
+
+    locale_codes = {"cn", "en", "ja", "ko", "ms", "th", "de", "fr", "vi", "id", "fil", "pt"}
+    if len(parts) >= 3 and parts[1] in locale_codes and parts[2] == "genres":
+        parts = [parts[0]] + parts[2:]
+
+    genre_index = parts.index("genres")
+    if genre_index == len(parts) - 1:
+        return None
+
+    clean_path = "/" + "/".join(parts[: genre_index + 2])
+    return urlunparse((parsed.scheme, parsed.netloc, clean_path, "", "", ""))
+
+
+def extract_category_hub_sources(links: list[dict]) -> list[dict]:
+    discovered = []
+    for link in links:
+        href = normalize_discovered_source_url(str(link.get("href") or "").strip())
+        if not href:
+            continue
+        tag = canonicalize_taxonomy_value(link.get("text")) or derive_source_tag_from_url(href)
+        if not tag:
+            continue
+        discovered.append({"url": href, "tag": tag})
+    return dedupe_sources(discovered)
+
+
 def dedupe_sources(sources: list[dict]) -> list[dict]:
     seen_urls = set()
     output = []
@@ -500,7 +563,7 @@ def filter_discovered_sources_for_run(
 async def discover_missav_sources(page, seed_sources: list[dict], selected_tags: set[str], limit: int) -> list[dict]:
     discovered = []
     seen = {source["url"] for source in seed_sources}
-    seed_candidates = seed_sources[: min(len(seed_sources), 6)]
+    seed_candidates = [{"url": url, "tag": "genres_hub"} for url in CATEGORY_HUB_URLS] + seed_sources[: min(len(seed_sources), 6)]
     for seed in seed_candidates:
         try:
             await page.goto(seed["url"], timeout=60000, wait_until="domcontentloaded")
@@ -512,18 +575,11 @@ async def discover_missav_sources(page, seed_sources: list[dict], selected_tags:
                     text: (node.innerText || node.textContent || '').trim()
                   }))
             }""")
-            for link in links:
-                href = str(link.get("href") or "").strip()
-                if not href.startswith("https://missav.ws/"):
-                    continue
-                if "/genres/" not in href and "chinese-subtitle" not in href and "uncensored-leak" not in href:
-                    continue
-                tag = canonicalize_taxonomy_value(link.get("text")) or derive_source_tag_from_url(href)
-                if not tag:
-                    continue
+            for source in extract_category_hub_sources(links):
+                href = source["url"]
                 if href not in seen:
                     seen.add(href)
-                    discovered.append({"url": href.split("?")[0], "tag": tag})
+                    discovered.append(source)
                 if len(discovered) >= limit:
                     return dedupe_sources(seed_sources + discovered)
         except Exception as e:

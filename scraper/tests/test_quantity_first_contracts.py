@@ -93,6 +93,26 @@ class QuantityFirstContractsTest(unittest.TestCase):
         self.assertIn("big_tits", tags)
         self.assertIn("creampie", tags)
 
+    def test_extracts_sources_from_category_hub_links(self):
+        links = [
+            {"href": "https://missav.ws/genres", "text": "類型"},
+            {"href": "https://missav.ws/dm95/genres/%E9%AB%98%E6%B8%85", "text": "高清"},
+            {"href": "https://missav.ws/dm136/genres/%E7%8D%A8%E5%AE%B6", "text": "獨家"},
+            {"href": "https://missav.ws/dm127/genres/%E4%B8%AD%E5%87%BA?sort=monthly_views", "text": "中出"},
+            {"href": "https://missav.ws/dm114/cn/genres/%E5%B7%A8%E4%B9%B3", "text": "巨乳"},
+            {"href": "https://missav.ws/genres/VR", "text": "VR"},
+        ]
+
+        sources = self.main.extract_category_hub_sources(links)
+        tags = {item["tag"] for item in sources}
+        urls = {item["url"] for item in sources}
+
+        self.assertIn("exclusive", tags)
+        self.assertIn("creampie", tags)
+        self.assertIn("big_tits", tags)
+        self.assertIn("vr", tags)
+        self.assertNotIn("https://missav.ws/genres", urls)
+
 
 if __name__ == "__main__":
     unittest.main()
