@@ -107,7 +107,15 @@ jobs:
         set -euo pipefail
 
         mode='${{ inputs.selection_mode }}'
-        fallback_tags='new,weekly_hot,monthly_hot,subtitled'
+        case '${{ inputs.backfill_focus }}:${{ inputs.source_site }}' in
+          cover:missav) fallback_tags='exclusive,creampie,single,big_tits' ;;
+          metadata:missav) fallback_tags='new,weekly_hot,monthly_hot,subtitled' ;;
+          mixed:missav) fallback_tags='exclusive,creampie,new,weekly_hot' ;;
+          *:51cg) fallback_tags='51cg,51mrds' ;;
+          cover:all) fallback_tags='exclusive,creampie,single,big_tits,51cg,51mrds' ;;
+          metadata:all) fallback_tags='new,weekly_hot,monthly_hot,subtitled,51cg,51mrds' ;;
+          *) fallback_tags='exclusive,creampie,new,weekly_hot,51cg,51mrds' ;;
+        esac
         tags=''
         skip_51cg='${{ inputs.skip_51cg }}'
 

@@ -12,6 +12,53 @@ AVAILABLE_TAGS = [
     'group', 'nympho', 'school', 'voyeur', 'story', 'sister', 'pov', '51cg', '51mrds'
 ]
 
+BACKFILL_FALLBACKS = {
+    'missav': {
+        'cover': ['exclusive', 'creampie', 'single', 'big_tits', 'mature', 'amateur'],
+        'metadata': ['new', 'weekly_hot', 'monthly_hot', 'subtitled', 'exclusive', 'uncensored'],
+        'mixed': ['exclusive', 'creampie', 'new', 'weekly_hot', 'single', 'monthly_hot'],
+    },
+    '51cg': {
+        'cover': ['51cg', '51mrds'],
+        'metadata': ['51cg', '51mrds'],
+        'mixed': ['51cg', '51mrds'],
+    },
+    'all': {
+        'cover': ['exclusive', 'creampie', 'single', 'big_tits', '51cg', '51mrds'],
+        'metadata': ['new', 'weekly_hot', 'monthly_hot', 'subtitled', '51cg', '51mrds'],
+        'mixed': ['exclusive', 'creampie', 'new', 'weekly_hot', '51cg', '51mrds'],
+    },
+}
+
+
+def ordered_unique(items):
+    output = []
+    seen = set()
+    for item in items:
+        if item and item not in seen:
+            seen.add(item)
+            output.append(item)
+    return output
+
+
+def resolve_fallback_tags(focus: str, source_site: str, include_51cg: bool) -> list[str]:
+    source_key = source_site if source_site in BACKFILL_FALLBACKS else 'all'
+    focus_key = focus if focus in {'cover', 'metadata', 'mixed'} else 'mixed'
+    tags = list(BACKFILL_FALLBACKS[source_key][focus_key])
+    if include_51cg and source_key != '51cg':
+        tags.extend(['51cg', '51mrds'])
+    elif not include_51cg:
+        tags = [tag for tag in tags if tag not in {'51cg', '51mrds'}]
+    return [tag for tag in ordered_unique(tags) if tag in AVAILABLE_TAGS]
+
+
+def select_tags_from_rows(rows, limit: int, focus: str, source_site: str, include_51cg: bool) -> list[str]:
+    selected = [str(row.get('tag') or '').strip() for row in rows]
+    selected = [tag for tag in selected if tag in AVAILABLE_TAGS and (include_51cg or tag not in {'51cg', '51mrds'})]
+    fallback = resolve_fallback_tags(focus=focus, source_site=source_site, include_51cg=include_51cg)
+    merged = ordered_unique(selected + fallback)
+    return merged[: max(int(limit), 1)]
+
 
 def run_sql(project_ref: str, token: str, query: str):
     url = f'https://api.supabase.com/v1/projects/{project_ref}/database/query'
@@ -89,7 +136,13 @@ def main():
         sys.exit(1)
 
     rows = run_sql(args.project_ref, token, build_query(args.limit, args.source_site, args.include_51cg, args.focus))
-    selected_tags = [row['tag'] for row in rows]
+    selected_tags = select_tags_from_rows(
+        rows,
+        limit=args.limit,
+        focus=args.focus,
+        source_site=args.source_site,
+        include_51cg=args.include_51cg,
+    )
     skip_51cg = not any(tag in {'51cg', '51mrds'} for tag in selected_tags)
     result = {
         'selected_tags': selected_tags,
