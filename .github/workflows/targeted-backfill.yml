@@ -20,6 +20,15 @@ on:
           - missav
           - all
           - 51cg
+      backfill_focus:
+        description: 'metadata = pending/partial priority, cover = missing cover priority, mixed = weighted'
+        required: true
+        default: 'mixed'
+        type: choice
+        options:
+          - mixed
+          - metadata
+          - cover
       source_tags:
         description: 'Manual comma-separated source tags when selection_mode=manual'
         required: false
@@ -107,6 +116,7 @@ jobs:
         elif [[ -n "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
           python3 scripts/select_backfill_targets.py \
             --source-site '${{ inputs.source_site }}' \
+            --focus '${{ inputs.backfill_focus }}' \
             --limit '${{ inputs.backlog_limit }}' \
             --output env > /tmp/backfill_targets.env
           cat /tmp/backfill_targets.env
@@ -129,6 +139,7 @@ jobs:
           echo
           echo "- mode: $mode"
           echo "- source_site: ${{ inputs.source_site }}"
+          echo "- backfill_focus: ${{ inputs.backfill_focus }}"
           echo "- source_tags: $tags"
           echo "- skip_51cg: $skip_51cg"
           echo "- missav_max_pages: ${{ inputs.missav_max_pages }}"

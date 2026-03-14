@@ -30,12 +30,19 @@ def run_sql(project_ref: str, token: str, query: str):
         return json.loads(response.read().decode())
 
 
-def build_query(limit: int, source_site: str, include_51cg: bool) -> str:
+def build_query(limit: int, source_site: str, include_51cg: bool, focus: str) -> str:
     tags = AVAILABLE_TAGS if include_51cg else [tag for tag in AVAILABLE_TAGS if tag not in {'51cg', '51mrds'}]
     values = ', '.join(f"('{tag}')" for tag in tags)
     source_filter = ''
     if source_site in {'missav', '51cg'}:
         source_filter = f" and v.source_site = '{source_site}'"
+
+    if focus == 'cover':
+        order_clause = "missing_cover_count desc, backlog_count desc, latest_release_date desc nulls last, tag asc"
+    elif focus == 'metadata':
+        order_clause = "partial_count desc, pending_count desc, backlog_count desc, latest_release_date desc nulls last, tag asc"
+    else:
+        order_clause = "(missing_cover_count * 2 + partial_count + pending_count) desc, latest_release_date desc nulls last, tag asc"
 
     return f"""
 with source_tags(tag) as (
@@ -61,7 +68,7 @@ with source_tags(tag) as (
 select *
 from backlog
 where backlog_count > 0
-order by backlog_count desc, partial_count desc, pending_count desc, tag asc
+order by {order_clause}
 limit {int(limit)};
 """
 
@@ -72,6 +79,7 @@ def main():
     parser.add_argument('--limit', type=int, default=4)
     parser.add_argument('--source-site', choices=['all', 'missav', '51cg'], default='missav')
     parser.add_argument('--include-51cg', action='store_true')
+    parser.add_argument('--focus', choices=['metadata', 'cover', 'mixed'], default='mixed')
     parser.add_argument('--output', choices=['json', 'env'], default='json')
     args = parser.parse_args()
 
@@ -80,7 +88,7 @@ def main():
         print('SUPABASE_ACCESS_TOKEN is required', file=sys.stderr)
         sys.exit(1)
 
-    rows = run_sql(args.project_ref, token, build_query(args.limit, args.source_site, args.include_51cg))
+    rows = run_sql(args.project_ref, token, build_query(args.limit, args.source_site, args.include_51cg, args.focus))
     selected_tags = [row['tag'] for row in rows]
     skip_51cg = not any(tag in {'51cg', '51mrds'} for tag in selected_tags)
     result = {
@@ -88,12 +96,14 @@ def main():
         'skip_51cg': skip_51cg,
         'rows': rows,
         'source_site': args.source_site,
+        'focus': args.focus,
     }
 
     if args.output == 'env':
         print(f"SCRAPER_SOURCE_TAGS={','.join(selected_tags)}")
         print(f"SKIP_51CG={'true' if skip_51cg else 'false'}")
         print(f"BACKFILL_SOURCE_SITE={args.source_site}")
+        print(f"BACKFILL_FOCUS={args.focus}")
     else:
         print(json.dumps(result, ensure_ascii=False, indent=2))
 

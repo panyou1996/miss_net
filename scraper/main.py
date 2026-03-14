@@ -236,11 +236,50 @@ def normalize_cover_url(value):
     return text
 
 
+def has_valid_cover(value) -> bool:
+    return normalize_cover_url(value) is not None
+
+
 def looks_like_placeholder_cover(value):
     if value is None:
         return False
     text = str(value).strip().lower()
     return text.startswith("data:image") or text.startswith("blob:") or text.startswith("about:blank")
+
+
+def classify_cover_status(value) -> str:
+    return "valid" if has_valid_cover(value) else "missing"
+
+
+def has_meaningful_duration(value) -> bool:
+    return normalize_duration_text(value) is not None
+
+
+def has_release_date(value) -> bool:
+    return normalize_release_date_text(value) is not None
+
+
+def has_non_empty_list(items) -> bool:
+    return len(ordered_unique(items or [])) > 0
+
+
+def classify_detail_status(record: dict | None) -> str:
+    if not record:
+        return "pending"
+
+    has_cover = has_valid_cover(record.get("cover_url"))
+    has_duration = has_meaningful_duration(record.get("duration"))
+    has_date = has_release_date(record.get("release_date"))
+    has_actors = has_non_empty_list(record.get("actors"))
+    has_tags = has_non_empty_list(record.get("tags"))
+
+    if has_cover and has_duration and (has_date or has_actors or has_tags):
+        return "success"
+
+    if has_cover or has_duration or has_date or has_actors or has_tags:
+        return "partial"
+
+    return "pending"
 
 
 def make_run_stats():
@@ -318,6 +357,13 @@ def merge_video_record(video: dict, existing: dict | None) -> dict:
     merged["actors"] = ordered_unique((existing.get("actors") or []) + (merged.get("actors") or []))
     merged["tags"] = normalize_taxonomy_values((existing.get("tags") or []) + (merged.get("tags") or []))
     merged["categories"] = normalize_taxonomy_values((existing.get("categories") or []) + (merged.get("categories") or []))
+    merged["cover_status"] = classify_cover_status(merged.get("cover_url"))
+    merged["detail_status"] = classify_detail_status(merged)
+    merged["detail_fetched_at"] = (
+        datetime.now(timezone.utc).isoformat()
+        if merged["detail_status"] in {"success", "partial"}
+        else existing.get("detail_fetched_at")
+    )
 
     return merged
 
@@ -325,12 +371,7 @@ def merge_video_record(video: dict, existing: dict | None) -> dict:
 def should_fetch_details(existing: dict | None) -> bool:
     if not existing:
         return True
-
-    duration = normalize_duration_text(existing.get("duration"))
-    release_date = normalize_release_date_text(existing.get("release_date"))
-    actors = ordered_unique(existing.get("actors") or [])
-
-    return not (duration and (release_date or actors))
+    return classify_detail_status(existing) != "success"
 
 
 def infer_source_site(source_url: str | None, fallback: str = "missav") -> str:
@@ -378,6 +419,10 @@ def normalize_video_record(video: dict) -> dict:
     record["duration"] = normalize_duration_text(record.get("duration"))
     record["release_date"] = normalize_release_date_text(record.get("release_date"))
     record["cover_url"] = normalize_cover_url(record.get("cover_url"))
+    record["cover_status"] = classify_cover_status(record.get("cover_url"))
+    record["detail_status"] = classify_detail_status(record)
+    if record["detail_status"] in {"success", "partial"}:
+        record["detail_fetched_at"] = record.get("detail_fetched_at") or datetime.now(timezone.utc).isoformat()
     return record
 
 
@@ -693,7 +738,7 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
             res = await execute_with_retry(
                 label=f"{source_tag}-metadata-check",
                 fn=lambda: supabase.table("videos").select(
-                    "external_id, title, cover_url, source_url, source_site, duration, actors, release_date, tags, categories"
+                    "external_id, title, cover_url, cover_status, source_url, source_site, duration, actors, release_date, tags, categories, detail_status, detail_fetched_at"
                 ).in_("external_id", external_ids).execute()
             )
             for record in res.data:
@@ -704,11 +749,14 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
     rows_to_upsert = []
     tasks = []
     details_needed_count = 0
+    cover_needed_count = 0
     for v in videos:
         ext_id = v['external_id']
         existing = metadata_map.get(ext_id)
         if not existing:
             page_stats["new_external_count"] += 1
+        elif classify_cover_status(existing.get("cover_url")) == "missing":
+            cover_needed_count += 1
         if not should_fetch_details(existing):
             print(f"  [Skip] {v['title'][:30]}... (Metadata exists)")
             page_stats["existing_complete_count"] += 1
@@ -761,7 +809,7 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
 
     upsert_result = await batch_upsert_videos(rows_to_upsert, supabase, f"{source_tag.upper()} BATCH")
     merge_stats(page_stats, upsert_result)
-    page_stats["stale_page"] = page_stats["new_external_count"] == 0 and details_needed_count == 0
+    page_stats["stale_page"] = page_stats["new_external_count"] == 0 and details_needed_count == 0 and cover_needed_count == 0
     return page_stats
 
 async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_tag="51cg"):
@@ -778,7 +826,7 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_t
             res = await execute_with_retry(
                 label=f"{source_tag}-metadata-check",
                 fn=lambda: supabase.table("videos").select(
-                    "external_id, title, cover_url, source_url, source_site, duration, actors, release_date, tags, categories"
+                    "external_id, title, cover_url, cover_status, source_url, source_site, duration, actors, release_date, tags, categories, detail_status, detail_fetched_at"
                 ).in_("external_id", external_ids).execute()
             )
             for record in res.data:

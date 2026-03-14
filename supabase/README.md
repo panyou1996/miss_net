@@ -48,6 +48,7 @@ Recommended first run:
 
 - `selection_mode=auto`
 - `source_site=missav`
+- `backfill_focus=mixed`
 - `backlog_limit=4`
 - `missav_max_pages=5`
 - `cg_max_pages=1`
@@ -62,6 +63,7 @@ Recommended first run:
 export SUPABASE_ACCESS_TOKEN=...
 scripts/run_remote_sql.py --read-only --file supabase/sql/backfill_priority_queue.sql
 python3 scripts/select_backfill_targets.py --source-site missav --limit 4
+python3 scripts/select_backfill_targets.py --source-site missav --focus cover --limit 4
 ```
 
 ## Diagnostics
@@ -70,5 +72,8 @@ See:
 
 - `supabase/migrations/20260314170000_harden_videos_pipeline.sql`
 - `supabase/migrations/20260314171000_create_scrape_runs.sql`
+- `supabase/migrations/20260314193000_detail_status_and_native_aggregates.sql`
 - `supabase/sql/video_data_diagnostics.sql`
 - `supabase/sql/backfill_priority_queue.sql`
+- `supabase/sql/native_home_payload.sql`
+- `supabase/sql/native_browse_aggregates.sql`

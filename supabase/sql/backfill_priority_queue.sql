@@ -38,7 +38,19 @@ group by 1
 order by total desc
 limit 50;
 
--- 4) Recent backlog samples for manual verification
+-- 4) Top tags with the largest missing-cover backlog
+select
+  tag,
+  count(*)::int as total
+from public.videos,
+     unnest(tags) as tag
+where is_active = true
+  and (cover_url is null or cover_status = 'missing')
+group by 1
+order by total desc
+limit 50;
+
+-- 5) Recent backlog samples for manual verification
 select
   external_id,
   title,
