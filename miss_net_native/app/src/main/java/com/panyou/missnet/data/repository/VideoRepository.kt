@@ -19,22 +19,43 @@ class VideoRepository @Inject constructor(
         return getRecentVideosDirect(limit, category, offset)
     }
 
-    suspend fun getVideosByCategory(category: String, limit: Int = 20, offset: Int = 0): List<Video> =
-        getRecentVideosDirect(limit, category, offset)
+    suspend fun getVideosByCategory(category: String, limit: Int = 20, offset: Int = 0): List<Video> {
+        return try {
+            supabase.postgrest
+                .rpc("get_videos_by_category", buildJsonObject {
+                    put("category_text", category)
+                    put("limit_count", limit)
+                    put("offset_count", offset)
+                })
+                .decodeList<Video>()
+        } catch (_: Exception) {
+            getRecentVideosDirect(limit, category, offset)
+        }
+    }
 
     suspend fun getVideosByActor(actor: String, limit: Int = 20, offset: Int = 0): List<Video> {
         return try {
-            supabase.postgrest["videos"].select {
-                filter {
-                    eq("is_active", true)
-                    contains("actors", listOf(actor))
-                }
-                order("source_release_date", Order.DESCENDING)
-                order("created_at", Order.DESCENDING)
-                range(offset.toLong(), (offset + limit - 1).toLong())
-            }.decodeList<Video>()
+            supabase.postgrest
+                .rpc("get_videos_by_actor", buildJsonObject {
+                    put("actor_name", actor)
+                    put("limit_count", limit)
+                    put("offset_count", offset)
+                })
+                .decodeList<Video>()
         } catch (_: Exception) {
-            emptyList()
+            try {
+                supabase.postgrest["videos"].select {
+                    filter {
+                        eq("is_active", true)
+                        contains("actors", listOf(actor))
+                    }
+                    order("source_release_date", Order.DESCENDING)
+                    order("created_at", Order.DESCENDING)
+                    range(offset.toLong(), (offset + limit - 1).toLong())
+                }.decodeList<Video>()
+            } catch (_: Exception) {
+                emptyList()
+            }
         }
     }
 
