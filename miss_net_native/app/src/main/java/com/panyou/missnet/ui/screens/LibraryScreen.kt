@@ -259,8 +259,8 @@ private fun VideoGridPage(
                     VideoCard(
                         videoId = video.id,
                         title = video.title,
-                        coverUrl = video.coverUrl ?: "",
-                        duration = video.duration,
+                        coverUrl = video.coverUrl,
+                        duration = video.displayDurationOrNull,
                         progress = historyProgress[video.id],
                         showFavoriteBadge = title == "收藏",
                         onClick = { onVideoClick(video.id) },

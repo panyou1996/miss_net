@@ -459,7 +459,7 @@ private fun ContinueWatchingCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = entry.video.actors.firstOrNull() ?: "未知演员",
+                    text = entry.video.primaryActorOrNull ?: entry.video.metadataStatusLabel,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -551,7 +551,7 @@ private fun FavoriteGlanceCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = video.actors.firstOrNull() ?: "未知演员",
+                    text = video.primaryActorOrNull ?: video.metadataStatusLabel,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -560,7 +560,7 @@ private fun FavoriteGlanceCard(
                 Text(
                     text = buildString {
                         append(video.displayDate ?: "最近更新")
-                        video.duration?.takeIf { it.isNotBlank() }?.let {
+                        video.displayDurationOrNull?.let {
                             append(" · ")
                             append(it)
                         }

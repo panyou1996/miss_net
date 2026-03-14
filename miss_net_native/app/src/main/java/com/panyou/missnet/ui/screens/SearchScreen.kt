@@ -233,8 +233,8 @@ fun SearchScreen(
                                         VideoCard(
                                             videoId = video.id,
                                             title = video.title,
-                                            coverUrl = video.coverUrl ?: "",
-                                            duration = video.duration,
+                                            coverUrl = video.coverUrl,
+                                            duration = video.displayDurationOrNull,
                                             onClick = { onVideoClick(video.id) },
                                             sharedTransitionScope = sharedTransitionScope,
                                             animatedVisibilityScope = animatedVisibilityScope

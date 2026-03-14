@@ -317,7 +317,8 @@ fun CategoryVideoItem(
                 )
                 Text(
                     text = buildString {
-                        append(video.actors.firstOrNull() ?: "未知演员")
+                        video.primaryActorOrNull?.let { append(it) }
+                            ?: append(video.metadataStatusLabel)
                         video.tags.take(2).takeIf { it.isNotEmpty() }?.let {
                             append(" · ")
                             append(it.joinToString(" · "))
@@ -338,7 +339,7 @@ fun CategoryVideoItem(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "${video.displayDate ?: "最近更新"} · ${video.duration ?: "高清"}",
+                        text = listOfNotNull(video.displayDate, video.displayDurationOrNull, video.metadataStatusLabel.takeIf { video.displayDate == null && video.displayDurationOrNull == null }).joinToString(" · ").ifBlank { "信息待补全" },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
