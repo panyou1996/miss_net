@@ -18,7 +18,7 @@ on:
       source_tags:
         description: 'Comma-separated source tags (e.g. new,weekly_hot,monthly_hot). Empty means all/default for mode.'
         required: false
-        default: 'new,weekly_hot,monthly_hot'
+        default: ''
       missav_max_pages:
         description: 'Max MissAV pages to scan'
         required: false
@@ -105,7 +105,7 @@ jobs:
         HEADLESS: "true"
         USER_DATA_DIR: scraper/user_data
         SCRAPER_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && (inputs.run_mode || 'sample') || 'full' }}
-        SCRAPER_SOURCE_TAGS: ${{ github.event_name == 'workflow_dispatch' && inputs.source_tags || '' }}
+        SCRAPER_SOURCE_TAGS: ${{ github.event_name == 'workflow_dispatch' && (((inputs.run_mode == 'index') && !(inputs.source_tags)) && '' || inputs.source_tags) || '' }}
         MISSAV_MAX_PAGES: ${{ github.event_name == 'workflow_dispatch' && (inputs.missav_max_pages || '5') || (vars.MISSAV_MAX_PAGES || '50') }}
         CG_MAX_PAGES: ${{ github.event_name == 'workflow_dispatch' && (inputs.cg_max_pages || '1') || (vars.CG_MAX_PAGES || '3') }}
         CONCURRENT_DETAIL_PAGES: ${{ github.event_name == 'workflow_dispatch' && (inputs.concurrent_detail_pages || '4') || (vars.CONCURRENT_DETAIL_PAGES || '4') }}
