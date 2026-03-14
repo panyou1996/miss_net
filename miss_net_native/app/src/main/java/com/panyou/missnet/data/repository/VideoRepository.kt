@@ -15,19 +15,27 @@ import javax.inject.Inject
 class VideoRepository @Inject constructor(
     private val supabase: SupabaseClient
 ) {
+    private val homeCacheTtlMs = 10 * 60 * 1000L
+    private var homeCache: TimedCache<HomePayload>? = null
+    private var actorCache: TimedCache<List<ActorInfo>>? = null
+    private var tagCache: TimedCache<List<String>>? = null
+    private val videoCache = LinkedHashMap<String, Video>()
+
     suspend fun getRecentVideos(limit: Int = 20, category: String = "new", offset: Int = 0): List<Video> {
         return getRecentVideosDirect(limit, category, offset)
     }
 
     suspend fun getVideosByCategory(category: String, limit: Int = 20, offset: Int = 0): List<Video> {
         return try {
-            supabase.postgrest
+            rememberVideos(
+                supabase.postgrest
                 .rpc("get_videos_by_category", buildJsonObject {
                     put("category_text", category)
                     put("limit_count", limit)
                     put("offset_count", offset)
                 })
                 .decodeList<Video>()
+            )
         } catch (_: Exception) {
             getRecentVideosDirect(limit, category, offset)
         }
@@ -35,16 +43,18 @@ class VideoRepository @Inject constructor(
 
     suspend fun getVideosByActor(actor: String, limit: Int = 20, offset: Int = 0): List<Video> {
         return try {
-            supabase.postgrest
+            rememberVideos(
+                supabase.postgrest
                 .rpc("get_videos_by_actor", buildJsonObject {
                     put("actor_name", actor)
                     put("limit_count", limit)
                     put("offset_count", offset)
                 })
                 .decodeList<Video>()
+            )
         } catch (_: Exception) {
             try {
-                supabase.postgrest["videos"].select {
+                rememberVideos(supabase.postgrest["videos"].select {
                     filter {
                         eq("is_active", true)
                         contains("actors", listOf(actor))
@@ -52,7 +62,7 @@ class VideoRepository @Inject constructor(
                     order("source_release_date", Order.DESCENDING)
                     order("created_at", Order.DESCENDING)
                     range(offset.toLong(), (offset + limit - 1).toLong())
-                }.decodeList<Video>()
+                }.decodeList<Video>())
             } catch (_: Exception) {
                 emptyList()
             }
@@ -63,7 +73,10 @@ class VideoRepository @Inject constructor(
 
     suspend fun getWatchHistory(): List<Video> = getRecentVideos(limit = 15, category = "monthly_hot")
 
-    suspend fun getHomePayload(sectionLimit: Int = 10, weeklyLimit: Int = 15): HomePayload {
+    suspend fun getHomePayload(sectionLimit: Int = 10, weeklyLimit: Int = 15, forceRefresh: Boolean = false): HomePayload {
+        if (!forceRefresh) {
+            homeCache?.takeIf { it.isFresh(homeCacheTtlMs) }?.value?.let { return it }
+        }
         return try {
             val rows = supabase.postgrest.rpc(
                 "get_home_payload",
@@ -72,7 +85,10 @@ class VideoRepository @Inject constructor(
                     put("weekly_limit", weeklyLimit)
                 }
             ).decodeList<HomePayloadRow>()
-            rows.toHomePayload()
+            rows.toHomePayload().also {
+                cacheHomePayload(it)
+                homeCache = TimedCache(it)
+            }
         } catch (_: Exception) {
             HomePayload(
                 newVideos = getRecentVideosDirect(sectionLimit, "new"),
@@ -82,7 +98,10 @@ class VideoRepository @Inject constructor(
                 subtitleVideos = getRecentVideosDirect(sectionLimit, "subtitled"),
                 vrVideos = getRecentVideosDirect(sectionLimit, "vr"),
                 chiguaVideos = getRecentVideosDirect(sectionLimit, "51cg"),
-            )
+            ).also {
+                cacheHomePayload(it)
+                homeCache = TimedCache(it)
+            }
         }
     }
 
@@ -97,7 +116,10 @@ class VideoRepository @Inject constructor(
         }
     }
 
-    suspend fun getActorsWithCovers(limit: Int = 20): List<ActorInfo> {
+    suspend fun getActorsWithCovers(limit: Int = 20, forceRefresh: Boolean = false): List<ActorInfo> {
+        if (!forceRefresh) {
+            actorCache?.takeIf { it.isFresh(homeCacheTtlMs) }?.value?.takeIf { it.isNotEmpty() }?.let { return it.take(limit) }
+        }
         return try {
             val primary = supabase.postgrest
                 .rpc("get_actor_aggregates", buildJsonObject { put("limit_count", limit) })
@@ -112,19 +134,24 @@ class VideoRepository @Inject constructor(
                         latestReleaseDate = it.latestReleaseDate
                     )
                 }
-            if (primary.size >= limit) {
+            val merged = if (primary.size >= limit) {
                 primary.take(limit)
             } else {
                 val fallback = getActorCoverFallback(limit * 8)
                 (primary + fallback.filter { candidate -> primary.none { it.name == candidate.name } })
                     .take(limit)
             }
+            actorCache = TimedCache(merged)
+            merged
         } catch (_: Exception) {
-            getActorCoverFallback(limit)
+            getActorCoverFallback(limit).also { actorCache = TimedCache(it) }
         }
     }
 
-    suspend fun getPopularTags(limit: Int = 30): List<String> {
+    suspend fun getPopularTags(limit: Int = 30, forceRefresh: Boolean = false): List<String> {
+        if (!forceRefresh) {
+            tagCache?.takeIf { it.isFresh(homeCacheTtlMs) }?.value?.takeIf { it.isNotEmpty() }?.let { return it.take(limit) }
+        }
         return try {
             val primary = supabase.postgrest
                 .rpc("get_tag_aggregates", buildJsonObject { put("limit_count", limit) })
@@ -134,6 +161,7 @@ class VideoRepository @Inject constructor(
             (primary + getPopularTagsFallback(limit * 10) + defaultBrowseTags())
                 .distinct()
                 .take(limit)
+                .also { tagCache = TimedCache(it) }
         } catch (_: Exception) {
             try {
                 val legacy = supabase.postgrest
@@ -143,48 +171,42 @@ class VideoRepository @Inject constructor(
                 (legacy + getPopularTagsFallback(limit * 10) + defaultBrowseTags())
                     .distinct()
                     .take(limit)
+                    .also { tagCache = TimedCache(it) }
             } catch (_: Exception) {
                 (getPopularTagsFallback(limit * 10) + defaultBrowseTags()).distinct().take(limit)
+                    .also { tagCache = TimedCache(it) }
             }
         }
     }
 
     suspend fun getVideoById(id: String): Video? {
+        videoCache[id]?.let { return it }
         return try {
-            supabase.postgrest["videos"].select { filter { eq("id", id) } }.decodeSingleOrNull<Video>()
+            supabase.postgrest["videos"].select { filter { eq("id", id) } }.decodeSingleOrNull<Video>()?.also { rememberVideo(it) }
         } catch (_: Exception) {
             null
         }
     }
 
-    suspend fun searchVideos(query: String, limit: Int = 20): List<Video> {
+    suspend fun searchVideos(query: String, limit: Int = 20, offset: Int = 0): List<Video> {
         return try {
-            supabase.postgrest
-                .rpc("search_videos_title", buildJsonObject {
+            rememberVideos(
+                supabase.postgrest
+                .rpc("search_videos_multi", buildJsonObject {
                     put("query_text", query)
                     put("limit_count", limit)
+                    put("offset_count", offset)
                 })
                 .decodeList<Video>()
+            )
         } catch (_: Exception) {
-            try {
-                supabase.postgrest["videos"].select {
-                    filter {
-                        eq("is_active", true)
-                        ilike("title", "%$query%")
-                    }
-                    order("source_release_date", Order.DESCENDING)
-                    order("created_at", Order.DESCENDING)
-                    limit(limit.toLong())
-                }.decodeList<Video>()
-            } catch (_: Exception) {
-                emptyList()
-            }
+            searchVideosFallback(query, limit, offset)
         }
     }
 
     private suspend fun getRecentVideosDirect(limit: Int = 20, category: String = "new", offset: Int = 0): List<Video> {
         return try {
-            supabase.postgrest["videos"].select {
+            rememberVideos(supabase.postgrest["videos"].select {
                 filter {
                     eq("is_active", true)
                     if (category != "new" && category.isNotEmpty()) {
@@ -197,7 +219,7 @@ class VideoRepository @Inject constructor(
                 order("source_release_date", Order.DESCENDING)
                 order("created_at", Order.DESCENDING)
                 range(offset.toLong(), (offset + limit - 1).toLong())
-            }.decodeList<Video>()
+            }.decodeList<Video>())
         } catch (_: Exception) {
             emptyList()
         }
@@ -248,6 +270,53 @@ class VideoRepository @Inject constructor(
             .map { it.key }
             .take(limit)
     }
+
+    private suspend fun searchVideosFallback(query: String, limit: Int, offset: Int): List<Video> {
+        val normalized = query.trim().lowercase()
+        if (normalized.isBlank()) return emptyList()
+        return getRecentVideosDirect(limit = 600)
+            .filter { video ->
+                video.title.contains(query, ignoreCase = true) ||
+                    video.actors.any { it.contains(query, ignoreCase = true) } ||
+                    video.tags.any { it.contains(query, ignoreCase = true) }
+            }
+            .distinctBy { it.id }
+            .drop(offset)
+            .take(limit)
+    }
+
+    private fun cacheHomePayload(payload: HomePayload) {
+        rememberVideos(
+            payload.newVideos +
+                payload.monthlyVideos +
+                payload.weeklyVideos +
+                payload.uncensoredVideos +
+                payload.subtitleVideos +
+                payload.vrVideos +
+                payload.chiguaVideos
+        )
+    }
+
+    private fun rememberVideos(videos: List<Video>): List<Video> {
+        videos.forEach(::rememberVideo)
+        return videos
+    }
+
+    private fun rememberVideo(video: Video) {
+        if (video.id.isBlank()) return
+        videoCache[video.id] = video
+        if (videoCache.size > 1500) {
+            val firstKey = videoCache.entries.firstOrNull()?.key ?: return
+            videoCache.remove(firstKey)
+        }
+    }
+}
+
+private data class TimedCache<T>(
+    val value: T,
+    val timestampMs: Long = System.currentTimeMillis()
+) {
+    fun isFresh(ttlMs: Long): Boolean = System.currentTimeMillis() - timestampMs <= ttlMs
 }
 
 private fun isUsableCoverUrl(url: String?): Boolean {

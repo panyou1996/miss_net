@@ -12,7 +12,8 @@ import javax.inject.Inject
 
 data class ActressUiState(
     val actresses: List<ActorInfo> = emptyList(),
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false
 )
 
 @HiltViewModel
@@ -27,11 +28,16 @@ class ActressViewModel @Inject constructor(
         loadActresses()
     }
 
-    private fun loadActresses() {
+    fun refresh() {
+        loadActresses(forceRefresh = true)
+    }
+
+    private fun loadActresses(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            val list = repository.getActorsWithCovers(limit = 100)
-            _uiState.value = ActressUiState(actresses = list, isLoading = false)
+            val hasContent = _uiState.value.actresses.isNotEmpty()
+            _uiState.value = _uiState.value.copy(isLoading = !hasContent, isRefreshing = hasContent)
+            val list = repository.getActorsWithCovers(limit = 100, forceRefresh = forceRefresh)
+            _uiState.value = ActressUiState(actresses = list, isLoading = false, isRefreshing = false)
         }
     }
 }

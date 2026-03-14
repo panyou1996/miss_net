@@ -303,32 +303,20 @@ private fun ContinueWatchingPage(
         return
     }
 
-    Surface(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(
-                start = ContainerTokens.ScreenCompactHorizontalPadding,
-                end = ContainerTokens.ScreenCompactHorizontalPadding,
-                bottom = ContainerTokens.ScreenContentPadding
-            ),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
-    ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(entries.sortedByDescending { it.updatedAt }) { entry ->
-                ContinueWatchingCard(
-                    entry = entry,
-                    onClick = { onVideoClick(entry.video.id) }
-                )
-            }
-            item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
-        }
-    }
+    VideoGridPage(
+        title = "继续看",
+        emptyTitle = "暂无继续看内容",
+        emptySubtitle = "你看过但还没看完的内容会集中显示在这里。",
+        icon = Icons.Rounded.History,
+        isLoading = false,
+        videos = entries.sortedByDescending { it.updatedAt }.map { it.video },
+        historyProgress = emptyMap(),
+        onVideoClick = onVideoClick,
+        sharedTransitionScope = sharedTransitionScope,
+        animatedVisibilityScope = animatedVisibilityScope,
+        actionLabel = actionLabel,
+        onAction = onAction
+    )
 }
 
 @Composable

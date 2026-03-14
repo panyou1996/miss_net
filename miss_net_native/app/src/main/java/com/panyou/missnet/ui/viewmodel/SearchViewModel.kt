@@ -17,6 +17,8 @@ data class SearchUiState(
     val results: List<Video> = emptyList(),
     val history: List<String> = emptyList(),
     val isLoading: Boolean = false,
+    val isLoadingMore: Boolean = false,
+    val endReached: Boolean = false,
     val errorMessage: String? = null
 )
 
@@ -25,6 +27,7 @@ class SearchViewModel @Inject constructor(
     private val repository: VideoRepository,
     private val localStore: LocalVideoStateStore
 ) : ViewModel() {
+    private val pageSize = 20
 
     private val _uiState = MutableStateFlow(
         SearchUiState(history = localStore.getSearchHistory())
@@ -67,26 +70,57 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
+                isLoadingMore = false,
                 query = normalized,
                 active = false,
+                endReached = false,
+                results = emptyList(),
                 errorMessage = null
             )
             try {
-                val results = repository.searchVideos(normalized)
+                val results = repository.searchVideos(normalized, limit = pageSize, offset = 0)
                 localStore.addSearchHistory(normalized)
                 _uiState.value = _uiState.value.copy(
                     results = results,
                     history = localStore.getSearchHistory(),
                     isLoading = false,
+                    isLoadingMore = false,
                     active = false,
+                    endReached = results.size < pageSize,
                     errorMessage = null
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     results = emptyList(),
                     isLoading = false,
+                    isLoadingMore = false,
                     active = false,
+                    endReached = true,
                     errorMessage = e.message ?: "搜索失败，请检查网络后重试。"
+                )
+            }
+        }
+    }
+
+    fun loadMore() {
+        val state = _uiState.value
+        val query = state.query.trim()
+        if (query.isBlank() || state.isLoading || state.isLoadingMore || state.endReached) return
+
+        viewModelScope.launch {
+            _uiState.value = state.copy(isLoadingMore = true, errorMessage = null)
+            runCatching {
+                repository.searchVideos(query, limit = pageSize, offset = state.results.size)
+            }.onSuccess { more ->
+                _uiState.value = _uiState.value.copy(
+                    results = _uiState.value.results + more,
+                    isLoadingMore = false,
+                    endReached = more.size < pageSize
+                )
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(
+                    isLoadingMore = false,
+                    errorMessage = error.message ?: "加载更多失败，请稍后重试。"
                 )
             }
         }

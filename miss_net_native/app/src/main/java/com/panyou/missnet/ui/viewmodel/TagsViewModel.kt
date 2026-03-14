@@ -11,7 +11,8 @@ import javax.inject.Inject
 
 data class TagsUiState(
     val tags: List<String> = emptyList(),
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false
 )
 
 @HiltViewModel
@@ -26,13 +27,18 @@ class TagsViewModel @Inject constructor(
         loadTags()
     }
 
-    private fun loadTags() {
+    fun refresh() {
+        loadTags(forceRefresh = true)
+    }
+
+    private fun loadTags(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            val list = repository.getPopularTags().ifEmpty {
+            val hasContent = _uiState.value.tags.isNotEmpty()
+            _uiState.value = _uiState.value.copy(isLoading = !hasContent, isRefreshing = hasContent)
+            val list = repository.getPopularTags(forceRefresh = forceRefresh).ifEmpty {
                 listOf("single", "exclusive", "creampie", "big_tits", "mature", "subtitled", "巨乳", "中出")
             }
-            _uiState.value = TagsUiState(tags = list, isLoading = false)
+            _uiState.value = TagsUiState(tags = list, isLoading = false, isRefreshing = false)
         }
     }
 }

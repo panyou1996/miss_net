@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
@@ -107,6 +108,11 @@ fun HomeScreen(
                 )
             }
             else -> {
+                PullToRefreshBox(
+                    isRefreshing = uiState.isRefreshing,
+                    onRefresh = viewModel::refresh,
+                    modifier = Modifier.fillMaxSize()
+                ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = contentPadding,
@@ -178,6 +184,7 @@ fun HomeScreen(
 
                     item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
                 }
+            }
             }
         }
     }

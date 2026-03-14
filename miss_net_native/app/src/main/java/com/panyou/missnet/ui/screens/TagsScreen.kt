@@ -8,6 +8,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,59 +36,65 @@ fun TagsScreen(
         if (uiState.isLoading) {
             MissNetLoading()
         } else {
-            Column(modifier = Modifier.fillMaxSize().padding(contentPadding).padding(top = ContainerTokens.ScreenContentPadding)) {
-                SecondaryPageSurface {
-                    if (uiState.tags.isEmpty()) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            MissNetStatePane(
-                                icon = Icons.Rounded.Star,
-                                title = "暂无可浏览标签",
-                                subtitle = "当前还没有可展示的标签入口，请稍后再试。",
-                                modifier = Modifier.padding(horizontal = 24.dp)
-                            )
-                        }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(
-                                top = 8.dp,
-                                bottom = 8.dp,
-                                start = ContainerTokens.ScreenContentPadding,
-                                end = ContainerTokens.ScreenContentPadding
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            itemsIndexed(uiState.tags) { index, tag ->
-                                ListItem(
-                                    headlineContent = {
-                                        Text(
-                                            text = tag,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    },
-                                    leadingContent = {
-                                        SmallBadge(
-                                            text = "#${index + 1}",
-                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    },
-                                    trailingContent = {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    },
-                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                                    modifier = Modifier.clickable { onTagClick(tag) }
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = viewModel::refresh,
+                modifier = Modifier.fillMaxSize().padding(contentPadding)
+            ) {
+                Column(modifier = Modifier.fillMaxSize().padding(top = ContainerTokens.ScreenContentPadding)) {
+                    SecondaryPageSurface {
+                        if (uiState.tags.isEmpty()) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                MissNetStatePane(
+                                    icon = Icons.Rounded.Star,
+                                    title = "暂无可浏览标签",
+                                    subtitle = "当前还没有可展示的标签入口，请稍后再试。",
+                                    modifier = Modifier.padding(horizontal = 24.dp)
                                 )
                             }
-                            item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(
+                                    top = 8.dp,
+                                    bottom = 8.dp,
+                                    start = ContainerTokens.ScreenContentPadding,
+                                    end = ContainerTokens.ScreenContentPadding
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                itemsIndexed(uiState.tags) { index, tag ->
+                                    ListItem(
+                                        headlineContent = {
+                                            Text(
+                                                text = tag,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        },
+                                        leadingContent = {
+                                            SmallBadge(
+                                                text = "#${index + 1}",
+                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        },
+                                        trailingContent = {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        },
+                                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                        modifier = Modifier.clickable { onTagClick(tag) }
+                                    )
+                                }
+                                item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
+                            }
                         }
                     }
                 }

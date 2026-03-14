@@ -143,6 +143,7 @@ fun PlayerScreen(
     var bufferedPos by remember { mutableStateOf(0L) }
     var playbackError by remember { mutableStateOf<String?>(null) }
     var hasRequestedExit by remember { mutableStateOf(false) }
+    var resumeAppliedForMediaId by remember { mutableStateOf<String?>(null) }
 
     fun persistPlaybackProgress() {
         val controlledPlayer = player ?: return
@@ -309,6 +310,7 @@ fun PlayerScreen(
             playbackError = null
             isBuffering = true
             val targetMediaId = uiState.video?.id ?: videoId
+            resumeAppliedForMediaId = null
             val currentMediaItem = p.currentMediaItem
             val currentUri = currentMediaItem?.localConfiguration?.uri?.toString()
             val shouldReplaceMediaItem = p.mediaItemCount == 0 ||
@@ -334,11 +336,26 @@ fun PlayerScreen(
                 if (resumePosition > 0L) {
                     p.seekTo(resumePosition)
                     currentPos = resumePosition
+                    resumeAppliedForMediaId = targetMediaId
                 }
                 p.playWhenReady = true
             } else if (p.playbackState == Player.STATE_IDLE) {
                 p.prepare()
             }
+        }
+    }
+
+    LaunchedEffect(player, uiState.video?.id, uiState.lastPositionMs) {
+        val p = player ?: return@LaunchedEffect
+        val mediaId = uiState.video?.id ?: return@LaunchedEffect
+        val resumePosition = uiState.lastPositionMs
+        if (resumePosition <= 0L || resumeAppliedForMediaId == mediaId) return@LaunchedEffect
+        if (p.currentMediaItem?.mediaId != mediaId) return@LaunchedEffect
+        delay(250)
+        if (p.currentPosition < 2_000L) {
+            p.seekTo(resumePosition)
+            currentPos = resumePosition
+            resumeAppliedForMediaId = mediaId
         }
     }
 

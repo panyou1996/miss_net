@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,35 +44,40 @@ fun ActressScreen(
         if (uiState.isLoading) {
             MissNetLoading()
         } else {
-            Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-                // Grid of Actresses
-                SecondaryPageSurface {
-                    if (actresses.isEmpty()) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            MissNetStatePane(
-                                icon = Icons.Rounded.People,
-                                title = "暂无可浏览演员",
-                                subtitle = "当前还没有可展示的演员入口，请稍后再试。",
-                                modifier = Modifier.padding(horizontal = 24.dp)
-                            )
-                        }
-                    } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = 124.dp),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
-                            horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
-                            verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing)
-                        ) {
-                            itemsIndexed(actresses) { index, actor ->
-                                ActressItem(
-                                    actor = actor,
-                                    isFeatured = index < 12,
-                                    onClick = { onActressClick(actor.name) }
+            PullToRefreshBox(
+                isRefreshing = uiState.isRefreshing,
+                onRefresh = viewModel::refresh,
+                modifier = Modifier.fillMaxSize().padding(contentPadding)
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    SecondaryPageSurface {
+                        if (actresses.isEmpty()) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                MissNetStatePane(
+                                    icon = Icons.Rounded.People,
+                                    title = "暂无可浏览演员",
+                                    subtitle = "当前还没有可展示的演员入口，请稍后再试。",
+                                    modifier = Modifier.padding(horizontal = 24.dp)
                                 )
+                            }
+                        } else {
+                            LazyVerticalGrid(
+                                columns = GridCells.Adaptive(minSize = 124.dp),
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+                                horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
+                                verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing)
+                            ) {
+                                itemsIndexed(actresses) { index, actor ->
+                                    ActressItem(
+                                        actor = actor,
+                                        isFeatured = index < 12,
+                                        onClick = { onActressClick(actor.name) }
+                                    )
+                                }
                             }
                         }
                     }

@@ -25,14 +25,17 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -45,7 +48,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -70,9 +75,26 @@ fun SearchScreen(
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val resultsGridState = rememberLazyGridState()
+    val shouldLoadMore by remember(uiState.results.size, uiState.isLoadingMore, uiState.endReached) {
+        derivedStateOf {
+            val lastVisible = resultsGridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            uiState.results.isNotEmpty() &&
+                !uiState.isLoading &&
+                !uiState.isLoadingMore &&
+                !uiState.endReached &&
+                lastVisible >= uiState.results.size - 6
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loadSearchHistory()
+    }
+
+    LaunchedEffect(shouldLoadMore) {
+        if (shouldLoadMore) {
+            viewModel.loadMore()
+        }
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -89,7 +111,7 @@ fun SearchScreen(
                         onSearch = { viewModel.search(it) },
                         expanded = uiState.active,
                         onExpandedChange = { viewModel.onActiveChange(it) },
-                        placeholder = { Text("搜索标题") },
+                        placeholder = { Text("搜索标题、演员、标签") },
                         leadingIcon = {
                             if (uiState.active) {
                                 IconButton(onClick = {
@@ -192,6 +214,7 @@ fun SearchScreen(
                         SearchContentState.Results -> {
                             LazyVerticalGrid(
                                 columns = GridCells.Adaptive(minSize = 160.dp),
+                                state = resultsGridState,
                                 contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
                                 horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
                                 verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
@@ -208,14 +231,26 @@ fun SearchScreen(
                                         animatedVisibilityScope = animatedVisibilityScope
                                     )
                                 }
+                                if (uiState.isLoadingMore) {
+                                    item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 12.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator(strokeWidth = 2.dp)
+                                        }
+                                    }
+                                }
                                 item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
                             }
                         }
 
                         SearchContentState.Idle -> SearchState(
                             icon = Icons.Default.Search,
-                            title = "输入标题关键词开始搜索",
-                            subtitle = "当前版本仅支持按视频标题搜索，可从上方搜索框开始。",
+                            title = "输入关键词开始搜索",
+                            subtitle = "当前支持按标题、演员和标签搜索，可从上方搜索框开始。",
                             actionLabel = if (uiState.history.isNotEmpty()) "查看最近搜索" else null,
                             onAction = if (uiState.history.isNotEmpty()) {
                                 { viewModel.onActiveChange(true) }

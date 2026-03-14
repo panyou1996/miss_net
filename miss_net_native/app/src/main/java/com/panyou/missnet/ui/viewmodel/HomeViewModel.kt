@@ -29,6 +29,7 @@ data class HomeUiState(
     val recentFavorites: List<Video> = emptyList(),
     val recentDownloads: List<DownloadStatusEntry> = emptyList(),
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val errorMessage: String? = null
 )
 
@@ -50,6 +51,11 @@ class HomeViewModel @Inject constructor(
     fun retry() {
         refreshLocalData()
         loadDashboard()
+    }
+
+    fun refresh() {
+        refreshLocalData()
+        loadDashboard(forceRefresh = true)
     }
 
     private fun observeDownloads() {
@@ -78,11 +84,19 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun loadDashboard() {
+    private fun loadDashboard(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            val hasContent = _uiState.value.heroVideos.isNotEmpty() ||
+                _uiState.value.newVideos.isNotEmpty() ||
+                _uiState.value.monthlyVideos.isNotEmpty() ||
+                _uiState.value.uncensoredVideos.isNotEmpty()
+            _uiState.value = _uiState.value.copy(
+                isLoading = !hasContent,
+                isRefreshing = hasContent,
+                errorMessage = null
+            )
             try {
-                val payload = repository.getHomePayload(sectionLimit = 10, weeklyLimit = 15)
+                val payload = repository.getHomePayload(sectionLimit = 10, weeklyLimit = 15, forceRefresh = forceRefresh)
                 val new = payload.newVideos
                 val monthly = payload.monthlyVideos
                 val weekly = payload.weeklyVideos
@@ -106,6 +120,7 @@ class HomeViewModel @Inject constructor(
                     vrVideos = vr,
                     chiguaVideos = chigua,
                     isLoading = false,
+                    isRefreshing = false,
                     errorMessage = if (isAllEmpty) "首页数据为空，可能是网络异常或服务暂时不可用。" else null
                 )
                 refreshLocalData()
@@ -113,6 +128,7 @@ class HomeViewModel @Inject constructor(
                 Log.e("HomeViewModel", "Failed to load dashboard", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
+                    isRefreshing = false,
                     errorMessage = e.message ?: "首页加载失败，请稍后重试。"
                 )
                 refreshLocalData()
