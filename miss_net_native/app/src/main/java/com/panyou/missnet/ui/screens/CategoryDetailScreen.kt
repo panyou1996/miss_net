@@ -312,11 +312,17 @@ fun CategoryVideoItem(
                     text = video.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = video.tags.joinToString(" · ").ifEmpty { "暂无标签" },
+                    text = buildString {
+                        append(video.actors.firstOrNull() ?: "未知演员")
+                        video.tags.take(2).takeIf { it.isNotEmpty() }?.let {
+                            append(" · ")
+                            append(it.joinToString(" · "))
+                        }
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

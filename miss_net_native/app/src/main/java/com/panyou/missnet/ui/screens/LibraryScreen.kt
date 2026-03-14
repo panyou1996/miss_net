@@ -16,9 +16,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -46,6 +48,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -605,6 +608,7 @@ private fun DownloadsPage(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DownloadOverviewCard(
     activeCount: Int,
@@ -622,7 +626,10 @@ private fun DownloadOverviewCard(
             },
             modifier = Modifier.padding(ContainerTokens.CardPadding),
             footer = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     OverviewChip(icon = Icons.Default.Downloading, label = "进行中 $activeCount")
                     OverviewChip(icon = Icons.Rounded.WarningAmber, label = "需要处理 $failedCount")
                     OverviewChip(icon = Icons.Default.DownloadDone, label = "最近完成 $completedCount")
@@ -1005,13 +1012,16 @@ private fun TaskDestructiveActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
-    FilledTonalButton(
+    OutlinedButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier,
-        colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer,
-            contentColor = MaterialTheme.colorScheme.onErrorContainer
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.error.copy(alpha = 0.28f)
+        ),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = MaterialTheme.colorScheme.error
         ),
         contentPadding = PaddingValues(
             horizontal = ActionTokens.ButtonContentPaddingHorizontal,

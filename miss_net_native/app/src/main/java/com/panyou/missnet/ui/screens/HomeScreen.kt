@@ -189,6 +189,28 @@ fun HomeScreen(
                                     title = "继续浏览",
                                     summary = "优先保留最新发布、本月热选与资源类型入口",
                                     helper = "点击区块标题可查看完整列表",
+                                    footer = {
+                                        FlowRow(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            SmallBadge(
+                                                text = "最新 ${uiState.newVideos.size}",
+                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                            SmallBadge(
+                                                text = "热选 ${uiState.monthlyVideos.size}",
+                                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                                            )
+                                            SmallBadge(
+                                                text = "资源 ${uiState.uncensoredVideos.size}",
+                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
                                     modifier = Modifier.padding(horizontal = ContainerTokens.ScreenContentPadding)
                                 )
                                 HomeSection(title = "最新发布", category = "new", videos = uiState.newVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
@@ -444,6 +466,13 @@ private fun ContinueWatchingCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
+                    text = "最近观看 ${formatRelativeTimeHome(entry.updatedAt)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
                     text = "已观看 ${(entry.progress * 100).toInt()}% · 剩余 ${formatCompactDuration((entry.durationMs - entry.positionMs).coerceAtLeast(0L))}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -463,6 +492,21 @@ private fun formatCompactDuration(ms: Long): String {
     val hours = totalSeconds / 3600
     val minutes = (totalSeconds % 3600) / 60
     return if (hours > 0) "${hours}小时${minutes}分" else "${minutes}分"
+}
+
+private fun formatRelativeTimeHome(timestampMs: Long, nowMs: Long = System.currentTimeMillis()): String {
+    if (timestampMs <= 0L) return "刚刚"
+    val diffMs = (nowMs - timestampMs).coerceAtLeast(0L)
+    val minutes = diffMs / 60_000
+    val hours = diffMs / 3_600_000
+    val days = diffMs / 86_400_000
+    return when {
+        minutes < 1 -> "刚刚"
+        minutes < 60 -> "${minutes} 分钟前"
+        hours < 24 -> "${hours} 小时前"
+        days < 7 -> "${days} 天前"
+        else -> "最近一周"
+    }
 }
 
 @Composable
@@ -509,6 +553,19 @@ private fun FavoriteGlanceCard(
                 Text(
                     text = video.actors.firstOrNull() ?: "未知演员",
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = buildString {
+                        append(video.createdAt?.take(10) ?: "最近更新")
+                        video.duration?.takeIf { it.isNotBlank() }?.let {
+                            append(" · ")
+                            append(it)
+                        }
+                    },
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

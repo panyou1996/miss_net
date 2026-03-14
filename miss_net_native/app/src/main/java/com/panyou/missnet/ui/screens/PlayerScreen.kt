@@ -815,6 +815,20 @@ private fun VideoInfoSection(
             }
         }
 
+        if (safeActors.isNotEmpty() || safeTags.isNotEmpty()) {
+            Text(
+                text = buildString {
+                    if (safeActors.isNotEmpty()) append("${safeActors.size} 位演员")
+                    if (safeTags.isNotEmpty()) {
+                        if (isNotEmpty()) append(" · ")
+                        append("${safeTags.size} 个标签")
+                    }
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         if (collapsedActors.isNotEmpty() || collapsedTags.isNotEmpty()) {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1348,7 +1362,9 @@ private fun CenterPlayPauseButton(
 @Composable
 fun RecommendItem(video: Video, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = MotionTokens.standard()),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f)),
         onClick = onClick
