@@ -63,7 +63,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.exoplayer.offline.Download
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import com.panyou.missnet.ui.components.BrowseSummaryCard
+import com.panyou.missnet.ui.components.MediaPlaceholder
 import com.panyou.missnet.data.media.DownloadStatusEntry
 import com.panyou.missnet.data.media.ExportState
 import com.panyou.missnet.data.local.WatchProgressEntry
@@ -223,18 +225,14 @@ private fun VideoGridPage(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(ContainerTokens.ScreenContentPadding),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("${videos.size} 项", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            BrowseSummaryCard(
+                title = title,
+                summary = "共 ${videos.size} 项 · 以卡片形式集中浏览",
+                helper = if (title == "收藏") "可从这里快速进入已收藏内容" else "保留最近可访问的视频内容",
+                modifier = Modifier.padding(ContainerTokens.ScreenContentPadding)
+            )
             LazyVerticalGrid(
-                columns = GridCells.Fixed(ContainerTokens.GridColumns),
+                columns = GridCells.Adaptive(minSize = 160.dp),
                 contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
                 horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
                 verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
@@ -297,18 +295,38 @@ private fun ContinueWatchingPage(
         return
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                start = ContainerTokens.ScreenCompactHorizontalPadding,
+                end = ContainerTokens.ScreenCompactHorizontalPadding,
+                bottom = ContainerTokens.ScreenContentPadding
+            ),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
     ) {
-        items(entries.sortedByDescending { it.updatedAt }) { entry ->
-            ContinueWatchingCard(
-                entry = entry,
-                onClick = { onVideoClick(entry.video.id) }
-            )
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                BrowseSummaryCard(
+                    title = "继续看",
+                    summary = "共 ${entries.size} 项 · 优先恢复最近未完成内容",
+                    helper = "点整卡或右侧按钮都可以继续播放"
+                )
+            }
+            items(entries.sortedByDescending { it.updatedAt }) { entry ->
+                ContinueWatchingCard(
+                    entry = entry,
+                    onClick = { onVideoClick(entry.video.id) }
+                )
+            }
+            item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
         }
-        item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
     }
 }
 
@@ -335,12 +353,19 @@ private fun ContinueWatchingCard(
                     .clip(ThumbnailShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                AsyncImage(
-                    model = entry.video.coverUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                val coverUrl = entry.video.coverUrl?.takeIf { it.isNotBlank() }
+                if (coverUrl != null) {
+                    SubcomposeAsyncImage(
+                        model = coverUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        loading = { MediaPlaceholder(label = "封面加载中") },
+                        error = { MediaPlaceholder(label = "暂无封面") }
+                    )
+                } else {
+                    MediaPlaceholder(label = "暂无封面")
+                }
                 entry.video.duration?.let { dur ->
                     DurationBadge(
                         text = dur,
@@ -399,6 +424,14 @@ private fun ContinueWatchingCard(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.width(12.dp))
+            FilledTonalButton(
+                onClick = onClick,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Text("继续", style = MaterialTheme.typography.labelLarge)
+            }
         }
     }
 }
@@ -451,7 +484,10 @@ private fun LibraryEmptyStateCard(
         )
         if (actionLabel != null && onAction != null) {
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onAction) {
+            Button(
+                onClick = onAction,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text(actionLabel)
             }
         }
@@ -514,7 +550,7 @@ private fun DownloadsPage(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
-            verticalArrangement = Arrangement.spacedBy(ContainerTokens.SectionVerticalSpacing)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
                 DownloadOverviewCard(
@@ -664,24 +700,24 @@ private fun DownloadCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(ContainerTokens.ListItemThumbnailSize)
-                        .clip(ThumbnailShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .size(ContainerTokens.ListItemThumbnailSize)
+                    .clip(ThumbnailShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (!item.coverUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = item.coverUrl,
+                    val coverUrl = item.coverUrl?.takeIf { it.isNotBlank() }
+                    if (coverUrl != null) {
+                        SubcomposeAsyncImage(
+                            model = coverUrl,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            loading = { MediaPlaceholder(label = "封面加载中") },
+                            error = { MediaPlaceholder(label = "暂无封面") }
                         )
                     } else {
-                        Icon(
-                            imageVector = if (item.state == Download.STATE_COMPLETED) Icons.Default.DownloadDone else Icons.Default.Downloading,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(32.dp)
+                        MediaPlaceholder(
+                            label = if (item.state == Download.STATE_COMPLETED) "已缓存" else "封面待同步"
                         )
                     }
                 }

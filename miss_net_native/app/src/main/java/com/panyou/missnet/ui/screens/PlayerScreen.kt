@@ -64,6 +64,7 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.panyou.missnet.data.media.DownloadMetadata
@@ -73,6 +74,7 @@ import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.service.MissNetDownloadService
 import com.panyou.missnet.service.PlaybackService
 import com.panyou.missnet.ui.components.DurationBadge
+import com.panyou.missnet.ui.components.MediaPlaceholder
 import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.theme.ActionTokens
@@ -1231,21 +1233,32 @@ fun RecommendItem(video: Video, onClick: () -> Unit, modifier: Modifier = Modifi
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(100.dp, 60.dp)
+                    .size(112.dp, 64.dp)
                     .clip(ThumbnailShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                AsyncImage(
-                    model = video.coverUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                val coverUrl = video.coverUrl?.takeIf { it.isNotBlank() }
+                if (coverUrl != null) {
+                    SubcomposeAsyncImage(
+                        model = coverUrl,
+                        contentDescription = "推荐视频封面",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                        loading = {
+                            MediaPlaceholder(label = "封面加载中")
+                        },
+                        error = {
+                            MediaPlaceholder(label = "暂无封面")
+                        }
+                    )
+                } else {
+                    MediaPlaceholder(label = "暂无封面")
+                }
                 // 播放时长徽章
                 video.duration?.let { dur ->
                     DurationBadge(
@@ -1259,7 +1272,10 @@ fun RecommendItem(video: Video, onClick: () -> Unit, modifier: Modifier = Modifi
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     text = video.title,
                     style = MaterialTheme.typography.titleSmall,
@@ -1268,33 +1284,45 @@ fun RecommendItem(video: Video, onClick: () -> Unit, modifier: Modifier = Modifi
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = video.tags.take(2).joinToString(" · ").ifBlank { "暂无标签" },
+                    text = buildString {
+                        append(video.actors.firstOrNull() ?: "未知演员")
+                        video.createdAt?.take(10)?.takeIf { it.isNotBlank() }?.let {
+                            append(" · ")
+                            append(it)
+                        }
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (video.actors.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = video.actors.first(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                Text(
+                    text = video.tags.take(2).joinToString(" · ").ifBlank { "点击后切换当前播放内容" },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            Icon(
-                imageVector = Icons.Default.PlayArrow,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "切换",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

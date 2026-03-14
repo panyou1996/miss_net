@@ -66,6 +66,7 @@ import com.panyou.missnet.data.local.WatchProgressEntry
 import com.panyou.missnet.data.media.DownloadStatusEntry
 import com.panyou.missnet.data.media.ExportState
 import com.panyou.missnet.data.model.Video
+import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.HeroCarouselItem
 import com.panyou.missnet.ui.components.MediaPlaceholder
 import com.panyou.missnet.ui.components.MissNetErrorState
@@ -111,14 +112,20 @@ fun HomeScreen(
                     contentPadding = contentPadding,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item {
-                        TaskRecoverySection(
-                            continueWatching = uiState.continueWatching,
-                            recentDownloads = uiState.recentDownloads,
-                            recentFavorites = uiState.recentFavorites,
-                            onVideoClick = onVideoClick,
-                            onLibraryClick = onLibraryClick
-                        )
+                    if (
+                        uiState.continueWatching.isNotEmpty() ||
+                        uiState.recentDownloads.isNotEmpty() ||
+                        uiState.recentFavorites.isNotEmpty()
+                    ) {
+                        item {
+                            TaskRecoverySection(
+                                continueWatching = uiState.continueWatching,
+                                recentDownloads = uiState.recentDownloads,
+                                recentFavorites = uiState.recentFavorites,
+                                onVideoClick = onVideoClick,
+                                onLibraryClick = onLibraryClick
+                            )
+                        }
                     }
 
                     // Hero/Discovery Section
@@ -172,10 +179,19 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.surface,
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
                         ) {
-                            Column(modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)) {
+                            Column(
+                                modifier = Modifier.padding(top = 12.dp, bottom = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                BrowseSummaryCard(
+                                    title = "继续浏览",
+                                    summary = "优先保留最新发布、本月热选与资源类型入口",
+                                    helper = "点击区块标题可查看完整列表",
+                                    modifier = Modifier.padding(horizontal = ContainerTokens.ScreenContentPadding)
+                                )
                                 HomeSection(title = "最新发布", category = "new", videos = uiState.newVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
-                                HomeSection(title = "本月热门", category = "monthly_hot", videos = uiState.monthlyVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
-                                HomeSection(title = "无码", category = "uncensored", videos = uiState.uncensoredVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
+                                HomeSection(title = "本月热选", category = "monthly_hot", videos = uiState.monthlyVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
+                                HomeSection(title = "无码资源", category = "uncensored", videos = uiState.uncensoredVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
                             }
                         }
                     }
@@ -635,7 +651,7 @@ fun HomeSection(
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
     if (videos.isNotEmpty()) {
-        Column {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             SectionHeader(title = title, onClick = { onCategoryClick(title, category) })
             LazyRow(
                 contentPadding = PaddingValues(horizontal = ContainerTokens.ScreenContentPadding),
@@ -650,11 +666,6 @@ fun HomeSection(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = ContainerTokens.ScreenContentPadding),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-            )
         }
     }
 }
