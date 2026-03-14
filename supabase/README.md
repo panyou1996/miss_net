@@ -38,11 +38,30 @@ Use `workflow_dispatch` with these values first, instead of a full scrape:
 
 This keeps validation closer to a 10–20 minute sample run instead of a broad multi-hour sweep.
 
+## Targeted backfill workflow
+
+There is also a dedicated GitHub Action:
+
+- `.github/workflows/targeted-backfill.yml`
+
+Recommended first run:
+
+- `selection_mode=auto`
+- `source_site=missav`
+- `backlog_limit=4`
+- `missav_max_pages=5`
+- `cg_max_pages=1`
+- `skip_51cg=true`
+
+> To enable automatic backlog-based tag selection in GitHub Actions, add repo secret `SUPABASE_ACCESS_TOKEN`.
+> Without that secret, the workflow falls back to `new,weekly_hot,monthly_hot,subtitled`.
+
 ## Targeted backlog inspection
 
 ```bash
 export SUPABASE_ACCESS_TOKEN=...
 scripts/run_remote_sql.py --read-only --file supabase/sql/backfill_priority_queue.sql
+python3 scripts/select_backfill_targets.py --source-site missav --limit 4
 ```
 
 ## Diagnostics

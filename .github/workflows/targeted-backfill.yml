@@ -1,0 +1,168 @@
+name: Targeted Metadata Backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      selection_mode:
+        description: 'auto = pick tags from backlog, manual = use source_tags input'
+        required: true
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - manual
+      source_site:
+        description: 'Prefer backlog from a specific source site'
+        required: true
+        default: 'missav'
+        type: choice
+        options:
+          - missav
+          - all
+          - 51cg
+      source_tags:
+        description: 'Manual comma-separated source tags when selection_mode=manual'
+        required: false
+        default: ''
+      backlog_limit:
+        description: 'How many source tags to auto-select'
+        required: false
+        default: '4'
+      missav_max_pages:
+        description: 'Max MissAV pages to scan'
+        required: false
+        default: '5'
+      cg_max_pages:
+        description: 'Max 51CG pages to scan'
+        required: false
+        default: '1'
+      concurrent_detail_pages:
+        description: 'Concurrent detail pages'
+        required: false
+        default: '4'
+      early_stop_streak:
+        description: 'Consecutive stale pages before early stop'
+        required: false
+        default: '2'
+      early_stop_min_page:
+        description: 'Minimum page before early stop can kick in'
+        required: false
+        default: '3'
+      skip_51cg:
+        description: 'Skip 51CG sources in manual mode / fallback mode'
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: targeted-backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: scraper/requirements.txt
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r scraper/requirements.txt
+
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-chromium
+
+    - name: Install Playwright Browsers
+      run: |
+        python -m playwright install chromium --with-deps
+
+    - name: Select backfill targets
+      id: targets
+      env:
+        SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        mode='${{ inputs.selection_mode }}'
+        fallback_tags='new,weekly_hot,monthly_hot,subtitled'
+        tags=''
+        skip_51cg='${{ inputs.skip_51cg }}'
+
+        if [[ "$mode" == 'manual' && -n '${{ inputs.source_tags }}' ]]; then
+          tags='${{ inputs.source_tags }}'
+        elif [[ -n "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
+          python3 scripts/select_backfill_targets.py \
+            --source-site '${{ inputs.source_site }}' \
+            --limit '${{ inputs.backlog_limit }}' \
+            --output env > /tmp/backfill_targets.env
+          cat /tmp/backfill_targets.env
+          source /tmp/backfill_targets.env
+          tags="${SCRAPER_SOURCE_TAGS:-}"
+          skip_51cg="${SKIP_51CG:-$skip_51cg}"
+        else
+          tags="$fallback_tags"
+        fi
+
+        if [[ -z "$tags" ]]; then
+          tags="$fallback_tags"
+        fi
+
+        echo "source_tags=$tags" >> "$GITHUB_OUTPUT"
+        echo "skip_51cg=$skip_51cg" >> "$GITHUB_OUTPUT"
+
+        {
+          echo '## Targeted backfill selection'
+          echo
+          echo "- mode: $mode"
+          echo "- source_site: ${{ inputs.source_site }}"
+          echo "- source_tags: $tags"
+          echo "- skip_51cg: $skip_51cg"
+          echo "- missav_max_pages: ${{ inputs.missav_max_pages }}"
+          echo "- cg_max_pages: ${{ inputs.cg_max_pages }}"
+          echo "- early_stop_streak: ${{ inputs.early_stop_streak }}"
+          echo "- early_stop_min_page: ${{ inputs.early_stop_min_page }}"
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Run targeted backfill
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        HEADLESS: 'true'
+        USER_DATA_DIR: scraper/user_data
+        SCRAPER_RUN_MODE: sample
+        SCRAPER_SOURCE_TAGS: ${{ steps.targets.outputs.source_tags }}
+        MISSAV_MAX_PAGES: ${{ inputs.missav_max_pages }}
+        CG_MAX_PAGES: ${{ inputs.cg_max_pages }}
+        CONCURRENT_DETAIL_PAGES: ${{ inputs.concurrent_detail_pages }}
+        SKIP_51CG: ${{ steps.targets.outputs.skip_51cg }}
+        EARLY_STOP_STREAK: ${{ inputs.early_stop_streak }}
+        EARLY_STOP_MIN_PAGE: ${{ inputs.early_stop_min_page }}
+        SUPABASE_UPSERT_CHUNK_SIZE: ${{ vars.SUPABASE_UPSERT_CHUNK_SIZE || '150' }}
+        SUPABASE_MAX_RETRIES: ${{ vars.SUPABASE_MAX_RETRIES || '4' }}
+        SUPABASE_RETRY_BASE_SECONDS: ${{ vars.SUPABASE_RETRY_BASE_SECONDS || '1.2' }}
+        BLOCK_HEAVY_RESOURCES: ${{ vars.BLOCK_HEAVY_RESOURCES || 'true' }}
+      run: |
+        python scraper/main.py | tee scraper-run.log
+
+    - name: Upload scraper log
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: targeted-backfill-log-${{ github.run_number }}
+        path: scraper-run.log
+        if-no-files-found: warn
+        retention-days: 14
