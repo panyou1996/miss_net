@@ -185,6 +185,7 @@ SKIP_51CG = env_bool("SKIP_51CG", False)
 DETAIL_FETCH_POLICY = os.environ.get("DETAIL_FETCH_POLICY", "").strip().lower()
 DISCOVER_MISSAV_SOURCES = env_bool("DISCOVER_MISSAV_SOURCES", False)
 DISCOVERED_SOURCE_LIMIT = env_positive_int("DISCOVERED_SOURCE_LIMIT", 60)
+NULL_COVER_QUEUE_JSON = os.environ.get("NULL_COVER_QUEUE_JSON", "").strip()
 CATEGORY_HUB_URLS = [
     "https://missav.ws/genres",
 ]
@@ -430,6 +431,45 @@ def merge_video_record(video: dict, existing: dict | None) -> dict:
     )
 
     return merged
+
+
+def apply_cover_patch(existing: dict, cover_url: str | None) -> dict:
+    patched = dict(existing or {})
+    patched["cover_url"] = normalize_cover_url(cover_url) or normalize_cover_url(existing.get("cover_url"))
+    patched["cover_status"] = classify_cover_status(patched.get("cover_url"))
+    patched["inventory_status"] = classify_inventory_status(patched)
+    patched["detail_status"] = classify_detail_status(patched)
+    return patched
+
+
+def parse_null_cover_queue(raw: str | None):
+    if not raw:
+        return []
+    try:
+        payload = json.loads(raw)
+    except Exception as e:
+        print(f"[Config] Invalid NULL_COVER_QUEUE_JSON: {e}")
+        return []
+    if isinstance(payload, dict):
+        payload = payload.get("rows", [])
+    if not isinstance(payload, list):
+        return []
+
+    output = []
+    for row in payload:
+        if not isinstance(row, dict):
+            continue
+        external_id = str(row.get("external_id") or "").strip()
+        source_url = str(row.get("source_url") or "").strip()
+        if not external_id or not source_url:
+            continue
+        output.append({
+            "external_id": external_id,
+            "source_url": source_url,
+            "source_site": row.get("source_site") or infer_source_site(source_url),
+            "title": row.get("title") or external_id,
+        })
+    return output
 
 
 def should_fetch_details(existing: dict | None, detail_fetch_policy: str = "smart") -> bool:
@@ -767,7 +807,7 @@ async def get_video_details(page, url):
 
         # Robust DOM-based parsing without complex regex in JS
         details = await page.evaluate('''() => {
-            const data = { duration: null, release_date: null, actors: [], tags: [] };
+            const data = { duration: null, release_date: null, actors: [], tags: [], cover_url: null };
             const rows = document.querySelectorAll('div.text-secondary');
             
             rows.forEach(row => {
@@ -798,11 +838,29 @@ async def get_video_details(page, url):
                     data.tags = [...new Set([...data.tags, ...vals])];
                 }
             });
+
+            const coverCandidates = [
+                document.querySelector('meta[property="og:image"]')?.content,
+                document.querySelector('meta[name="twitter:image"]')?.content,
+                document.querySelector('meta[property="twitter:image"]')?.content,
+                document.querySelector('video')?.getAttribute('poster'),
+                document.querySelector('img[src*="cover"]')?.getAttribute('src'),
+                document.querySelector('img[data-src*="cover"]')?.getAttribute('data-src'),
+                document.querySelector('img')?.currentSrc,
+                document.querySelector('img')?.getAttribute('src')
+            ].filter(Boolean);
+
+            data.cover_url = coverCandidates.find((candidate) => {
+                const lower = String(candidate).toLowerCase();
+                return !lower.startsWith('data:image') && !lower.startsWith('blob:') && !lower.startsWith('about:blank');
+            }) || null;
             return data;
         }''')
         
         if not details:
             details = {"duration": None, "release_date": None, "actors": [], "tags": []}
+
+        details['cover_url'] = normalize_cover_url(details.get('cover_url'))
 
         if not details.get('duration'):
             print(f"  [Debug] Missing Duration for {url}. Page Title: {title}")
@@ -1198,31 +1256,128 @@ async def scrape_51cg_feed(context, supabase, semaphore, detail_pages, base_url,
         await list_page.close()
     return source_stats
 
+
+async def process_null_cover_queue(targets, detail_pages, supabase, semaphore):
+    queue_stats = make_run_stats()
+    queue_stats["pages_scanned"] = len(targets)
+    queue_stats["discovered_count"] = len(targets)
+
+    external_ids = [item["external_id"] for item in targets]
+    metadata_map = {}
+    if supabase and external_ids:
+        try:
+            res = await execute_with_retry(
+                label="null-cover-metadata-check",
+                fn=lambda: supabase.table("videos").select(
+                    "external_id, title, cover_url, cover_status, source_url, source_site, duration, actors, release_date, tags, categories, detail_status, detail_fetched_at, inventory_status"
+                ).in_("external_id", external_ids).execute()
+            )
+            for record in res.data:
+                metadata_map[record["external_id"]] = record
+        except Exception as e:
+            print(f"[NullCover] Batch Check Error: {e}")
+
+    rows_to_upsert = []
+    tasks = []
+    for target in targets:
+        existing = metadata_map.get(target["external_id"])
+        if not existing:
+            continue
+        if classify_cover_status(existing.get("cover_url")) == "valid":
+            queue_stats["existing_complete_count"] += 1
+            continue
+
+        queue_stats["detail_attempted_count"] += 1
+
+        async def fetch_cover(target=target, existing=existing):
+            async with semaphore:
+                page = detail_pages.pop()
+                try:
+                    details = await get_video_details(page, target["source_url"])
+                    status = (details or {}).get("_status", "success")
+                    if status == "blocked":
+                        queue_stats["blocked_count"] += 1
+                        return
+
+                    cover_url = normalize_cover_url((details or {}).get("cover_url"))
+                    if cover_url:
+                        rows_to_upsert.append(apply_cover_patch(existing, cover_url))
+                        queue_stats["detail_success_count"] += 1
+                    else:
+                        queue_stats["detail_fail_count"] += 1
+                except Exception as e:
+                    queue_stats["detail_fail_count"] += 1
+                    print(f"[NullCover] Detail Fetch Error: {target['source_url']}: {e}")
+                finally:
+                    detail_pages.append(page)
+
+        tasks.append(fetch_cover())
+
+    if tasks:
+        await asyncio.gather(*tasks)
+
+    upsert_result = await batch_upsert_videos(rows_to_upsert, supabase, "NULL COVER PATCH")
+    merge_stats(queue_stats, upsert_result)
+    return queue_stats
+
+
+async def scrape_null_cover_backfill(supabase, context, semaphore):
+    targets = parse_null_cover_queue(NULL_COVER_QUEUE_JSON)
+    if not targets:
+        print("[NullCover] No targets provided. Exiting.")
+        return make_run_stats(), {"null_cover": make_run_stats()}
+
+    stealth = Stealth()
+    detail_pages = []
+    for _ in range(CONCURRENT_DETAIL_PAGES):
+        dp = await context.new_page()
+        await stealth.apply_stealth_async(dp)
+        detail_pages.append(dp)
+
+    stats = await process_null_cover_queue(targets, detail_pages, supabase, semaphore)
+
+    for page in detail_pages:
+        await page.close()
+
+    return stats, {"null_cover": dict(stats)}
+
+
 async def scrape_videos():
     supabase: Client = None
     if SUPABASE_URL and SUPABASE_KEY:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-    run_config = resolve_run_configuration()
+    null_cover_targets = parse_null_cover_queue(NULL_COVER_QUEUE_JSON)
+    run_config = None if SCRAPER_RUN_MODE == "null_cover" else resolve_run_configuration()
     
     HEADLESS = os.environ.get("HEADLESS", "true").lower() == "true"
     USER_DATA_DIR = os.environ.get("USER_DATA_DIR", os.path.join(os.getcwd(), "user_data"))
-    print(
-        f"[Config] HEADLESS={HEADLESS} | RUN_MODE={run_config['mode']} | "
-        f"MISSAV_MAX_PAGES={run_config['missav_pages']} | "
-        f"CG_MAX_PAGES={run_config['cg_pages']} | CONCURRENT_DETAIL_PAGES={CONCURRENT_DETAIL_PAGES} | "
-        f"UPSERT_CHUNK={SUPABASE_UPSERT_CHUNK_SIZE} | RETRIES={SUPABASE_MAX_RETRIES} | "
-        f"EARLY_STOP_STREAK={run_config['early_stop_streak']} | EARLY_STOP_MIN_PAGE={run_config['early_stop_min_page']} | "
-        f"SOURCE_TAGS={run_config['selected_tags'] or 'ALL'} | DETAIL_FETCH_POLICY={run_config['detail_fetch_policy']} | "
-        f"DISCOVER_MISSAV_SOURCES={run_config['discover_missav_sources']} | SKIP_51CG={SKIP_51CG} | "
-        f"BLOCK_HEAVY_RESOURCES={BLOCK_HEAVY_RESOURCES}"
-    )
-    if not run_config["missav_sources"] and not run_config["run_51cg_main"] and not run_config["run_51cg_mrds"]:
-        print("[Config] No sources selected. Exiting without work.")
-        return
+    if SCRAPER_RUN_MODE == "null_cover":
+        print(
+            f"[Config] HEADLESS={HEADLESS} | RUN_MODE=null_cover | TARGETS={len(null_cover_targets)} | "
+            f"CONCURRENT_DETAIL_PAGES={CONCURRENT_DETAIL_PAGES} | UPSERT_CHUNK={SUPABASE_UPSERT_CHUNK_SIZE} | "
+            f"RETRIES={SUPABASE_MAX_RETRIES} | BLOCK_HEAVY_RESOURCES={BLOCK_HEAVY_RESOURCES}"
+        )
+        if not null_cover_targets:
+            print("[Config] No null-cover targets selected. Exiting without work.")
+            return
+    else:
+        print(
+            f"[Config] HEADLESS={HEADLESS} | RUN_MODE={run_config['mode']} | "
+            f"MISSAV_MAX_PAGES={run_config['missav_pages']} | "
+            f"CG_MAX_PAGES={run_config['cg_pages']} | CONCURRENT_DETAIL_PAGES={CONCURRENT_DETAIL_PAGES} | "
+            f"UPSERT_CHUNK={SUPABASE_UPSERT_CHUNK_SIZE} | RETRIES={SUPABASE_MAX_RETRIES} | "
+            f"EARLY_STOP_STREAK={run_config['early_stop_streak']} | EARLY_STOP_MIN_PAGE={run_config['early_stop_min_page']} | "
+            f"SOURCE_TAGS={run_config['selected_tags'] or 'ALL'} | DETAIL_FETCH_POLICY={run_config['detail_fetch_policy']} | "
+            f"DISCOVER_MISSAV_SOURCES={run_config['discover_missav_sources']} | SKIP_51CG={SKIP_51CG} | "
+            f"BLOCK_HEAVY_RESOURCES={BLOCK_HEAVY_RESOURCES}"
+        )
+        if not run_config["missav_sources"] and not run_config["run_51cg_main"] and not run_config["run_51cg_mrds"]:
+            print("[Config] No sources selected. Exiting without work.")
+            return
     semaphore = asyncio.Semaphore(CONCURRENT_DETAIL_PAGES)
     run_stats = make_run_stats()
     source_breakdown = {}
-    run_id = await create_scrape_run(supabase, "daily_scraper")
+    run_id = await create_scrape_run(supabase, "null_cover_backfill" if SCRAPER_RUN_MODE == "null_cover" else "daily_scraper")
     run_error = None
 
     try:
@@ -1248,171 +1403,174 @@ async def scrape_videos():
 
                 await context.route("**/*", route_handler)
 
-            stealth = Stealth()
-            # Create pages for main scraping
-            list_page = await context.new_page()
-            await stealth.apply_stealth_async(list_page)
+            if SCRAPER_RUN_MODE == "null_cover":
+                run_stats, source_breakdown = await scrape_null_cover_backfill(supabase, context, semaphore)
+                await context.close()
+            else:
+                stealth = Stealth()
+                list_page = await context.new_page()
+                await stealth.apply_stealth_async(list_page)
 
-            detail_pages = []
-            for _ in range(CONCURRENT_DETAIL_PAGES):
-                dp = await context.new_page()
-                await stealth.apply_stealth_async(dp)
-                detail_pages.append(dp)
+                detail_pages = []
+                for _ in range(CONCURRENT_DETAIL_PAGES):
+                    dp = await context.new_page()
+                    await stealth.apply_stealth_async(dp)
+                    detail_pages.append(dp)
 
-            if run_config["run_51cg_main"]:
-                source_stats = await scrape_51cg_feed(
-                    context,
-                    supabase,
-                    semaphore,
-                    detail_pages,
-                    "https://51cg1.com/",
-                    "51cg",
-                    max_pages=run_config["cg_pages"],
-                    detail_fetch_policy=run_config["detail_fetch_policy"],
-                )
-                source_breakdown["51cg"] = source_stats
-                merge_stats(run_stats, source_stats)
+                if run_config["run_51cg_main"]:
+                    source_stats = await scrape_51cg_feed(
+                        context,
+                        supabase,
+                        semaphore,
+                        detail_pages,
+                        "https://51cg1.com/",
+                        "51cg",
+                        max_pages=run_config["cg_pages"],
+                        detail_fetch_policy=run_config["detail_fetch_policy"],
+                    )
+                    source_breakdown["51cg"] = source_stats
+                    merge_stats(run_stats, source_stats)
 
-            if run_config["run_51cg_mrds"]:
-                source_stats = await scrape_51cg_feed(
-                    context,
-                    supabase,
-                    semaphore,
-                    detail_pages,
-                    "https://51cg1.com/category/mrds/",
-                    "51mrds",
-                    max_pages=run_config["cg_pages"],
-                    detail_fetch_policy=run_config["detail_fetch_policy"],
-                )
-                source_breakdown["51mrds"] = source_stats
-                merge_stats(run_stats, source_stats)
+                if run_config["run_51cg_mrds"]:
+                    source_stats = await scrape_51cg_feed(
+                        context,
+                        supabase,
+                        semaphore,
+                        detail_pages,
+                        "https://51cg1.com/category/mrds/",
+                        "51mrds",
+                        max_pages=run_config["cg_pages"],
+                        detail_fetch_policy=run_config["detail_fetch_policy"],
+                    )
+                    source_breakdown["51mrds"] = source_stats
+                    merge_stats(run_stats, source_stats)
 
-            missav_sources = run_config["missav_sources"]
-            if run_config["discover_missav_sources"] and missav_sources:
-                discovered_sources = await discover_missav_sources(
-                    list_page,
-                    missav_sources,
-                    set(run_config["selected_tags"]),
-                    DISCOVERED_SOURCE_LIMIT,
-                )
-                missav_sources = filter_discovered_sources_for_run(
-                    seed_sources=run_config["missav_sources"],
-                    discovered_sources=[source for source in discovered_sources if source not in run_config["missav_sources"]],
-                    selected_tags=set(run_config["selected_tags"]),
-                    run_mode=run_config["mode"],
-                    manual_source_tags=run_config["manual_source_tags"],
-                )
-                print(f"[Discovery] Using {len(missav_sources)} MissAV sources after discovery.")
+                missav_sources = run_config["missav_sources"]
+                if run_config["discover_missav_sources"] and missav_sources:
+                    discovered_sources = await discover_missav_sources(
+                        list_page,
+                        missav_sources,
+                        set(run_config["selected_tags"]),
+                        DISCOVERED_SOURCE_LIMIT,
+                    )
+                    missav_sources = filter_discovered_sources_for_run(
+                        seed_sources=run_config["missav_sources"],
+                        discovered_sources=[source for source in discovered_sources if source not in run_config["missav_sources"]],
+                        selected_tags=set(run_config["selected_tags"]),
+                        run_mode=run_config["mode"],
+                        manual_source_tags=run_config["manual_source_tags"],
+                    )
+                    print(f"[Discovery] Using {len(missav_sources)} MissAV sources after discovery.")
 
-            for source in missav_sources:
-                base_url = source["url"]
-                tag = source["tag"]
-                source_stats = make_run_stats()
-                stale_streak = 0
-                print(f"\n>>> Starting Category: {tag} <<<")
+                for source in missav_sources:
+                    base_url = source["url"]
+                    tag = source["tag"]
+                    source_stats = make_run_stats()
+                    stale_streak = 0
+                    print(f"\n>>> Starting Category: {tag} <<<")
 
-                for page_num in range(1, run_config["missav_pages"] + 1):
-                    current_url = build_paged_url(base_url, page_num)
-                    print(f"[{tag.upper()}] Page {page_num}...")
-                    try:
-                        await list_page.goto(current_url, timeout=60000, wait_until="domcontentloaded")
-                        
+                    for page_num in range(1, run_config["missav_pages"] + 1):
+                        current_url = build_paged_url(base_url, page_num)
+                        print(f"[{tag.upper()}] Page {page_num}...")
                         try:
-                            await list_page.wait_for_selector('div.grid > div, div.thumbnail, .group', timeout=10000)
-                        except:
-                            pass
-                        await jitter_sleep(LIST_POST_LOAD_DELAY_MIN, LIST_POST_LOAD_DELAY_MAX)
-                        
-                        if "Just a moment" in await list_page.title():
-                            print(f"[{tag.upper()}] Blocked. Skipping.")
-                            source_stats["blocked_count"] += 1
-                            continue
+                            await list_page.goto(current_url, timeout=60000, wait_until="domcontentloaded")
+                            
+                            try:
+                                await list_page.wait_for_selector('div.grid > div, div.thumbnail, .group', timeout=10000)
+                            except:
+                                pass
+                            await jitter_sleep(LIST_POST_LOAD_DELAY_MIN, LIST_POST_LOAD_DELAY_MAX)
+                            
+                            if "Just a moment" in await list_page.title():
+                                print(f"[{tag.upper()}] Blocked. Skipping.")
+                                source_stats["blocked_count"] += 1
+                                continue
 
-                        videos = await list_page.evaluate('''() => {
-                            const resMap = new Map();
-                            const items = document.querySelectorAll('div.grid > div, div.thumbnail, .group');
-                            items.forEach(item => {
-                                const img = item.querySelector('img');
-                                const link = item.querySelector('a');
-                                if (img && link && link.href) {
-                                    const href = link.href;
-                                    // Simple check for video ID pattern or /dm
-                                    const isVideo = href.includes('/dm') || href.split('/').pop().includes('-');
-                                    if (isVideo) {
-                                        const id = href.split('?')[0].split('/').pop();
-                                        if (id && !resMap.has(id)) {
-                                            let t = img.alt || "";
-                                            if (t.length < 5) {
-                                                const te = item.querySelector('h1, h2, h3, .text-secondary');
-                                                if (te) t = te.innerText;
-                                            }
-                                            if (t.length > 5) {
-                                                const candidates = [
-                                                    img.getAttribute('data-src'),
-                                                    img.getAttribute('data-original'),
-                                                    img.getAttribute('data-lazy-src'),
-                                                    img.getAttribute('data-cfsrc'),
-                                                    img.getAttribute('data-xkrkllgl'),
-                                                    img.currentSrc,
-                                                    img.src
-                                                ].filter(Boolean);
+                            videos = await list_page.evaluate('''() => {
+                                const resMap = new Map();
+                                const items = document.querySelectorAll('div.grid > div, div.thumbnail, .group');
+                                items.forEach(item => {
+                                    const img = item.querySelector('img');
+                                    const link = item.querySelector('a');
+                                    if (img && link && link.href) {
+                                        const href = link.href;
+                                        // Simple check for video ID pattern or /dm
+                                        const isVideo = href.includes('/dm') || href.split('/').pop().includes('-');
+                                        if (isVideo) {
+                                            const id = href.split('?')[0].split('/').pop();
+                                            if (id && !resMap.has(id)) {
+                                                let t = img.alt || "";
+                                                if (t.length < 5) {
+                                                    const te = item.querySelector('h1, h2, h3, .text-secondary');
+                                                    if (te) t = te.innerText;
+                                                }
+                                                if (t.length > 5) {
+                                                    const candidates = [
+                                                        img.getAttribute('data-src'),
+                                                        img.getAttribute('data-original'),
+                                                        img.getAttribute('data-lazy-src'),
+                                                        img.getAttribute('data-cfsrc'),
+                                                        img.getAttribute('data-xkrkllgl'),
+                                                        img.currentSrc,
+                                                        img.src
+                                                    ].filter(Boolean);
 
-                                                let c = "";
-                                                for (const candidate of candidates) {
-                                                    if (!candidate.startsWith('data:image')) {
-                                                        c = candidate;
-                                                        break;
+                                                    let c = "";
+                                                    for (const candidate of candidates) {
+                                                        if (!candidate.startsWith('data:image')) {
+                                                            c = candidate;
+                                                            break;
+                                                        }
                                                     }
+                                                    if (!c && candidates.length > 0) {
+                                                        c = candidates[0];
+                                                    }
+                                                    if (c.includes('cover-t.jpg')) c = c.replace('cover-t.jpg', 'cover-n.jpg');
+                                                    resMap.set(id, {
+                                                        external_id: id,
+                                                        title: t.trim(),
+                                                        cover_url: c,
+                                                        source_url: href
+                                                    });
                                                 }
-                                                if (!c && candidates.length > 0) {
-                                                    c = candidates[0];
-                                                }
-                                                if (c.includes('cover-t.jpg')) c = c.replace('cover-t.jpg', 'cover-n.jpg');
-                                                resMap.set(id, {
-                                                    external_id: id,
-                                                    title: t.trim(),
-                                                    cover_url: c,
-                                                    source_url: href
-                                                });
                                             }
                                         }
                                     }
-                                }
-                            });
-                            return Array.from(resMap.values());
-                        }''')
+                                });
+                                return Array.from(resMap.values());
+                            }''')
 
-                        if not videos:
-                            print(f"[{tag.upper()}] No videos found.")
-                            break
+                            if not videos:
+                                print(f"[{tag.upper()}] No videos found.")
+                                break
 
-                        page_stats = await process_page_batch(
-                            videos,
-                            tag,
-                            detail_pages,
-                            supabase,
-                            semaphore,
-                            detail_fetch_policy=run_config["detail_fetch_policy"],
-                        )
-                        merge_stats(source_stats, page_stats)
-                        if page_stats.get("stale_page"):
-                            stale_streak += 1
-                        else:
-                            stale_streak = 0
+                            page_stats = await process_page_batch(
+                                videos,
+                                tag,
+                                detail_pages,
+                                supabase,
+                                semaphore,
+                                detail_fetch_policy=run_config["detail_fetch_policy"],
+                            )
+                            merge_stats(source_stats, page_stats)
+                            if page_stats.get("stale_page"):
+                                stale_streak += 1
+                            else:
+                                stale_streak = 0
 
-                        if page_num >= run_config["early_stop_min_page"] and stale_streak >= run_config["early_stop_streak"]:
-                            print(f"[{tag.upper()}] Early stop after {stale_streak} stale pages (page {page_num}).")
-                            break
+                            if page_num >= run_config["early_stop_min_page"] and stale_streak >= run_config["early_stop_streak"]:
+                                print(f"[{tag.upper()}] Early stop after {stale_streak} stale pages (page {page_num}).")
+                                break
 
-                        await jitter_sleep(INTER_PAGE_DELAY_MIN, INTER_PAGE_DELAY_MAX)
-                    except Exception as e:
-                        source_stats["detail_fail_count"] += 1
-                        print(f"Error: {e}")
+                            await jitter_sleep(INTER_PAGE_DELAY_MIN, INTER_PAGE_DELAY_MAX)
+                        except Exception as e:
+                            source_stats["detail_fail_count"] += 1
+                            print(f"Error: {e}")
 
-                source_breakdown[tag] = source_stats
-                merge_stats(run_stats, source_stats)
+                    source_breakdown[tag] = source_stats
+                    merge_stats(run_stats, source_stats)
 
-            await context.close()
+                await context.close()
     except Exception as e:
         run_error = str(e)
         raise
