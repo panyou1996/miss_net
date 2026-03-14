@@ -1,4 +1,8 @@
 import asyncio
+import json
+import os
+import subprocess
+import tempfile
 import importlib.util
 import pathlib
 import sys
@@ -149,6 +153,38 @@ class NullCoverBackfillTest(unittest.TestCase):
         self.assertTrue(fake_context.closed)
         self.assertEqual(1, len(finalize_calls))
         self.assertEqual('success', finalize_calls[0]['status'])
+
+
+    def test_queue_env_output_is_shell_safe(self):
+        rows = [
+            {
+                "external_id": "thz-095",
+                "source_url": "https://missav.ws/thz-095",
+                "source_site": "missav",
+                "source_release_date": "2026-03-09",
+                "created_at": "2026-03-11 13:42:49.916451+00",
+            }
+        ]
+        payload = self.queue.render_env_output(rows, 'missav')
+
+        with tempfile.NamedTemporaryFile('w', delete=False) as handle:
+            handle.write(payload)
+            env_path = handle.name
+
+        try:
+            proc = subprocess.run(
+                ['bash', '-lc', f'''set -euo pipefail
+source {env_path}
+[[ "$NULL_COVER_QUEUE_JSON" == *'"external_id": "thz-095"'* ]]
+printf '%s' "$NULL_COVER_QUEUE_COUNT"'''],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        finally:
+            os.unlink(env_path)
+
+        self.assertEqual('1', proc.stdout.strip())
 
     def test_select_queue_rows_prefers_newest_release_then_created(self):
         rows = [

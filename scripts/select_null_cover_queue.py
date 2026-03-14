@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import shlex
 import sys
 import urllib.error
 import urllib.request
@@ -62,6 +63,15 @@ def select_queue_rows(rows, limit: int):
     return filtered[: max(int(limit), 1)]
 
 
+def render_env_output(rows, source_site: str) -> str:
+    payload = json.dumps(rows, ensure_ascii=False)
+    return "\n".join([
+        f"NULL_COVER_QUEUE_JSON={shlex.quote(payload)}",
+        f"NULL_COVER_QUEUE_COUNT={len(rows)}",
+        f"NULL_COVER_SOURCE_SITE={shlex.quote(source_site)}",
+    ])
+
+
 def main():
     parser = argparse.ArgumentParser(description='Pick concrete null-cover rows for detail-only cover patching.')
     parser.add_argument('--project-ref', default=os.environ.get('SUPABASE_PROJECT_REF', 'gapmmwdbxzcglvvdhhiu'))
@@ -79,9 +89,7 @@ def main():
     selected = select_queue_rows(rows, args.limit)
 
     if args.output == 'env':
-        print(f"NULL_COVER_QUEUE_JSON={json.dumps(selected, ensure_ascii=False)}")
-        print(f"NULL_COVER_QUEUE_COUNT={len(selected)}")
-        print(f"NULL_COVER_SOURCE_SITE={args.source_site}")
+        print(render_env_output(selected, args.source_site))
     else:
         print(json.dumps({'source_site': args.source_site, 'count': len(selected), 'rows': selected}, ensure_ascii=False, indent=2))
 
