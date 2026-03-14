@@ -24,5 +24,7 @@ data class Video(
 @Serializable
 data class ActorInfo(
     val name: String,
-    val coverUrl: String? = null
+    val coverUrl: String? = null,
+    val videoCount: Int = 0,
+    val latestReleaseDate: String? = null
 )

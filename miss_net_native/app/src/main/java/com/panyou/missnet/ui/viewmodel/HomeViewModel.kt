@@ -10,7 +10,6 @@ import com.panyou.missnet.data.media.DownloadTracker
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.data.repository.VideoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -83,21 +82,14 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             try {
-                val newDeferred = async { repository.getRecentVideos(limit = 10, category = "new") }
-                val monthlyDeferred = async { repository.getRecentVideos(limit = 10, category = "monthly_hot") }
-                val weeklyDeferred = async { repository.getRecentVideos(limit = 15, category = "weekly_hot") }
-                val uncensoredDeferred = async { repository.getRecentVideos(limit = 10, category = "uncensored") }
-                val subtitleDeferred = async { repository.getRecentVideos(limit = 10, category = "subtitled") }
-                val vrDeferred = async { repository.getRecentVideos(limit = 10, category = "vr") }
-                val chiguaDeferred = async { repository.getRecentVideos(limit = 10, category = "51cg") }
-
-                val new = newDeferred.await()
-                val monthly = monthlyDeferred.await()
-                val weekly = weeklyDeferred.await()
-                val uncensored = uncensoredDeferred.await()
-                val subtitle = subtitleDeferred.await()
-                val vr = vrDeferred.await()
-                val chigua = chiguaDeferred.await()
+                val payload = repository.getHomePayload(sectionLimit = 10, weeklyLimit = 15)
+                val new = payload.newVideos
+                val monthly = payload.monthlyVideos
+                val weekly = payload.weeklyVideos
+                val uncensored = payload.uncensoredVideos
+                val subtitle = payload.subtitleVideos
+                val vr = payload.vrVideos
+                val chigua = payload.chiguaVideos
 
                 val hero = weekly.take(3)
                 val weeklyList = weekly.drop(3)
