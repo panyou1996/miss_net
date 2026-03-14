@@ -19,7 +19,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.panyou.missnet.data.model.ActorInfo
-import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.components.MissNetLoading
 import com.panyou.missnet.ui.components.MissNetStatePane
@@ -60,30 +59,19 @@ fun ActressScreen(
                             )
                         }
                     } else {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            BrowseSummaryCard(
-                                title = "热门演员",
-                                summary = "共 ${actresses.size} 位 · 常用浏览入口优先展示",
-                                helper = "点击卡片查看该演员相关内容。",
-                                modifier = Modifier.padding(ContainerTokens.ScreenContentPadding)
-                            )
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f)
-                            )
-                            LazyVerticalGrid(
-                                columns = GridCells.Adaptive(minSize = 124.dp),
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
-                                horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
-                                verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing)
-                            ) {
-                                itemsIndexed(actresses) { index, actor ->
-                                    ActressItem(
-                                        actor = actor,
-                                        isFeatured = index < 12,
-                                        onClick = { onActressClick(actor.name) }
-                                    )
-                                }
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = 124.dp),
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+                            horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
+                            verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing)
+                        ) {
+                            itemsIndexed(actresses) { index, actor ->
+                                ActressItem(
+                                    actor = actor,
+                                    isFeatured = index < 12,
+                                    onClick = { onActressClick(actor.name) }
+                                )
                             }
                         }
                     }
@@ -137,7 +125,18 @@ fun ActressItem(actor: ActorInfo, isFeatured: Boolean, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = if (isFeatured) "热门演员 · 点击查看相关内容" else "点击查看该演员相关内容",
+                text = buildString {
+                    if (actor.videoCount > 0) {
+                        append("${actor.videoCount} 部")
+                    }
+                    actor.latestReleaseDate?.takeIf { it.isNotBlank() }?.let {
+                        if (isNotEmpty()) append(" · ")
+                        append(it)
+                    }
+                    if (isEmpty()) {
+                        append("近期收录")
+                    }
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

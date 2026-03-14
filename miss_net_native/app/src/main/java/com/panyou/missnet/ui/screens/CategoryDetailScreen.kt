@@ -54,15 +54,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.panyou.missnet.data.model.Video
-import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.HeroCarouselItem
 import com.panyou.missnet.ui.components.MissNetCoverImage
-import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
 import com.panyou.missnet.ui.components.MissNetStatePane
 import com.panyou.missnet.ui.components.SecondaryPageSurface
-import com.panyou.missnet.ui.components.SmallBadge
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.theme.MotionTokens
 import com.panyou.missnet.ui.theme.ThumbnailShape
@@ -84,7 +81,6 @@ fun CategoryDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val pageTitle = remember(category, actor) { resolveCategoryPageTitle(category, actor) }
-    val pageHelper = if (actor != null) "点击卡片进入播放页，也可继续浏览该演员相关内容。" else "点击卡片可继续进入播放页。"
 
     LaunchedEffect(category, actor) {
         viewModel.init(category, actor)
@@ -117,24 +113,16 @@ fun CategoryDetailScreen(
             Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
                     SecondaryPageSurface {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            BrowseSummaryCard(
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            MissNetStatePane(
+                                icon = Icons.Default.PlayArrow,
                                 title = pageTitle,
-                                summary = "当前暂无可浏览内容",
-                                helper = "请稍后再试，或返回首页继续浏览其他内容。",
-                                modifier = Modifier.padding(ContainerTokens.ScreenContentPadding)
+                                subtitle = "当前还没有可展示的视频内容。",
+                                modifier = Modifier.padding(horizontal = 24.dp)
                             )
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                MissNetStatePane(
-                                    icon = Icons.Default.PlayArrow,
-                                    title = "暂未收录内容",
-                                    subtitle = "当前入口还没有可展示的视频内容。",
-                                    modifier = Modifier.padding(horizontal = 24.dp)
-                                )
-                            }
                         }
                     }
                 }
@@ -149,41 +137,27 @@ fun CategoryDetailScreen(
                         LazyColumn(
                             state = listState,
                             contentPadding = PaddingValues(vertical = ContainerTokens.ScreenContentPadding),
-                            verticalArrangement = Arrangement.spacedBy(ContainerTokens.SectionVerticalSpacing),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier
                                 .fillMaxSize()
                                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                         ) {
                             item {
-                                val carouselVideos = uiState.videos.take(5)
-                                BrowseSummaryCard(
-                                    title = pageTitle,
-                                    summary = "共 ${uiState.videos.size} 项 · 默认按最新收录排序",
-                                    helper = pageHelper,
-                                    footer = {
-                                        FlowRow(
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            SmallBadge(
-                                                text = "列表 ${uiState.videos.size}",
-                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            SmallBadge(
-                                                text = "精选 ${carouselVideos.size}",
-                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                            )
-                                            SmallBadge(
-                                                text = "默认最新",
-                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    },
-                                    modifier = Modifier.padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding)
-                                )
+                                Column(
+                                    modifier = Modifier.padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text(
+                                        text = pageTitle,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = "${uiState.videos.size} 项",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
 
                             item {
@@ -224,9 +198,6 @@ fun CategoryDetailScreen(
                                     sharedTransitionScope = sharedTransitionScope,
                                     animatedVisibilityScope = animatedVisibilityScope
                                 )
-                                if (index < uiState.videos.lastIndex) {
-                                    MissNetListDivider()
-                                }
                             }
 
                             if (uiState.isMoreLoading) {
@@ -264,7 +235,7 @@ fun CategoryVideoItem(
             .fillMaxWidth()
             .padding(
                 horizontal = ContainerTokens.ScreenContentPadding,
-                vertical = 2.dp
+                vertical = 0.dp
             ),
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surface,

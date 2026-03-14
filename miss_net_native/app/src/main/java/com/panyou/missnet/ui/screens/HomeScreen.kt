@@ -66,7 +66,6 @@ import com.panyou.missnet.data.local.WatchProgressEntry
 import com.panyou.missnet.data.media.DownloadStatusEntry
 import com.panyou.missnet.data.media.ExportState
 import com.panyou.missnet.data.model.Video
-import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.HeroCarouselItem
 import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.components.MissNetErrorState
@@ -111,7 +110,7 @@ fun HomeScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = contentPadding,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (
                         uiState.continueWatching.isNotEmpty() ||
@@ -169,54 +168,11 @@ fun HomeScreen(
                             }
                         }
                     }
-
-
                     item {
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding, vertical = 4.dp)
-                                .animateContentSize(animationSpec = MotionTokens.standard()),
-                            shape = MaterialTheme.shapes.large,
-                            color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(top = 12.dp, bottom = 16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                BrowseSummaryCard(
-                                    title = "继续浏览",
-                                    summary = "优先保留最新发布、本月热选与资源类型入口",
-                                    helper = "点击区块标题可查看完整列表",
-                                    footer = {
-                                        FlowRow(
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            SmallBadge(
-                                                text = "最新 ${uiState.newVideos.size}",
-                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                            )
-                                            SmallBadge(
-                                                text = "热选 ${uiState.monthlyVideos.size}",
-                                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                                            )
-                                            SmallBadge(
-                                                text = "资源 ${uiState.uncensoredVideos.size}",
-                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    },
-                                    modifier = Modifier.padding(horizontal = ContainerTokens.ScreenContentPadding)
-                                )
-                                HomeSection(title = "最新发布", category = "new", videos = uiState.newVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
-                                HomeSection(title = "本月热选", category = "monthly_hot", videos = uiState.monthlyVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
-                                HomeSection(title = "无码资源", category = "uncensored", videos = uiState.uncensoredVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
-                            }
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            HomeSection(title = "最新发布", category = "new", videos = uiState.newVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
+                            HomeSection(title = "本月热选", category = "monthly_hot", videos = uiState.monthlyVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
+                            HomeSection(title = "无码资源", category = "uncensored", videos = uiState.uncensoredVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
                         }
                     }
 
@@ -249,7 +205,7 @@ private fun TaskRecoverySection(
     ) {
         Column(
             modifier = Modifier.padding(ContainerTokens.ScreenContentPadding),
-            verticalArrangement = Arrangement.spacedBy(ContainerTokens.ScreenContentPadding)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (continueWatching.isNotEmpty() || recentDownloads.isNotEmpty() || recentFavorites.isNotEmpty()) {
                 TaskSummaryStrip(
@@ -260,9 +216,9 @@ private fun TaskRecoverySection(
             }
 
             if (continueWatching.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     SectionTitleWithMeta(title = "继续播放", meta = "${continueWatching.size} 项")
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         items(continueWatching, key = { it.video.id }) { entry ->
                             ContinueWatchingCard(entry = entry, onClick = { onVideoClick(entry.video.id) })
                         }
@@ -291,7 +247,7 @@ private fun TaskRecoverySection(
             }
 
             if (recentFavorites.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -302,7 +258,7 @@ private fun TaskRecoverySection(
                             Text("查看全部")
                         }
                     }
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         items(recentFavorites, key = { it.id }) { video ->
                             FavoriteGlanceCard(video = video, onClick = { onVideoClick(video.id) })
                         }

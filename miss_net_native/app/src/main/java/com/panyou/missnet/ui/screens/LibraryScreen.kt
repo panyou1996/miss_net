@@ -71,7 +71,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.exoplayer.offline.Download
-import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.data.media.DownloadStatusEntry
 import com.panyou.missnet.data.media.ExportState
 import com.panyou.missnet.data.local.WatchProgressEntry
@@ -241,35 +240,27 @@ private fun VideoGridPage(
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            BrowseSummaryCard(
-                title = title,
-                summary = "共 ${videos.size} 项 · 以卡片形式集中浏览",
-                helper = if (title == "收藏") "点击卡片可快速进入已收藏内容。" else "点击卡片可继续浏览对应内容。",
-                modifier = Modifier.padding(ContainerTokens.ScreenContentPadding)
-            )
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 160.dp),
-                contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
-                horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
-                verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(videos) { video ->
-                    VideoCard(
-                        videoId = video.id,
-                        title = video.title,
-                        coverUrl = video.coverUrl,
-                        duration = video.displayDurationOrNull,
-                        progress = historyProgress[video.id],
-                        showFavoriteBadge = title == "收藏",
-                        onClick = { onVideoClick(video.id) },
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope
-                    )
-                }
-                item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 160.dp),
+            contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+            horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
+            verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(videos) { video ->
+                VideoCard(
+                    videoId = video.id,
+                    title = video.title,
+                    coverUrl = video.coverUrl,
+                    duration = video.displayDurationOrNull,
+                    progress = historyProgress[video.id],
+                    showFavoriteBadge = title == "收藏",
+                    onClick = { onVideoClick(video.id) },
+                    sharedTransitionScope = sharedTransitionScope,
+                    animatedVisibilityScope = animatedVisibilityScope
+                )
             }
+            item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
         }
     }
 }
@@ -329,13 +320,6 @@ private fun ContinueWatchingPage(
             contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                BrowseSummaryCard(
-                    title = "继续看",
-                    summary = "共 ${entries.size} 项 · 优先恢复最近未完成内容",
-                    helper = "点整卡或右侧按钮都可以继续播放。"
-                )
-            }
             items(entries.sortedByDescending { it.updatedAt }) { entry ->
                 ContinueWatchingCard(
                     entry = entry,
@@ -616,26 +600,24 @@ private fun DownloadOverviewCard(
     completedCount: Int
 ) {
     ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-        BrowseSummaryCard(
-            title = "任务与资产状态",
-            summary = "进行中 $activeCount 项 · 需要处理 $failedCount 项 · 最近完成 $completedCount 项",
-            helper = if (failedCount > 0) {
-                "建议优先处理需要处理项，避免旧任务长期堆积。"
-            } else {
-                "优先处理进行中任务，已完成内容可快速打开或导出。"
-            },
+        Column(
             modifier = Modifier.padding(ContainerTokens.CardPadding),
-            footer = {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OverviewChip(icon = Icons.Default.Downloading, label = "进行中 $activeCount")
-                    OverviewChip(icon = Icons.Rounded.WarningAmber, label = "需要处理 $failedCount")
-                    OverviewChip(icon = Icons.Default.DownloadDone, label = "最近完成 $completedCount")
-                }
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "任务概览",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OverviewChip(icon = Icons.Default.Downloading, label = "进行中 $activeCount")
+                OverviewChip(icon = Icons.Rounded.WarningAmber, label = "需要处理 $failedCount")
+                OverviewChip(icon = Icons.Default.DownloadDone, label = "最近完成 $completedCount")
             }
-        )
+        }
     }
 }
 

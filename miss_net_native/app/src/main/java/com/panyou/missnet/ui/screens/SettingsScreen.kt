@@ -64,7 +64,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.theme.ContainerTokens
@@ -89,36 +88,7 @@ fun SettingsScreen(
                 .padding(contentPadding),
             verticalArrangement = Arrangement.spacedBy(ContainerTokens.SectionVerticalSpacing)
         ) {
-            BrowseSummaryCard(
-                title = "设置与偏好",
-                summary = "当前以本机存储为主，优先保证播放器、资源库与状态语言稳定。",
-                helper = "主题、隐私与缓存偏好会保存在本机；账号接入不等于已开启完整云同步。",
-                footer = {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        StatusBadge(
-                            text = "本机优先",
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        StatusBadge(
-                            text = "稳定优先",
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        StatusBadge(
-                            text = "同步后续支持",
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    }
-                },
-                modifier = Modifier.padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding)
-            )
-
-            SettingsSectionTitle("同步", "账号状态与本机数据策略")
+            SettingsSectionTitle("同步")
             EliteSettingsCard {
                 if (!uiState.isLoggedIn) {
                     ListItem(
@@ -185,7 +155,7 @@ fun SettingsScreen(
                 }
             }
 
-            SettingsSectionTitle("外观", "深色模式、动态色彩与主题颜色")
+            SettingsSectionTitle("外观")
             EliteSettingsCard {
                 SettingsToggleItem(
                     icon = Icons.Rounded.DarkMode,
@@ -238,7 +208,7 @@ fun SettingsScreen(
                 }
             }
 
-            SettingsSectionTitle("隐私", "无痕模式、应用锁与本机保护")
+            SettingsSectionTitle("隐私")
             EliteSettingsCard {
                 SettingsToggleItem(
                     icon = Icons.Rounded.VisibilityOff,
@@ -257,7 +227,7 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsSectionTitle("存储", "设备占用参考与封面缓存管理")
+            SettingsSectionTitle("存储")
             EliteSettingsCard {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -317,62 +287,7 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsSectionTitle("播放与下载", "当前版本优先保证稳定性与可交付")
-            EliteSettingsCard {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "播放与下载设置正在收口中",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "后续会补充：仅 Wi‑Fi 下载、默认倍速、自动续播，以及更细的缓存策略。",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        StatusBadge(
-                            text = "稳定优先",
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        StatusBadge(
-                            text = "Wi‑Fi 下载后续",
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        StatusBadge(
-                            text = "倍速配置后续",
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Rounded.Sync,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(ContainerTokens.ListLeadingIconSize)
-                        )
-                        Text(
-                            text = "当前版本优先保证播放器、资源库和状态语言稳定。",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            SettingsSectionTitle("关于", "版本信息与基础说明")
+            SettingsSectionTitle("关于")
             EliteSettingsCard {
                 ListItem(
                     headlineContent = { Text("版本") },

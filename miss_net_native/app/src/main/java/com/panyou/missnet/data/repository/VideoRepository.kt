@@ -99,9 +99,11 @@ class VideoRepository @Inject constructor(
 
     suspend fun getActorsWithCovers(limit: Int = 20): List<ActorInfo> {
         return try {
-            supabase.postgrest
+            val primary = supabase.postgrest
                 .rpc("get_actor_aggregates", buildJsonObject { put("limit_count", limit) })
                 .decodeList<ActorAggregateRow>()
+                .filter { isUsableCoverUrl(it.coverUrl) }
+                .distinctBy { it.actor }
                 .map {
                     ActorInfo(
                         name = it.actor,
@@ -110,32 +112,43 @@ class VideoRepository @Inject constructor(
                         latestReleaseDate = it.latestReleaseDate
                     )
                 }
-        } catch (_: Exception) {
-            val names = getPopularActors(limit)
-            val recentVideos = getRecentVideosDirect(limit = 100)
-            names.map { name ->
-                ActorInfo(
-                    name = name,
-                    coverUrl = recentVideos.firstOrNull { it.actors.contains(name) }?.coverUrl,
-                )
+            if (primary.size >= limit) {
+                primary.take(limit)
+            } else {
+                val fallback = getActorCoverFallback(limit * 8)
+                (primary + fallback.filter { candidate -> primary.none { it.name == candidate.name } })
+                    .take(limit)
             }
+        } catch (_: Exception) {
+            getActorCoverFallback(limit)
         }
     }
 
     suspend fun getPopularTags(limit: Int = 30): List<String> {
         return try {
-            supabase.postgrest
+            val primary = supabase.postgrest
                 .rpc("get_tag_aggregates", buildJsonObject { put("limit_count", limit) })
                 .decodeList<TagAggregateRow>()
-                .map { it.tag }
+                .mapNotNull { normalizeBrowseTag(it.tag) }
+                .distinct()
+            if (primary.size >= limit) {
+                primary.take(limit)
+            } else {
+                (primary + getPopularTagsFallback(limit * 10)).distinct().take(limit)
+            }
         } catch (_: Exception) {
             try {
-                supabase.postgrest
+                val legacy = supabase.postgrest
                     .rpc("get_popular_tags", buildJsonObject { put("limit_count", limit) })
                     .decodeList<TagRpcResult>()
-                    .map { it.tag }
+                    .mapNotNull { normalizeBrowseTag(it.tag) }
+                if (legacy.isNotEmpty()) {
+                    legacy.distinct().take(limit)
+                } else {
+                    getPopularTagsFallback(limit * 10).take(limit)
+                }
             } catch (_: Exception) {
-                emptyList()
+                getPopularTagsFallback(limit * 10).take(limit)
             }
         }
     }
@@ -193,7 +206,80 @@ class VideoRepository @Inject constructor(
             emptyList()
         }
     }
+
+    private suspend fun getActorCoverFallback(limit: Int): List<ActorInfo> {
+        val recentVideos = getRecentVideosDirect(limit = 800)
+        return recentVideos
+            .filter { isUsableCoverUrl(it.coverUrl) && it.actors.isNotEmpty() }
+            .flatMap { video ->
+                video.actors
+                    .map(String::trim)
+                    .filter(String::isNotBlank)
+                    .map { actor ->
+                        actor to ActorInfo(
+                            name = actor,
+                            coverUrl = video.coverUrl,
+                            videoCount = 1,
+                            latestReleaseDate = video.sourceReleaseDate
+                        )
+                    }
+            }
+            .groupBy({ it.first }, { it.second })
+            .values
+            .map { items ->
+                val first = items.first()
+                first.copy(
+                    videoCount = items.size,
+                    latestReleaseDate = items.mapNotNull { it.latestReleaseDate }.maxOrNull()
+                )
+            }
+            .sortedWith(
+                compareByDescending<ActorInfo> { it.videoCount }
+                    .thenByDescending { it.latestReleaseDate ?: "" }
+                    .thenBy { it.name }
+            )
+            .take(limit)
+    }
+
+    private suspend fun getPopularTagsFallback(limit: Int): List<String> {
+        return getRecentVideosDirect(limit = 800)
+            .flatMap { video -> video.tags + video.categoriesForBrowseFallback() }
+            .mapNotNull(::normalizeBrowseTag)
+            .groupingBy { it }
+            .eachCount()
+            .entries
+            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+            .map { it.key }
+            .take(limit)
+    }
 }
+
+private fun isUsableCoverUrl(url: String?): Boolean {
+    val value = url?.trim().orEmpty()
+    if (value.isBlank()) return false
+    val lower = value.lowercase()
+    return !lower.startsWith("data:image") &&
+        !lower.startsWith("blob:") &&
+        !lower.startsWith("about:blank")
+}
+
+private fun normalizeBrowseTag(raw: String?): String? {
+    val trimmed = raw?.trim().orEmpty()
+    if (trimmed.isBlank()) return null
+    val normalized = when (trimmed.lowercase()) {
+        "chinese_subtitle", "subtitle", "subtitles" -> "subtitled"
+        else -> trimmed
+    }
+    return normalized.takeIf {
+        it.lowercase() !in setOf("new", "monthly_hot", "weekly_hot", "51cg", "51mrds", "uncensored", "vr")
+    }
+}
+
+private fun Video.categoriesForBrowseFallback(): List<String> =
+    when {
+        sourceUrl.contains("uncensored", ignoreCase = true) -> listOf("uncensored")
+        else -> emptyList()
+    }
 
 data class HomePayload(
     val newVideos: List<Video> = emptyList(),

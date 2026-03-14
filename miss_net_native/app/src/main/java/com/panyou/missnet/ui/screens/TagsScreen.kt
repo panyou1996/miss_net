@@ -15,8 +15,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.panyou.missnet.ui.components.BrowseSummaryCard
-import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.MissNetLoading
 import com.panyou.missnet.ui.components.MissNetStatePane
 import com.panyou.missnet.ui.components.SecondaryPageSurface
@@ -52,66 +50,44 @@ fun TagsScreen(
                             )
                         }
                     } else {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            BrowseSummaryCard(
-                                title = "热门标签",
-                                summary = "共 ${uiState.tags.size} 项 · 按热度排序，常用标签优先",
-                                helper = "点击标签即可查看对应聚合内容。",
-                                modifier = Modifier.padding(ContainerTokens.ScreenContentPadding)
-                            )
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f)
-                            )
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(
-                                    top = 8.dp,
-                                    bottom = 8.dp,
-                                    start = ContainerTokens.ScreenContentPadding,
-                                    end = ContainerTokens.ScreenContentPadding
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                top = 8.dp,
+                                bottom = 8.dp,
+                                start = ContainerTokens.ScreenContentPadding,
+                                end = ContainerTokens.ScreenContentPadding
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            itemsIndexed(uiState.tags) { index, tag ->
+                                ListItem(
+                                    headlineContent = {
+                                        Text(
+                                            text = tag,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    },
+                                    leadingContent = {
+                                        SmallBadge(
+                                            text = "#${index + 1}",
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    trailingContent = {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                    modifier = Modifier.clickable { onTagClick(tag) }
                                 )
-                            ) {
-                                itemsIndexed(uiState.tags) { index, tag ->
-                                    ListItem(
-                                        headlineContent = {
-                                            Text(
-                                                text = tag,
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                fontWeight = FontWeight.Medium
-                                            )
-                                        },
-                                        supportingContent = {
-                                            Text(
-                                                text = when {
-                                                    index < 3 -> "高热度入口 · 优先推荐浏览"
-                                                    index < 10 -> "热门标签 · 点击查看聚合内容"
-                                                    else -> "按标签浏览相关内容"
-                                                },
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        },
-                                        leadingContent = {
-                                            SmallBadge(
-                                                text = "#${index + 1}",
-                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        },
-                                        trailingContent = {
-                                            Icon(
-                                                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        },
-                                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                                        modifier = Modifier.clickable { onTagClick(tag) }
-                                    )
-                                    MissNetListDivider()
-                                }
-                                item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
                             }
+                            item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
                         }
                     }
                 }

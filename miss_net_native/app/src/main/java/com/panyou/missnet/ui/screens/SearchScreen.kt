@@ -50,7 +50,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.MissNetListDivider
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
@@ -165,105 +164,73 @@ fun SearchScreen(
             }
 
             SecondaryPageSurface {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    BrowseSummaryCard(
-                        title = when {
-                            uiState.query.isBlank() -> "标题搜索"
-                            uiState.results.isNotEmpty() -> "搜索结果"
-                            else -> "继续搜索"
-                        },
-                        summary = when {
-                            uiState.query.isBlank() -> "当前仅支持按视频标题搜索。"
-                            uiState.results.isNotEmpty() -> "“${uiState.query}” · 共 ${uiState.results.size} 条结果"
-                            else -> "“${uiState.query}” 暂未找到匹配内容"
-                        },
-                        helper = when {
-                            uiState.query.isBlank() -> "输入标题关键词，或从最近搜索开始。"
-                            uiState.results.isNotEmpty() -> "点击卡片进入播放页，可继续浏览详情。"
-                            else -> "试试更短的关键词，或更换标题片段。"
-                        },
-                        footer = if (uiState.query.isBlank() && uiState.history.isNotEmpty()) {
-                            {
-                                Text(
-                                    text = "最近搜索 ${uiState.history.size} 条",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        } else {
-                            null
-                        },
-                        modifier = Modifier.padding(ContainerTokens.ScreenContentPadding)
-                    )
+                AnimatedContent(
+                    targetState = when {
+                        uiState.isLoading -> SearchContentState.Loading
+                        uiState.errorMessage != null && uiState.query.isNotBlank() -> SearchContentState.Error
+                        uiState.results.isNotEmpty() -> SearchContentState.Results
+                        uiState.query.isBlank() -> SearchContentState.Idle
+                        else -> SearchContentState.Empty
+                    },
+                    transitionSpec = {
+                        fadeIn(animationSpec = MotionTokens.standard(MotionTokens.DurationShort4)) +
+                            scaleIn(initialScale = 0.98f, animationSpec = MotionTokens.standard(MotionTokens.DurationShort4)) togetherWith
+                            fadeOut(animationSpec = MotionTokens.exit(MotionTokens.DurationShort3)) +
+                            scaleOut(targetScale = 0.98f, animationSpec = MotionTokens.exit(MotionTokens.DurationShort3))
+                    },
+                    label = "search-content-state",
+                    modifier = Modifier.fillMaxSize()
+                ) { contentState ->
+                    when (contentState) {
+                        SearchContentState.Loading -> MissNetLoading()
 
-                    AnimatedContent(
-                        targetState = when {
-                            uiState.isLoading -> SearchContentState.Loading
-                            uiState.errorMessage != null && uiState.query.isNotBlank() -> SearchContentState.Error
-                            uiState.results.isNotEmpty() -> SearchContentState.Results
-                            uiState.query.isBlank() -> SearchContentState.Idle
-                            else -> SearchContentState.Empty
-                        },
-                        transitionSpec = {
-                            fadeIn(animationSpec = MotionTokens.standard(MotionTokens.DurationShort4)) +
-                                scaleIn(initialScale = 0.98f, animationSpec = MotionTokens.standard(MotionTokens.DurationShort4)) togetherWith
-                                fadeOut(animationSpec = MotionTokens.exit(MotionTokens.DurationShort3)) +
-                                scaleOut(targetScale = 0.98f, animationSpec = MotionTokens.exit(MotionTokens.DurationShort3))
-                        },
-                        label = "search-content-state",
-                        modifier = Modifier.fillMaxSize()
-                    ) { contentState ->
-                        when (contentState) {
-                            SearchContentState.Loading -> MissNetLoading()
+                        SearchContentState.Error -> MissNetErrorState(
+                            message = uiState.errorMessage ?: "搜索失败",
+                            onRetry = viewModel::retry
+                        )
 
-                            SearchContentState.Error -> MissNetErrorState(
-                                message = uiState.errorMessage ?: "搜索失败",
-                                onRetry = viewModel::retry
-                            )
-
-                            SearchContentState.Results -> {
-                                LazyVerticalGrid(
-                                    columns = GridCells.Adaptive(minSize = 160.dp),
-                                    contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
-                                    horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
-                                    verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    items(uiState.results, key = { it.id }) { video ->
-                                        VideoCard(
-                                            videoId = video.id,
-                                            title = video.title,
-                                            coverUrl = video.coverUrl,
-                                            duration = video.displayDurationOrNull,
-                                            onClick = { onVideoClick(video.id) },
-                                            sharedTransitionScope = sharedTransitionScope,
-                                            animatedVisibilityScope = animatedVisibilityScope
-                                        )
-                                    }
-                                    item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
+                        SearchContentState.Results -> {
+                            LazyVerticalGrid(
+                                columns = GridCells.Adaptive(minSize = 160.dp),
+                                contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+                                horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
+                                verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(uiState.results, key = { it.id }) { video ->
+                                    VideoCard(
+                                        videoId = video.id,
+                                        title = video.title,
+                                        coverUrl = video.coverUrl,
+                                        duration = video.displayDurationOrNull,
+                                        onClick = { onVideoClick(video.id) },
+                                        sharedTransitionScope = sharedTransitionScope,
+                                        animatedVisibilityScope = animatedVisibilityScope
+                                    )
                                 }
+                                item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
                             }
-
-                            SearchContentState.Idle -> SearchState(
-                                icon = Icons.Default.Search,
-                                title = "输入标题关键词开始搜索",
-                                subtitle = "当前版本仅支持按视频标题搜索，可从上方搜索框开始。",
-                                actionLabel = if (uiState.history.isNotEmpty()) "查看最近搜索" else null,
-                                onAction = if (uiState.history.isNotEmpty()) {
-                                    { viewModel.onActiveChange(true) }
-                                } else {
-                                    null
-                                }
-                            )
-
-                            SearchContentState.Empty -> SearchState(
-                                icon = Icons.Default.History,
-                                title = "暂未找到匹配内容",
-                                subtitle = "试试更短的标题关键词，或换一个标题片段。",
-                                actionLabel = "清空关键词",
-                                onAction = { viewModel.onQueryChange("") }
-                            )
                         }
+
+                        SearchContentState.Idle -> SearchState(
+                            icon = Icons.Default.Search,
+                            title = "输入标题关键词开始搜索",
+                            subtitle = "当前版本仅支持按视频标题搜索，可从上方搜索框开始。",
+                            actionLabel = if (uiState.history.isNotEmpty()) "查看最近搜索" else null,
+                            onAction = if (uiState.history.isNotEmpty()) {
+                                { viewModel.onActiveChange(true) }
+                            } else {
+                                null
+                            }
+                        )
+
+                        SearchContentState.Empty -> SearchState(
+                            icon = Icons.Default.History,
+                            title = "暂未找到匹配内容",
+                            subtitle = "试试更短的标题关键词，或换一个标题片段。",
+                            actionLabel = "清空关键词",
+                            onAction = { viewModel.onQueryChange("") }
+                        )
                     }
                 }
             }
