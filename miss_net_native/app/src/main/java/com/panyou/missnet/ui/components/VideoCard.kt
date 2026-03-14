@@ -59,24 +59,11 @@ fun VideoCard(
         )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            with(sharedTransitionScope) {
-                val imageModifier = if (this != null && animatedVisibilityScope != null) {
-                    Modifier.sharedElement(
-                        state = rememberSharedContentState(key = "image-$videoId"),
-                        animatedVisibilityScope = animatedVisibilityScope
-                    )
-                } else {
-                    Modifier
-                }
-
-                MissNetCoverImage(
-                    coverUrl = coverUrl,
-                    contentDescription = title,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .then(imageModifier)
-                )
-            }
+            MissNetCoverImage(
+                coverUrl = coverUrl,
+                contentDescription = title,
+                modifier = Modifier.fillMaxSize()
+            )
 
             Box(
                 modifier = Modifier

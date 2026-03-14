@@ -72,31 +72,18 @@ fun VerticalVideoCard(
             .bouncyClick(onClick = onClick)
             .padding(end = ContainerTokens.GridItemSpacing)
     ) {
-        // Image Container - using ThumbnailShape
-        with(sharedTransitionScope) {
-            val imageModifier = if (this != null && animatedVisibilityScope != null) {
-                Modifier.sharedElement(
-                    state = rememberSharedContentState(key = "image-${video.id}"),
-                    animatedVisibilityScope = animatedVisibilityScope
-                )
-            } else {
-                Modifier
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clip(MaterialTheme.shapes.large)  // Using shapes.large for consistency
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .then(imageModifier)
-            ) {
-                MissNetCoverImage(
-                    coverUrl = video.coverUrl,
-                    contentDescription = video.title,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(MaterialTheme.shapes.large)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            MissNetCoverImage(
+                coverUrl = video.coverUrl,
+                contentDescription = video.title,
+                modifier = Modifier.fillMaxSize()
+            )
         }
         
         Spacer(modifier = Modifier.height(8.dp))
@@ -138,67 +125,51 @@ fun HeroCarouselItem(
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        with(sharedTransitionScope) {
-            val imageModifier = if (this != null && animatedVisibilityScope != null) {
-                Modifier.sharedElement(
-                    state = rememberSharedContentState(key = "image-${video.id}"),
-                    animatedVisibilityScope = animatedVisibilityScope
-                )
-            } else {
-                Modifier
-            }
+        Box(modifier = Modifier.fillMaxSize()) {
+            MissNetCoverImage(
+                coverUrl = video.coverUrl,
+                contentDescription = video.title,
+                modifier = Modifier.fillMaxSize()
+            )
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                MissNetCoverImage(
-                    coverUrl = video.coverUrl,
-                    contentDescription = video.title,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .then(imageModifier)
-                )
-                
-                // Gradient Overlay for text readability
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent, 
-                                    Color.Black.copy(alpha = 0.1f), 
-                                    Color.Black.copy(alpha = 0.8f)
-                                ),
-                                startY = 100f
-                            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.1f),
+                                Color.Black.copy(alpha = 0.8f)
+                            ),
+                            startY = 100f
                         )
-                )
-                
-                // Content
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(16.dp)
-                ) {
-                    // Actor tag - using unified SmallBadge
-                    if (video.actors.isNotEmpty()) {
-                        SmallBadge(
-                            text = video.primaryActorOrNull ?: video.metadataStatusLabel,
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
-                    }
-                    
-                    Text(
-                        text = video.title,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 2,
-                        lineHeight = 28.sp,
-                        overflow = TextOverflow.Ellipsis
+                    )
+            )
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(16.dp)
+            ) {
+                if (video.actors.isNotEmpty()) {
+                    SmallBadge(
+                        text = video.primaryActorOrNull ?: video.metadataStatusLabel,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
                 }
+
+                Text(
+                    text = video.title,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    lineHeight = 28.sp,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }

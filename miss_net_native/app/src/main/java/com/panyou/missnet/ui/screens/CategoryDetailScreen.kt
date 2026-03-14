@@ -24,7 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircleOutline
@@ -47,7 +47,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -138,9 +137,7 @@ fun CategoryDetailScreen(
                             state = listState,
                             contentPadding = PaddingValues(vertical = ContainerTokens.ScreenContentPadding),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .nestedScroll(scrollBehavior.nestedScrollConnection)
+                            modifier = Modifier.fillMaxSize()
                         ) {
                             item {
                                 Column(
@@ -191,7 +188,7 @@ fun CategoryDetailScreen(
                                 }
                             }
 
-                            itemsIndexed(uiState.videos, key = { _, video -> video.id }) { index, video ->
+                            items(uiState.videos, key = { video -> video.id }) { video ->
                                 CategoryVideoItem(
                                     video = video,
                                     onClick = { onVideoClick(video.id) },
@@ -251,29 +248,17 @@ fun CategoryVideoItem(
                 ),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            with(sharedTransitionScope) {
-                val imageModifier = if (this != null && animatedVisibilityScope != null) {
-                    Modifier.sharedElement(
-                        state = rememberSharedContentState(key = "image-${video.id}"),
-                        animatedVisibilityScope = animatedVisibilityScope
-                    )
-                } else {
-                    Modifier
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(width = 100.dp, height = 70.dp)
-                        .clip(ThumbnailShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .then(imageModifier)
-                ) {
-                    MissNetCoverImage(
-                        coverUrl = video.coverUrl,
-                        contentDescription = video.title,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+            Box(
+                modifier = Modifier
+                    .size(width = 100.dp, height = 70.dp)
+                    .clip(ThumbnailShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                MissNetCoverImage(
+                    coverUrl = video.coverUrl,
+                    contentDescription = video.title,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
 
             Spacer(modifier = Modifier.width(12.dp))

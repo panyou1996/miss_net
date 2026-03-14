@@ -29,7 +29,9 @@ class TagsViewModel @Inject constructor(
     private fun loadTags() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            val list = repository.getPopularTags()
+            val list = repository.getPopularTags().ifEmpty {
+                listOf("single", "exclusive", "creampie", "big_tits", "mature", "subtitled", "巨乳", "中出")
+            }
             _uiState.value = TagsUiState(tags = list, isLoading = false)
         }
     }

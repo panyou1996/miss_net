@@ -131,24 +131,20 @@ class VideoRepository @Inject constructor(
                 .decodeList<TagAggregateRow>()
                 .mapNotNull { normalizeBrowseTag(it.tag) }
                 .distinct()
-            if (primary.size >= limit) {
-                primary.take(limit)
-            } else {
-                (primary + getPopularTagsFallback(limit * 10)).distinct().take(limit)
-            }
+            (primary + getPopularTagsFallback(limit * 10) + defaultBrowseTags())
+                .distinct()
+                .take(limit)
         } catch (_: Exception) {
             try {
                 val legacy = supabase.postgrest
                     .rpc("get_popular_tags", buildJsonObject { put("limit_count", limit) })
                     .decodeList<TagRpcResult>()
                     .mapNotNull { normalizeBrowseTag(it.tag) }
-                if (legacy.isNotEmpty()) {
-                    legacy.distinct().take(limit)
-                } else {
-                    getPopularTagsFallback(limit * 10).take(limit)
-                }
+                (legacy + getPopularTagsFallback(limit * 10) + defaultBrowseTags())
+                    .distinct()
+                    .take(limit)
             } catch (_: Exception) {
-                getPopularTagsFallback(limit * 10).take(limit)
+                (getPopularTagsFallback(limit * 10) + defaultBrowseTags()).distinct().take(limit)
             }
         }
     }
@@ -280,6 +276,19 @@ private fun Video.categoriesForBrowseFallback(): List<String> =
         sourceUrl.contains("uncensored", ignoreCase = true) -> listOf("uncensored")
         else -> emptyList()
     }
+
+private fun defaultBrowseTags(): List<String> = listOf(
+    "single",
+    "exclusive",
+    "creampie",
+    "big_tits",
+    "mature",
+    "subtitled",
+    "巨乳",
+    "中出",
+    "voyeur",
+    "school",
+)
 
 data class HomePayload(
     val newVideos: List<Video> = emptyList(),
