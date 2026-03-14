@@ -4,8 +4,10 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
 import asyncio
+import json
 import random
 import re
+from datetime import datetime, timezone
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 # Load environment variables from .env file if present
@@ -145,6 +147,8 @@ INTER_PAGE_DELAY_MIN = env_non_negative_float("INTER_PAGE_DELAY_MIN", 0.5)
 INTER_PAGE_DELAY_MAX = env_non_negative_float("INTER_PAGE_DELAY_MAX", 1.6)
 BLOCK_HEAVY_RESOURCES = env_bool("BLOCK_HEAVY_RESOURCES", True)
 BLOCKED_RESOURCE_TYPES = {"image", "media", "font"}
+EARLY_STOP_STREAK = env_positive_int("EARLY_STOP_STREAK", 3)
+EARLY_STOP_MIN_PAGE = env_positive_int("EARLY_STOP_MIN_PAGE", 5)
 
 
 def ordered_unique(items):
@@ -222,6 +226,36 @@ def normalize_cover_url(value):
     return text
 
 
+def looks_like_placeholder_cover(value):
+    if value is None:
+        return False
+    text = str(value).strip().lower()
+    return text.startswith("data:image") or text.startswith("blob:") or text.startswith("about:blank")
+
+
+def make_run_stats():
+    return {
+        "pages_scanned": 0,
+        "discovered_count": 0,
+        "new_external_count": 0,
+        "existing_complete_count": 0,
+        "detail_attempted_count": 0,
+        "detail_success_count": 0,
+        "detail_fail_count": 0,
+        "blocked_count": 0,
+        "upserted_count": 0,
+        "placeholder_cover_count": 0,
+    }
+
+
+def merge_stats(target: dict, delta: dict | None):
+    if not delta:
+        return target
+    for key in target.keys():
+        target[key] += int(delta.get(key, 0))
+    return target
+
+
 def merge_video_record(video: dict, existing: dict | None) -> dict:
     if not existing:
         return video
@@ -263,6 +297,25 @@ def infer_source_site(source_url: str | None, fallback: str = "missav") -> str:
     if "missav" in url or "fourhoi.com" in url:
         return "missav"
     return fallback
+
+
+DURATION_PATTERNS = [
+    re.compile(r"(?:时长|時長|duration|片长|片長)\s*[:：]?\s*([0-9]{1,3}\s*(?:分鐘|分钟|分|min|mins|minutes))", re.IGNORECASE),
+    re.compile(r"(?:时长|時長|duration|片长|片長)\s*[:：]?\s*([0-9]{1,2}:\d{2}(?::\d{2})?)", re.IGNORECASE),
+]
+
+
+def extract_duration_from_text(raw_text: str | None):
+    if not raw_text:
+        return None
+
+    normalized = re.sub(r"\s+", " ", raw_text)
+    for pattern in DURATION_PATTERNS:
+        match = pattern.search(normalized)
+        if match:
+            return normalize_duration_text(match.group(1))
+
+    return None
 
 
 def build_paged_url(base_url: str, page_num: int) -> str:
@@ -314,10 +367,91 @@ async def execute_with_retry(label: str, fn):
             await asyncio.sleep(wait)
 
 
-async def batch_upsert_videos(records, supabase, mode_label):
-    if not records:
+async def create_scrape_run(supabase, source: str):
+    if not supabase:
+        return None
+    try:
+        response = await execute_with_retry(
+            label=f"scrape-run-start-{source}",
+            fn=lambda: supabase.table("scrape_runs").insert({
+                "source": source,
+                "status": "running",
+            }).execute()
+        )
+        if response.data:
+            return response.data[0]["id"]
+    except Exception as e:
+        print(f"[RunStats] Failed to create scrape_runs row: {e}")
+    return None
+
+
+async def finalize_scrape_run(supabase, run_id: str | None, stats: dict, source_breakdown: dict, status: str, error_message: str | None = None):
+    if not supabase or not run_id:
         return
 
+    payload = {
+        "status": status,
+        "pages_scanned": stats["pages_scanned"],
+        "discovered_count": stats["discovered_count"],
+        "upserted_count": stats["upserted_count"],
+        "detail_success_count": stats["detail_success_count"],
+        "detail_fail_count": stats["detail_fail_count"],
+        "placeholder_cover_count": stats["placeholder_cover_count"],
+        "blocked_count": stats["blocked_count"],
+        "finished_at": datetime.now(timezone.utc).isoformat(),
+        "error_summary": json.dumps({
+            "new_external_count": stats["new_external_count"],
+            "existing_complete_count": stats["existing_complete_count"],
+            "sources": source_breakdown,
+            "error": error_message,
+        }, ensure_ascii=False)[:6000],
+    }
+    try:
+        await execute_with_retry(
+            label=f"scrape-run-finish-{run_id}",
+            fn=lambda: supabase.table("scrape_runs").update(payload).eq("id", run_id).execute()
+        )
+    except Exception as e:
+        print(f"[RunStats] Failed to finalize scrape_runs row {run_id}: {e}")
+
+
+def write_step_summary(stats: dict, source_breakdown: dict):
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not summary_path:
+        return
+
+    lines = [
+        "## MissNet scraper summary",
+        "",
+        f"- Pages scanned: {stats['pages_scanned']}",
+        f"- Discovered: {stats['discovered_count']}",
+        f"- New external IDs: {stats['new_external_count']}",
+        f"- Detail attempts: {stats['detail_attempted_count']}",
+        f"- Detail successes: {stats['detail_success_count']}",
+        f"- Detail failures: {stats['detail_fail_count']}",
+        f"- Blocked: {stats['blocked_count']}",
+        f"- Placeholder covers filtered: {stats['placeholder_cover_count']}",
+        f"- Upserted: {stats['upserted_count']}",
+        "",
+        "### Sources",
+        "",
+    ]
+    for source, source_stats in source_breakdown.items():
+        lines.append(
+            f"- `{source}`: pages={source_stats['pages_scanned']}, discovered={source_stats['discovered_count']}, "
+            f"new={source_stats['new_external_count']}, detail_ok={source_stats['detail_success_count']}, "
+            f"detail_fail={source_stats['detail_fail_count']}, upserted={source_stats['upserted_count']}"
+        )
+
+    with open(summary_path, "a", encoding="utf-8") as fp:
+        fp.write("\n".join(lines) + "\n")
+
+
+async def batch_upsert_videos(records, supabase, mode_label):
+    if not records:
+        return {"upserted_count": 0, "placeholder_cover_count": 0}
+
+    placeholder_cover_count = sum(1 for record in records if looks_like_placeholder_cover(record.get("cover_url")))
     normalized = [normalize_video_record(v) for v in records]
 
     # No DB client: keep visible logs for local dry run
@@ -326,7 +460,7 @@ async def batch_upsert_videos(records, supabase, mode_label):
             print(f"  [{mode_label}] Prepared: {v.get('title', '')[:30]}... | Dur: {v.get('duration')} | Actors: {v.get('actors')}")
         if len(normalized) > 5:
             print(f"  [{mode_label}] Prepared {len(normalized)} records (dry-run without Supabase)")
-        return
+        return {"upserted_count": len(normalized), "placeholder_cover_count": placeholder_cover_count}
 
     synced = 0
     for idx, payload in enumerate(chunked(normalized, SUPABASE_UPSERT_CHUNK_SIZE), start=1):
@@ -336,6 +470,7 @@ async def batch_upsert_videos(records, supabase, mode_label):
         )
         synced += len(payload)
     print(f"  [{mode_label}] Batch upserted {synced} records")
+    return {"upserted_count": synced, "placeholder_cover_count": placeholder_cover_count}
 
 
 def map_categories(title, tags):
@@ -361,7 +496,7 @@ async def get_video_details(page, url):
         title = await page.title()
         if "Just a moment" in title:
             print(f"  [Warning] Detail page BLOCKED: {url}")
-            return None
+            return {"_status": "blocked", "duration": None, "release_date": None, "actors": [], "tags": []}
 
         # Robust DOM-based parsing without complex regex in JS
         details = await page.evaluate('''() => {
@@ -374,14 +509,15 @@ async def get_video_details(page, url):
                 
                 const label = labelEl.innerText;
                 const rowText = row.innerText;
+                const normalizedText = rowText.replace(label, '').replace(/^[:：\\s-]+/, '').trim();
                 
                 if (label.includes('时长') || label.includes('時長') || label.includes('Duration')) {
-                    data.duration = rowText.replace(label, '').trim();
+                    data.duration = normalizedText || data.duration;
                 }
                 
                 if (label.includes('日期') || label.includes('Release')) {
                     const timeEl = row.querySelector('time');
-                    data.release_date = timeEl ? timeEl.innerText.trim() : rowText.replace(label, '').trim();
+                    data.release_date = timeEl ? timeEl.innerText.trim() : normalizedText;
                 }
                 
                 if (label.includes('女優') || label.includes('Actresses')) {
@@ -398,23 +534,28 @@ async def get_video_details(page, url):
             return data;
         }''')
         
-        # Debug missing duration
-        if details and not details.get('duration'):
-            # Try to find it in the text content of the page for debugging
-            print(f"  [Debug] Missing Duration for {url}. Page Title: {title}")
-        
-        # Python-side fallback using safe regex
-        if not details or not details.get('duration'):
-            content = await page.content()
-            match = re.search(r'(?:时长|時長|Duration)[:：]\s*(\d+[^<]*)', content)
-            if match:
-                if not details: details = {}
-                details['duration'] = match.group(1).strip()
+        if not details:
+            details = {"duration": None, "release_date": None, "actors": [], "tags": []}
 
+        if not details.get('duration'):
+            print(f"  [Debug] Missing Duration for {url}. Page Title: {title}")
+            body_text = None
+            try:
+                body_text = await page.locator("body").inner_text(timeout=3000)
+            except Exception:
+                body_text = None
+
+            details['duration'] = extract_duration_from_text(body_text)
+
+            if not details.get('duration'):
+                content = await page.content()
+                details['duration'] = extract_duration_from_text(content)
+
+        details["_status"] = "success"
         return details
     except Exception as e:
         print(f"  Detail Fetch Error: {e}")
-        return None
+        return {"_status": "error", "duration": None, "release_date": None, "actors": [], "tags": []}
 
 async def get_51cg_details(page, url):
     try:
@@ -489,15 +630,19 @@ async def get_51cg_details(page, url):
                      'title_suffix': ''
                  })
         
+        details["_status"] = "success"
         return details
     except Exception as e:
         print(f"  51CG Detail Fetch Error: {e}")
-        return None
+        return {"_status": "error", "tags": [], "actors": [], "title": None, "release_date": None, "videos": []}
 
 async def process_page_batch(videos, source_tag, detail_pages, supabase, semaphore):
     if not videos:
-        return
+        return {"stale_page": True, **make_run_stats()}
 
+    page_stats = make_run_stats()
+    page_stats["pages_scanned"] = 1
+    page_stats["discovered_count"] = len(videos)
     external_ids = [v['external_id'] for v in videos]
     metadata_map = {}
     if supabase:
@@ -515,11 +660,15 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
 
     rows_to_upsert = []
     tasks = []
+    details_needed_count = 0
     for v in videos:
         ext_id = v['external_id']
         existing = metadata_map.get(ext_id)
+        if not existing:
+            page_stats["new_external_count"] += 1
         if not should_fetch_details(existing):
             print(f"  [Skip] {v['title'][:30]}... (Metadata exists)")
+            page_stats["existing_complete_count"] += 1
             rows_to_upsert.append(
                 merge_video_record(
                     {
@@ -531,22 +680,34 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
                 )
             )
         else:
+            details_needed_count += 1
+            page_stats["detail_attempted_count"] += 1
             async def scrape_and_prepare(vid=v):
                 async with semaphore:
                     page = detail_pages.pop()
                     try:
                         details = await get_video_details(page, vid['source_url'])
                         existing_record = metadata_map.get(vid['external_id'])
-                        if details and (details.get('duration') or details.get('actors')):
+                        status = (details or {}).pop("_status", "success") if details else "success"
+                        if status == "blocked":
+                            page_stats["blocked_count"] += 1
+                        elif status == "error":
+                            page_stats["detail_fail_count"] += 1
+
+                        if details and (details.get('duration') or details.get('actors') or details.get('release_date') or details.get('tags')):
                             vid.update(details)
                             vid['categories'] = normalize_taxonomy_values([source_tag] + map_categories(vid['title'], vid.get('tags', [])))
                             vid['tags'] = normalize_taxonomy_values([source_tag] + vid.get('tags', []))
+                            page_stats["detail_success_count"] += 1
                             rows_to_upsert.append(merge_video_record(vid, existing_record))
                         else:
                             vid['categories'] = normalize_taxonomy_values([source_tag] + map_categories(vid['title'], []))
                             vid['tags'] = normalize_taxonomy_values([source_tag] + vid.get('tags', []))
+                            if status not in {"blocked", "error"}:
+                                page_stats["detail_fail_count"] += 1
                             rows_to_upsert.append(merge_video_record(vid, existing_record))
                     except Exception as e:
+                        page_stats["detail_fail_count"] += 1
                         print(f"  [Detail Error] {vid.get('source_url')}: {e}")
                     finally:
                         detail_pages.append(page)
@@ -555,12 +716,18 @@ async def process_page_batch(videos, source_tag, detail_pages, supabase, semapho
     if tasks:
         await asyncio.gather(*tasks)
 
-    await batch_upsert_videos(rows_to_upsert, supabase, f"{source_tag.upper()} BATCH")
+    upsert_result = await batch_upsert_videos(rows_to_upsert, supabase, f"{source_tag.upper()} BATCH")
+    merge_stats(page_stats, upsert_result)
+    page_stats["stale_page"] = page_stats["new_external_count"] == 0 and details_needed_count == 0
+    return page_stats
 
 async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_tag="51cg"):
     if not videos:
-        return
+        return {"stale_page": True, **make_run_stats()}
 
+    page_stats = make_run_stats()
+    page_stats["pages_scanned"] = 1
+    page_stats["discovered_count"] = len(videos)
     external_ids = [v['external_id'] for v in videos]
     metadata_map = {}
     if supabase:
@@ -579,11 +746,17 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_t
     rows_to_upsert = []
     tasks = []
     for v in videos:
+        if not metadata_map.get(v["external_id"]):
+            page_stats["new_external_count"] += 1
+        page_stats["detail_attempted_count"] += 1
         async def scrape_and_prepare(vid=v):
             async with semaphore:
                 page = detail_pages.pop()
                 try:
                     details = await get_51cg_details(page, vid['source_url'])
+                    status = (details or {}).pop("_status", "success") if details else "success"
+                    if status == "error":
+                        page_stats["detail_fail_count"] += 1
                     if details:
                         # If list page title is empty/placeholder, use detail page title
                         if (not vid.get('title') or len(vid['title']) < 2) and details.get('title'):
@@ -621,11 +794,15 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_t
 
                         for v_sync in videos_to_sync:
                             rows_to_upsert.append(merge_video_record(v_sync, metadata_map.get(v_sync['external_id'])))
+                        page_stats["detail_success_count"] += 1
                     else:
                         vid['categories'] = normalize_taxonomy_values([source_tag] + (vid.get('categories') or []) + ["51吃瓜"])
                         vid['tags'] = normalize_taxonomy_values([source_tag] + (vid.get('tags') or []))
                         rows_to_upsert.append(merge_video_record(vid, metadata_map.get(vid['external_id'])))
+                        if status != "error":
+                            page_stats["detail_fail_count"] += 1
                 except Exception as e:
+                    page_stats["detail_fail_count"] += 1
                     print(f"  [51CG Detail Error] {vid.get('source_url')}: {e}")
 
                 finally:
@@ -635,12 +812,16 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_t
     if tasks:
         await asyncio.gather(*tasks)
 
-    await batch_upsert_videos(rows_to_upsert, supabase, f"51CG ({source_tag})")
+    upsert_result = await batch_upsert_videos(rows_to_upsert, supabase, f"51CG ({source_tag})")
+    merge_stats(page_stats, upsert_result)
+    page_stats["stale_page"] = False
+    return page_stats
 
 async def scrape_51cg_feed(context, supabase, semaphore, detail_pages, base_url, source_tag="51cg"):
     print(f"\n>>> Starting Source: {source_tag.upper()} ({base_url}) <<<")
     
     list_page = await context.new_page()
+    source_stats = make_run_stats()
     
     try:
         for page_num in range(1, CG_MAX_PAGES + 1):
@@ -730,13 +911,15 @@ async def scrape_51cg_feed(context, supabase, semaphore, detail_pages, base_url,
                 print(f"[{source_tag.upper()}] No videos found on this page.")
                 break
 
-            await process_51cg_batch(videos, detail_pages, supabase, semaphore, source_tag)
+            page_stats = await process_51cg_batch(videos, detail_pages, supabase, semaphore, source_tag)
+            merge_stats(source_stats, page_stats)
             await jitter_sleep(INTER_PAGE_DELAY_MIN, INTER_PAGE_DELAY_MAX)
 
     except Exception as e:
         print(f"[{source_tag.upper()}] Error: {e}")
     finally:
         await list_page.close()
+    return source_stats
 
 async def scrape_videos():
     supabase: Client = None
@@ -749,134 +932,172 @@ async def scrape_videos():
         f"[Config] HEADLESS={HEADLESS} | MISSAV_MAX_PAGES={MISSAV_MAX_PAGES} | "
         f"CG_MAX_PAGES={CG_MAX_PAGES} | CONCURRENT_DETAIL_PAGES={CONCURRENT_DETAIL_PAGES} | "
         f"UPSERT_CHUNK={SUPABASE_UPSERT_CHUNK_SIZE} | RETRIES={SUPABASE_MAX_RETRIES} | "
+        f"EARLY_STOP_STREAK={EARLY_STOP_STREAK} | EARLY_STOP_MIN_PAGE={EARLY_STOP_MIN_PAGE} | "
         f"BLOCK_HEAVY_RESOURCES={BLOCK_HEAVY_RESOURCES}"
     )
     semaphore = asyncio.Semaphore(CONCURRENT_DETAIL_PAGES)
+    run_stats = make_run_stats()
+    source_breakdown = {}
+    run_id = await create_scrape_run(supabase, "daily_scraper")
+    run_error = None
 
-    async with async_playwright() as p:
-        args = ["--disable-blink-features=AutomationControlled", "--no-sandbox"]
-        try:
-            context = await p.chromium.launch_persistent_context(
-                user_data_dir=USER_DATA_DIR, headless=HEADLESS, channel="chrome", user_agent=USER_AGENT,
-                args=args, ignore_default_args=["--enable-automation"], viewport={"width": 1280, "height": 720}
-            )
-        except Exception:
-            context = await p.chromium.launch_persistent_context(
-                user_data_dir=USER_DATA_DIR, headless=HEADLESS, user_agent=USER_AGENT,
-                args=args, viewport={"width": 1280, "height": 720}
-            )
+    try:
+        async with async_playwright() as p:
+            args = ["--disable-blink-features=AutomationControlled", "--no-sandbox"]
+            try:
+                context = await p.chromium.launch_persistent_context(
+                    user_data_dir=USER_DATA_DIR, headless=HEADLESS, channel="chrome", user_agent=USER_AGENT,
+                    args=args, ignore_default_args=["--enable-automation"], viewport={"width": 1280, "height": 720}
+                )
+            except Exception:
+                context = await p.chromium.launch_persistent_context(
+                    user_data_dir=USER_DATA_DIR, headless=HEADLESS, user_agent=USER_AGENT,
+                    args=args, viewport={"width": 1280, "height": 720}
+                )
 
-        if BLOCK_HEAVY_RESOURCES:
-            async def route_handler(route, request):
-                if request.resource_type in BLOCKED_RESOURCE_TYPES:
-                    await route.abort()
-                else:
-                    await route.continue_()
+            if BLOCK_HEAVY_RESOURCES:
+                async def route_handler(route, request):
+                    if request.resource_type in BLOCKED_RESOURCE_TYPES:
+                        await route.abort()
+                    else:
+                        await route.continue_()
 
-            await context.route("**/*", route_handler)
+                await context.route("**/*", route_handler)
 
-        stealth = Stealth()
-        # Create pages for main scraping
-        list_page = await context.new_page()
-        await stealth.apply_stealth_async(list_page)
+            stealth = Stealth()
+            # Create pages for main scraping
+            list_page = await context.new_page()
+            await stealth.apply_stealth_async(list_page)
 
-        detail_pages = []
-        for _ in range(CONCURRENT_DETAIL_PAGES):
-            dp = await context.new_page()
-            await stealth.apply_stealth_async(dp)
-            detail_pages.append(dp)
+            detail_pages = []
+            for _ in range(CONCURRENT_DETAIL_PAGES):
+                dp = await context.new_page()
+                await stealth.apply_stealth_async(dp)
+                detail_pages.append(dp)
 
-        # Run 51CG Scrapers
-        # Main Feed
-        await scrape_51cg_feed(context, supabase, semaphore, detail_pages, "https://51cg1.com/", "51cg")
-        # Daily Competition (Multiple videos per post)
-        await scrape_51cg_feed(context, supabase, semaphore, detail_pages, "https://51cg1.com/category/mrds/", "51mrds")
+            source_stats = await scrape_51cg_feed(context, supabase, semaphore, detail_pages, "https://51cg1.com/", "51cg")
+            source_breakdown["51cg"] = source_stats
+            merge_stats(run_stats, source_stats)
 
-        for source in SOURCES:
-            base_url = source["url"]
-            tag = source["tag"]
-            print(f"\n>>> Starting Category: {tag} <<<")
+            source_stats = await scrape_51cg_feed(context, supabase, semaphore, detail_pages, "https://51cg1.com/category/mrds/", "51mrds")
+            source_breakdown["51mrds"] = source_stats
+            merge_stats(run_stats, source_stats)
 
-            for page_num in range(1, MISSAV_MAX_PAGES + 1):
-                current_url = build_paged_url(base_url, page_num)
-                print(f"[{tag.upper()}] Page {page_num}...")
-                try:
-                    await list_page.goto(current_url, timeout=60000, wait_until="domcontentloaded")
-                    
+            for source in SOURCES:
+                base_url = source["url"]
+                tag = source["tag"]
+                source_stats = make_run_stats()
+                stale_streak = 0
+                print(f"\n>>> Starting Category: {tag} <<<")
+
+                for page_num in range(1, MISSAV_MAX_PAGES + 1):
+                    current_url = build_paged_url(base_url, page_num)
+                    print(f"[{tag.upper()}] Page {page_num}...")
                     try:
-                        await list_page.wait_for_selector('div.grid > div, div.thumbnail, .group', timeout=10000)
-                    except:
-                        pass
-                    await jitter_sleep(LIST_POST_LOAD_DELAY_MIN, LIST_POST_LOAD_DELAY_MAX)
-                    
-                    if "Just a moment" in await list_page.title():
-                        print(f"[{tag.upper()}] Blocked. Skipping.")
-                        continue
+                        await list_page.goto(current_url, timeout=60000, wait_until="domcontentloaded")
+                        
+                        try:
+                            await list_page.wait_for_selector('div.grid > div, div.thumbnail, .group', timeout=10000)
+                        except:
+                            pass
+                        await jitter_sleep(LIST_POST_LOAD_DELAY_MIN, LIST_POST_LOAD_DELAY_MAX)
+                        
+                        if "Just a moment" in await list_page.title():
+                            print(f"[{tag.upper()}] Blocked. Skipping.")
+                            source_stats["blocked_count"] += 1
+                            continue
 
-                    videos = await list_page.evaluate('''() => {
-                        const resMap = new Map();
-                        const items = document.querySelectorAll('div.grid > div, div.thumbnail, .group');
-                        items.forEach(item => {
-                            const img = item.querySelector('img');
-                            const link = item.querySelector('a');
-                            if (img && link && link.href) {
-                                const href = link.href;
-                                // Simple check for video ID pattern or /dm
-                                const isVideo = href.includes('/dm') || href.split('/').pop().includes('-');
-                                if (isVideo) {
-                                    const id = href.split('?')[0].split('/').pop();
-                                    if (id && !resMap.has(id)) {
-                                        let t = img.alt || "";
-                                        if (t.length < 5) {
-                                            const te = item.querySelector('h1, h2, h3, .text-secondary');
-                                            if (te) t = te.innerText;
-                                        }
-                                        if (t.length > 5) {
-                                            const candidates = [
-                                                img.getAttribute('data-src'),
-                                                img.getAttribute('data-original'),
-                                                img.getAttribute('data-lazy-src'),
-                                                img.getAttribute('data-cfsrc'),
-                                                img.getAttribute('data-xkrkllgl'),
-                                                img.currentSrc,
-                                                img.src
-                                            ].filter(Boolean);
+                        videos = await list_page.evaluate('''() => {
+                            const resMap = new Map();
+                            const items = document.querySelectorAll('div.grid > div, div.thumbnail, .group');
+                            items.forEach(item => {
+                                const img = item.querySelector('img');
+                                const link = item.querySelector('a');
+                                if (img && link && link.href) {
+                                    const href = link.href;
+                                    // Simple check for video ID pattern or /dm
+                                    const isVideo = href.includes('/dm') || href.split('/').pop().includes('-');
+                                    if (isVideo) {
+                                        const id = href.split('?')[0].split('/').pop();
+                                        if (id && !resMap.has(id)) {
+                                            let t = img.alt || "";
+                                            if (t.length < 5) {
+                                                const te = item.querySelector('h1, h2, h3, .text-secondary');
+                                                if (te) t = te.innerText;
+                                            }
+                                            if (t.length > 5) {
+                                                const candidates = [
+                                                    img.getAttribute('data-src'),
+                                                    img.getAttribute('data-original'),
+                                                    img.getAttribute('data-lazy-src'),
+                                                    img.getAttribute('data-cfsrc'),
+                                                    img.getAttribute('data-xkrkllgl'),
+                                                    img.currentSrc,
+                                                    img.src
+                                                ].filter(Boolean);
 
-                                            let c = "";
-                                            for (const candidate of candidates) {
-                                                if (!candidate.startsWith('data:image')) {
-                                                    c = candidate;
-                                                    break;
+                                                let c = "";
+                                                for (const candidate of candidates) {
+                                                    if (!candidate.startsWith('data:image')) {
+                                                        c = candidate;
+                                                        break;
+                                                    }
                                                 }
+                                                if (!c && candidates.length > 0) {
+                                                    c = candidates[0];
+                                                }
+                                                if (c.includes('cover-t.jpg')) c = c.replace('cover-t.jpg', 'cover-n.jpg');
+                                                resMap.set(id, {
+                                                    external_id: id,
+                                                    title: t.trim(),
+                                                    cover_url: c,
+                                                    source_url: href
+                                                });
                                             }
-                                            if (!c && candidates.length > 0) {
-                                                c = candidates[0];
-                                            }
-                                            if (c.includes('cover-t.jpg')) c = c.replace('cover-t.jpg', 'cover-n.jpg');
-                                            resMap.set(id, {
-                                                external_id: id,
-                                                title: t.trim(),
-                                                cover_url: c,
-                                                source_url: href
-                                            });
                                         }
                                     }
                                 }
-                            }
-                        });
-                        return Array.from(resMap.values());
-                    }''')
+                            });
+                            return Array.from(resMap.values());
+                        }''')
 
-                    if not videos:
-                        print(f"[{tag.upper()}] No videos found.")
-                        break
+                        if not videos:
+                            print(f"[{tag.upper()}] No videos found.")
+                            break
 
-                    await process_page_batch(videos, tag, detail_pages, supabase, semaphore)
-                    await jitter_sleep(INTER_PAGE_DELAY_MIN, INTER_PAGE_DELAY_MAX)
-                except Exception as e:
-                    print(f"Error: {e}")
+                        page_stats = await process_page_batch(videos, tag, detail_pages, supabase, semaphore)
+                        merge_stats(source_stats, page_stats)
+                        if page_stats.get("stale_page"):
+                            stale_streak += 1
+                        else:
+                            stale_streak = 0
 
-        await context.close()
+                        if page_num >= EARLY_STOP_MIN_PAGE and stale_streak >= EARLY_STOP_STREAK:
+                            print(f"[{tag.upper()}] Early stop after {stale_streak} stale pages (page {page_num}).")
+                            break
+
+                        await jitter_sleep(INTER_PAGE_DELAY_MIN, INTER_PAGE_DELAY_MAX)
+                    except Exception as e:
+                        source_stats["detail_fail_count"] += 1
+                        print(f"Error: {e}")
+
+                source_breakdown[tag] = source_stats
+                merge_stats(run_stats, source_stats)
+
+            await context.close()
+    except Exception as e:
+        run_error = str(e)
+        raise
+    finally:
+        write_step_summary(run_stats, source_breakdown)
+        await finalize_scrape_run(
+            supabase=supabase,
+            run_id=run_id,
+            stats=run_stats,
+            source_breakdown=source_breakdown,
+            status="failed" if run_error else "success",
+            error_message=run_error,
+        )
 
 if __name__ == "__main__":
     asyncio.run(scrape_videos())
