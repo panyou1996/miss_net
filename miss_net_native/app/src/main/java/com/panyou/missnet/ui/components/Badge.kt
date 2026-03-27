@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.panyou.missnet.ui.theme.BadgeTokens
+import com.panyou.missnet.ui.theme.mediaScrim
 
 /**
  * Unified Status Badge for displaying download/player states.
@@ -82,13 +83,14 @@ fun SmallBadge(
 fun OverlayBadge(
     icon: ImageVector,
     iconTint: Color = Color.White,
-    backgroundColor: Color = Color.Black.copy(alpha = 0.4f),
+    backgroundColor: Color = Color.Unspecified,
     modifier: Modifier = Modifier
 ) {
+    val resolvedBackground = if (backgroundColor == Color.Unspecified) mediaScrim(alpha = 0.4f) else backgroundColor
     Box(
         modifier = modifier
             .size(BadgeTokens.OverlayBadgeSize)
-            .background(backgroundColor, CircleShape),
+            .background(resolvedBackground, CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Icon(
@@ -110,7 +112,7 @@ fun DurationBadge(
 ) {
     Box(
         modifier = modifier
-            .background(Color.Black.copy(alpha = 0.7f), MaterialTheme.shapes.extraSmall)
+            .background(mediaScrim(alpha = 0.7f), MaterialTheme.shapes.extraSmall)
             .padding(horizontal = 4.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -136,7 +138,7 @@ fun ProgressBadge(
         modifier = modifier
             .fillMaxWidth()
             .height(3.dp)
-            .background(Color.Black.copy(alpha = 0.4f))
+            .background(mediaScrim(alpha = 0.4f))
     ) {
         Box(
             modifier = Modifier

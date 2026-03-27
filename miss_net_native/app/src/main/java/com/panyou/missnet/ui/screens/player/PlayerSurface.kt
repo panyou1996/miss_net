@@ -36,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,6 +44,7 @@ import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.theme.MotionTokens
+import com.panyou.missnet.ui.theme.mediaScrim
 import kotlinx.coroutines.delay
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -76,7 +76,7 @@ fun PlayerPlaybackSurface(
         }
     }
 
-    Box(modifier = modifier.background(Color.Black)) {
+    Box(modifier = modifier.background(mediaScrim(alpha = 1f))) {
         if (showPosterArtwork) {
             MissNetCoverImage(
                 coverUrl = coverUrl,
@@ -86,7 +86,7 @@ fun PlayerPlaybackSurface(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.28f))
+                    .background(mediaScrim(alpha = 0.28f))
             )
         }
 
@@ -141,7 +141,7 @@ fun PlayerPlaybackSurface(
             modifier = Modifier.align(Alignment.Center)
         ) {
             Surface(
-                color = Color.Black.copy(alpha = 0.64f),
+                color = mediaScrim(alpha = 0.64f),
                 shape = MaterialTheme.shapes.medium
             ) {
                 Text(
@@ -202,7 +202,7 @@ fun PlayerLoadingOverlay(
     Surface(
         modifier = modifier.animateContentSize(animationSpec = MotionTokens.standard()),
         shape = MaterialTheme.shapes.large,
-        color = Color.Black.copy(alpha = 0.56f)
+        color = mediaScrim(alpha = 0.56f)
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
@@ -252,7 +252,7 @@ fun PlayerErrorOverlay(message: String, onRetry: () -> Unit, modifier: Modifier 
             .padding(24.dp)
             .fillMaxWidth(0.88f),
         shape = MaterialTheme.shapes.large,
-        color = Color.Black.copy(alpha = 0.82f)
+        color = mediaScrim(alpha = 0.82f)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),

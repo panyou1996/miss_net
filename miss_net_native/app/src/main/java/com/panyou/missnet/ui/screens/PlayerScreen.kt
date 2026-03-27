@@ -71,6 +71,7 @@ import com.panyou.missnet.ui.screens.player.SecondaryActionsRow
 import com.panyou.missnet.ui.screens.player.VideoInfoSection
 import com.panyou.missnet.ui.screens.player.findActivity
 import com.panyou.missnet.ui.screens.player.shareVideo
+import com.panyou.missnet.ui.theme.videoSharedTransitionKey
 import com.panyou.missnet.ui.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
 
@@ -415,7 +416,7 @@ fun PlayerScreen(
                 val finalModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
                     with(sharedTransitionScope) {
                         videoBoxModifier.sharedElement(
-                            state = rememberSharedContentState(key = "image-$videoId"),
+                            state = rememberSharedContentState(key = videoSharedTransitionKey(videoId)),
                             animatedVisibilityScope = animatedVisibilityScope
                         )
                     }

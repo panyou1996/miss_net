@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.sp
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.ui.theme.ContainerTokens
 import com.panyou.missnet.ui.theme.MotionTokens
+import com.panyou.missnet.ui.theme.mediaBottomGradient
+import com.panyou.missnet.ui.theme.videoSharedTransitionKey
 import com.panyou.missnet.ui.util.bouncyClick
 
 /**
@@ -78,6 +80,18 @@ fun VerticalVideoCard(
                 .aspectRatio(1f)
                 .clip(MaterialTheme.shapes.large)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
+                .then(
+                    if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+                        with(sharedTransitionScope) {
+                            Modifier.sharedElement(
+                                state = rememberSharedContentState(key = videoSharedTransitionKey(video.id)),
+                                animatedVisibilityScope = animatedVisibilityScope
+                            )
+                        }
+                    } else {
+                        Modifier
+                    }
+                )
         ) {
             MissNetCoverImage(
                 coverUrl = video.coverUrl,
@@ -117,6 +131,17 @@ fun HeroCarouselItem(
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
+    val mediaModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+        with(sharedTransitionScope) {
+            Modifier.sharedElement(
+                state = rememberSharedContentState(key = videoSharedTransitionKey(video.id)),
+                animatedVisibilityScope = animatedVisibilityScope
+            )
+        }
+    } else {
+        Modifier
+    }
+
     Card(
         modifier = modifier
             .fillMaxSize()
@@ -125,7 +150,7 @@ fun HeroCarouselItem(
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().then(mediaModifier)) {
             MissNetCoverImage(
                 coverUrl = video.coverUrl,
                 contentDescription = video.title,
@@ -136,13 +161,10 @@ fun HeroCarouselItem(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.1f),
-                                Color.Black.copy(alpha = 0.8f)
-                            ),
-                            startY = 100f
+                        mediaBottomGradient(
+                            topAlpha = 0f,
+                            middleAlpha = 0.1f,
+                            bottomAlpha = 0.8f
                         )
                     )
             )

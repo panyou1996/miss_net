@@ -57,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.panyou.missnet.ui.theme.MotionTokens
+import com.panyou.missnet.ui.theme.mediaScrim
 
 @Composable
 fun PlayerControls(
@@ -86,7 +87,7 @@ fun PlayerControls(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
+                .background(mediaScrim(alpha = 0.5f))
                 .padding(if (isFullscreen) 36.dp else 12.dp)
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -145,7 +146,7 @@ fun PlayerControls(
                         )
                 ) {
                     Surface(
-                        color = Color.Black.copy(alpha = 0.48f),
+                        color = mediaScrim(alpha = 0.48f),
                         shape = MaterialTheme.shapes.small,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
@@ -229,7 +230,7 @@ private fun OverlayControlButton(
             .size(buttonSize)
             .scale(scale)
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = backgroundAlpha))
+            .background(mediaScrim(alpha = backgroundAlpha))
             .clickable(
                 interactionSource = interactionSource,
                 indication = LocalIndication.current,

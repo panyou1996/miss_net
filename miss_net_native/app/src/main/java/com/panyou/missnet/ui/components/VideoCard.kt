@@ -28,6 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.panyou.missnet.ui.theme.mediaBottomGradient
+import com.panyou.missnet.ui.theme.videoSharedTransitionKey
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -58,7 +60,18 @@ fun VideoCard(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        val mediaModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+            with(sharedTransitionScope) {
+                Modifier.sharedElement(
+                    state = rememberSharedContentState(key = videoSharedTransitionKey(videoId)),
+                    animatedVisibilityScope = animatedVisibilityScope
+                )
+            }
+        } else {
+            Modifier
+        }
+
+        Box(modifier = Modifier.fillMaxSize().then(mediaModifier)) {
             MissNetCoverImage(
                 coverUrl = coverUrl,
                 contentDescription = title,
@@ -69,14 +82,7 @@ fun VideoCard(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.76f)
-                            ),
-                            startY = 48f
-                        )
+                        mediaBottomGradient(bottomAlpha = 0.76f)
                     )
             )
 
