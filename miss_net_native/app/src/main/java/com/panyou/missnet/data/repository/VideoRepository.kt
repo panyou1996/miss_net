@@ -2,6 +2,10 @@ package com.panyou.missnet.data.repository
 
 import com.panyou.missnet.data.model.ActorInfo
 import com.panyou.missnet.data.model.Video
+import com.panyou.missnet.data.result.AppResult
+import com.panyou.missnet.data.result.appResultOf
+import com.panyou.missnet.data.result.appResultOfList
+import com.panyou.missnet.data.result.orEmptyList
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Order
@@ -22,51 +26,15 @@ class VideoRepository @Inject constructor(
     private val videoCache = LinkedHashMap<String, Video>()
 
     suspend fun getRecentVideos(limit: Int = 20, category: String = "new", offset: Int = 0): List<Video> {
-        return getRecentVideosDirect(limit, category, offset)
+        return getRecentVideosDirectResult(limit, category, offset).orEmptyList()
     }
 
     suspend fun getVideosByCategory(category: String, limit: Int = 20, offset: Int = 0): List<Video> {
-        return try {
-            rememberVideos(
-                supabase.postgrest
-                .rpc("get_videos_by_category", buildJsonObject {
-                    put("category_text", category)
-                    put("limit_count", limit)
-                    put("offset_count", offset)
-                })
-                .decodeList<Video>()
-            )
-        } catch (_: Exception) {
-            getRecentVideosDirect(limit, category, offset)
-        }
+        return getVideosByCategoryResult(category, limit, offset).orEmptyList()
     }
 
     suspend fun getVideosByActor(actor: String, limit: Int = 20, offset: Int = 0): List<Video> {
-        return try {
-            rememberVideos(
-                supabase.postgrest
-                .rpc("get_videos_by_actor", buildJsonObject {
-                    put("actor_name", actor)
-                    put("limit_count", limit)
-                    put("offset_count", offset)
-                })
-                .decodeList<Video>()
-            )
-        } catch (_: Exception) {
-            try {
-                rememberVideos(supabase.postgrest["videos"].select {
-                    filter {
-                        eq("is_active", true)
-                        contains("actors", listOf(actor))
-                    }
-                    order("source_release_date", Order.DESCENDING)
-                    order("created_at", Order.DESCENDING)
-                    range(offset.toLong(), (offset + limit - 1).toLong())
-                }.decodeList<Video>())
-            } catch (_: Exception) {
-                emptyList()
-            }
-        }
+        return getVideosByActorResult(actor, limit, offset).orEmptyList()
     }
 
     suspend fun getLikedVideos(): List<Video> = getRecentVideos(limit = 10, category = "new")
@@ -74,34 +42,10 @@ class VideoRepository @Inject constructor(
     suspend fun getWatchHistory(): List<Video> = getRecentVideos(limit = 15, category = "monthly_hot")
 
     suspend fun getHomePayload(sectionLimit: Int = 10, weeklyLimit: Int = 15, forceRefresh: Boolean = false): HomePayload {
-        if (!forceRefresh) {
-            homeCache?.takeIf { it.isFresh(homeCacheTtlMs) }?.value?.let { return it }
-        }
-        return try {
-            val rows = supabase.postgrest.rpc(
-                "get_home_payload",
-                buildJsonObject {
-                    put("section_limit", sectionLimit)
-                    put("weekly_limit", weeklyLimit)
-                }
-            ).decodeList<HomePayloadRow>()
-            rows.toHomePayload().also {
-                cacheHomePayload(it)
-                homeCache = TimedCache(it)
-            }
-        } catch (_: Exception) {
-            HomePayload(
-                newVideos = getRecentVideosDirect(sectionLimit, "new"),
-                monthlyVideos = getRecentVideosDirect(sectionLimit, "monthly_hot"),
-                weeklyVideos = getRecentVideosDirect(weeklyLimit, "weekly_hot"),
-                uncensoredVideos = getRecentVideosDirect(sectionLimit, "uncensored"),
-                subtitleVideos = getRecentVideosDirect(sectionLimit, "subtitled"),
-                vrVideos = getRecentVideosDirect(sectionLimit, "vr"),
-                chiguaVideos = getRecentVideosDirect(sectionLimit, "51cg"),
-            ).also {
-                cacheHomePayload(it)
-                homeCache = TimedCache(it)
-            }
+        return when (val result = getHomePayloadResult(sectionLimit, weeklyLimit, forceRefresh)) {
+            AppResult.Empty -> HomePayload()
+            is AppResult.Failure -> HomePayload()
+            is AppResult.Success -> result.data
         }
     }
 
@@ -180,53 +124,184 @@ class VideoRepository @Inject constructor(
     }
 
     suspend fun getVideoById(id: String): Video? {
-        videoCache[id]?.let { return it }
-        return try {
-            supabase.postgrest["videos"].select { filter { eq("id", id) } }.decodeSingleOrNull<Video>()?.also { rememberVideo(it) }
-        } catch (_: Exception) {
-            null
+        return when (val result = getVideoByIdResult(id)) {
+            AppResult.Empty -> null
+            is AppResult.Failure -> null
+            is AppResult.Success -> result.data
         }
     }
 
     suspend fun searchVideos(query: String, limit: Int = 20, offset: Int = 0): List<Video> {
+        return searchVideosResult(query, limit, offset).orEmptyList()
+    }
+
+    suspend fun getVideosByCategoryResult(category: String, limit: Int = 20, offset: Int = 0): AppResult<List<Video>> {
         return try {
-            rememberVideos(
-                supabase.postgrest
-                .rpc("search_videos_multi", buildJsonObject {
-                    put("query_text", query)
-                    put("limit_count", limit)
-                    put("offset_count", offset)
-                })
-                .decodeList<Video>()
+            appResultOfList(
+                rememberVideos(
+                    supabase.postgrest
+                        .rpc("get_videos_by_category", buildJsonObject {
+                            put("category_text", category)
+                            put("limit_count", limit)
+                            put("offset_count", offset)
+                        })
+                        .decodeList<Video>()
+                )
             )
         } catch (_: Exception) {
-            searchVideosFallback(query, limit, offset)
+            when (val fallback = getRecentVideosDirectResult(limit, category, offset)) {
+                AppResult.Empty -> AppResult.Empty
+                is AppResult.Failure -> AppResult.Failure("分类加载失败，请重试。", fallback.cause)
+                is AppResult.Success -> fallback
+            }
         }
     }
 
-    private suspend fun getRecentVideosDirect(limit: Int = 20, category: String = "new", offset: Int = 0): List<Video> {
+    suspend fun getVideosByActorResult(actor: String, limit: Int = 20, offset: Int = 0): AppResult<List<Video>> {
         return try {
-            rememberVideos(supabase.postgrest["videos"].select {
-                filter {
-                    eq("is_active", true)
-                    if (category != "new" && category.isNotEmpty()) {
-                        or {
-                            contains("tags", listOf(category))
-                            contains("categories", listOf(category))
-                        }
-                    }
-                }
-                order("source_release_date", Order.DESCENDING)
-                order("created_at", Order.DESCENDING)
-                range(offset.toLong(), (offset + limit - 1).toLong())
-            }.decodeList<Video>())
+            appResultOfList(
+                rememberVideos(
+                    supabase.postgrest
+                        .rpc("get_videos_by_actor", buildJsonObject {
+                            put("actor_name", actor)
+                            put("limit_count", limit)
+                            put("offset_count", offset)
+                        })
+                        .decodeList<Video>()
+                )
+            )
         } catch (_: Exception) {
-            emptyList()
+            try {
+                appResultOfList(
+                    rememberVideos(
+                        supabase.postgrest["videos"].select {
+                            filter {
+                                eq("is_active", true)
+                                contains("actors", listOf(actor))
+                            }
+                            order("source_release_date", Order.DESCENDING)
+                            order("created_at", Order.DESCENDING)
+                            range(offset.toLong(), (offset + limit - 1).toLong())
+                        }.decodeList<Video>()
+                    )
+                )
+            } catch (fallbackError: Exception) {
+                AppResult.Failure("演员内容加载失败，请重试。", fallbackError)
+            }
+        }
+    }
+
+    suspend fun getHomePayloadResult(
+        sectionLimit: Int = 10,
+        weeklyLimit: Int = 15,
+        forceRefresh: Boolean = false
+    ): AppResult<HomePayload> {
+        if (!forceRefresh) {
+            homeCache?.takeIf { it.isFresh(homeCacheTtlMs) }?.value?.let { cached ->
+                return cached.toAppResult()
+            }
+        }
+        return try {
+            val rows = supabase.postgrest.rpc(
+                "get_home_payload",
+                buildJsonObject {
+                    put("section_limit", sectionLimit)
+                    put("weekly_limit", weeklyLimit)
+                }
+            ).decodeList<HomePayloadRow>()
+            rows.toHomePayload().also {
+                cacheHomePayload(it)
+                homeCache = TimedCache(it)
+            }.toAppResult()
+        } catch (rpcError: Exception) {
+            val newVideos = getRecentVideosDirectResult(sectionLimit, "new")
+            val monthlyVideos = getRecentVideosDirectResult(sectionLimit, "monthly_hot")
+            val weeklyVideos = getRecentVideosDirectResult(weeklyLimit, "weekly_hot")
+            val uncensoredVideos = getRecentVideosDirectResult(sectionLimit, "uncensored")
+            val subtitleVideos = getRecentVideosDirectResult(sectionLimit, "subtitled")
+            val vrVideos = getRecentVideosDirectResult(sectionLimit, "vr")
+            val chiguaVideos = getRecentVideosDirectResult(sectionLimit, "51cg")
+
+            val sectionResults = listOf(newVideos, monthlyVideos, weeklyVideos, uncensoredVideos, subtitleVideos, vrVideos, chiguaVideos)
+            if (sectionResults.all { it is AppResult.Failure }) {
+                AppResult.Failure("首页加载失败，请稍后重试。", rpcError)
+            } else {
+                HomePayload(
+                    newVideos = newVideos.orEmptyList(),
+                    monthlyVideos = monthlyVideos.orEmptyList(),
+                    weeklyVideos = weeklyVideos.orEmptyList(),
+                    uncensoredVideos = uncensoredVideos.orEmptyList(),
+                    subtitleVideos = subtitleVideos.orEmptyList(),
+                    vrVideos = vrVideos.orEmptyList(),
+                    chiguaVideos = chiguaVideos.orEmptyList(),
+                ).also {
+                    cacheHomePayload(it)
+                    homeCache = TimedCache(it)
+                }.toAppResult()
+            }
+        }
+    }
+
+    suspend fun getVideoByIdResult(id: String): AppResult<Video> {
+        videoCache[id]?.let { return AppResult.Success(it) }
+        return try {
+            appResultOf(
+                supabase.postgrest["videos"].select { filter { eq("id", id) } }.decodeSingleOrNull<Video>()?.also { rememberVideo(it) }
+            ) { false }
+        } catch (error: Exception) {
+            AppResult.Failure("资源详情加载失败，请稍后重试。", error)
+        }
+    }
+
+    suspend fun searchVideosResult(query: String, limit: Int = 20, offset: Int = 0): AppResult<List<Video>> {
+        return try {
+            appResultOfList(
+                rememberVideos(
+                    supabase.postgrest
+                        .rpc("search_videos_multi", buildJsonObject {
+                            put("query_text", query)
+                            put("limit_count", limit)
+                            put("offset_count", offset)
+                        })
+                        .decodeList<Video>()
+                )
+            )
+        } catch (_: Exception) {
+            searchVideosFallbackResult(query, limit, offset)
+        }
+    }
+
+    private suspend fun getRecentVideosDirectResult(
+        limit: Int = 20,
+        category: String = "new",
+        offset: Int = 0
+    ): AppResult<List<Video>> {
+        return try {
+            appResultOfList(
+                rememberVideos(
+                    supabase.postgrest["videos"].select {
+                        filter {
+                            eq("is_active", true)
+                            if (category != "new" && category.isNotEmpty()) {
+                                or {
+                                    contains("tags", listOf(category))
+                                    contains("categories", listOf(category))
+                                }
+                            }
+                        }
+                        order("source_release_date", Order.DESCENDING)
+                        order("created_at", Order.DESCENDING)
+                        range(offset.toLong(), (offset + limit - 1).toLong())
+                    }.decodeList<Video>()
+                )
+            )
+        } catch (error: Exception) {
+            AppResult.Failure("内容加载失败，请稍后重试。", error)
         }
     }
 
     private suspend fun getActorCoverFallback(limit: Int): List<ActorInfo> {
-        val recentVideos = getRecentVideosDirect(limit = 800)
+        val recentVideos = getRecentVideosDirectResult(limit = 800).orEmptyList()
         return recentVideos
             .filter { isUsableCoverUrl(it.coverUrl) && it.actors.isNotEmpty() }
             .flatMap { video ->
@@ -260,7 +335,7 @@ class VideoRepository @Inject constructor(
     }
 
     private suspend fun getPopularTagsFallback(limit: Int): List<String> {
-        return getRecentVideosDirect(limit = 800)
+        return getRecentVideosDirectResult(limit = 800).orEmptyList()
             .flatMap { video -> video.tags + video.categoriesForBrowseFallback() }
             .mapNotNull(::normalizeBrowseTag)
             .groupingBy { it }
@@ -271,18 +346,26 @@ class VideoRepository @Inject constructor(
             .take(limit)
     }
 
-    private suspend fun searchVideosFallback(query: String, limit: Int, offset: Int): List<Video> {
+    private suspend fun searchVideosFallbackResult(query: String, limit: Int, offset: Int): AppResult<List<Video>> {
         val normalized = query.trim().lowercase()
-        if (normalized.isBlank()) return emptyList()
-        return getRecentVideosDirect(limit = 600)
-            .filter { video ->
-                video.title.contains(query, ignoreCase = true) ||
-                    video.actors.any { it.contains(query, ignoreCase = true) } ||
-                    video.tags.any { it.contains(query, ignoreCase = true) }
+        if (normalized.isBlank()) return AppResult.Empty
+        return when (val fallback = getRecentVideosDirectResult(limit = 600)) {
+            AppResult.Empty -> AppResult.Empty
+            is AppResult.Failure -> AppResult.Failure("搜索失败，请检查网络后重试。", fallback.cause)
+            is AppResult.Success -> {
+                appResultOfList(
+                    fallback.data
+                        .filter { video ->
+                            video.title.contains(query, ignoreCase = true) ||
+                                video.actors.any { it.contains(query, ignoreCase = true) } ||
+                                video.tags.any { it.contains(query, ignoreCase = true) }
+                        }
+                        .distinctBy { it.id }
+                        .drop(offset)
+                        .take(limit)
+                )
             }
-            .distinctBy { it.id }
-            .drop(offset)
-            .take(limit)
+        }
     }
 
     private fun cacheHomePayload(payload: HomePayload) {
@@ -310,6 +393,18 @@ class VideoRepository @Inject constructor(
             videoCache.remove(firstKey)
         }
     }
+}
+
+private fun HomePayload.toAppResult(): AppResult<HomePayload> = appResultOf(this) { payload -> payload.isEmpty() }
+
+private fun HomePayload.isEmpty(): Boolean {
+    return newVideos.isEmpty() &&
+        monthlyVideos.isEmpty() &&
+        weeklyVideos.isEmpty() &&
+        uncensoredVideos.isEmpty() &&
+        subtitleVideos.isEmpty() &&
+        vrVideos.isEmpty() &&
+        chiguaVideos.isEmpty()
 }
 
 private data class TimedCache<T>(

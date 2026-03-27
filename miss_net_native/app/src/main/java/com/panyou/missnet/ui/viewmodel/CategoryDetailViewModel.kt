@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.data.repository.VideoRepository
+import com.panyou.missnet.data.result.AppResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,22 +50,35 @@ class CategoryDetailViewModel @Inject constructor(
     private fun loadInitial() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, videos = emptyList(), errorMessage = null)
-            try {
-                val videos = fetchData(0)
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    videos = videos,
-                    endOfPaginationReached = videos.size < pageSize,
-                    errorMessage = null
-                )
-                currentOffset = videos.size
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    videos = emptyList(),
-                    endOfPaginationReached = true,
-                    errorMessage = e.message ?: "分类加载失败，请重试。"
-                )
+            when (val result = fetchData(0)) {
+                AppResult.Empty -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        videos = emptyList(),
+                        endOfPaginationReached = true,
+                        errorMessage = null
+                    )
+                    currentOffset = 0
+                }
+
+                is AppResult.Failure -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        videos = emptyList(),
+                        endOfPaginationReached = false,
+                        errorMessage = result.message
+                    )
+                }
+
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        videos = result.data,
+                        endOfPaginationReached = result.data.size < pageSize,
+                        errorMessage = null
+                    )
+                    currentOffset = result.data.size
+                }
             }
         }
     }
@@ -74,27 +88,37 @@ class CategoryDetailViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isMoreLoading = true)
-            try {
-                val moreVideos = fetchData(currentOffset)
-                _uiState.value = _uiState.value.copy(
-                    isMoreLoading = false,
-                    videos = _uiState.value.videos + moreVideos,
-                    endOfPaginationReached = moreVideos.size < pageSize
-                )
-                currentOffset += moreVideos.size
-            } catch (_: Exception) {
-                _uiState.value = _uiState.value.copy(isMoreLoading = false)
+            when (val result = fetchData(currentOffset)) {
+                AppResult.Empty -> {
+                    _uiState.value = _uiState.value.copy(
+                        isMoreLoading = false,
+                        endOfPaginationReached = true
+                    )
+                }
+
+                is AppResult.Failure -> {
+                    _uiState.value = _uiState.value.copy(isMoreLoading = false)
+                }
+
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        isMoreLoading = false,
+                        videos = _uiState.value.videos + result.data,
+                        endOfPaginationReached = result.data.size < pageSize
+                    )
+                    currentOffset += result.data.size
+                }
             }
         }
     }
 
-    private suspend fun fetchData(offset: Int): List<Video> {
+    private suspend fun fetchData(offset: Int): AppResult<List<Video>> {
         return if (currentActor != null) {
-            repository.getVideosByActor(currentActor!!, pageSize, offset)
+            repository.getVideosByActorResult(currentActor!!, pageSize, offset)
         } else if (currentCategory != null) {
-            repository.getVideosByCategory(currentCategory!!, pageSize, offset)
+            repository.getVideosByCategoryResult(currentCategory!!, pageSize, offset)
         } else {
-            emptyList()
+            AppResult.Empty
         }
     }
 }

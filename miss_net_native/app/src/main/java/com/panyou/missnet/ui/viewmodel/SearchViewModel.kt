@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.panyou.missnet.data.local.LocalVideoStateStore
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.data.repository.VideoRepository
+import com.panyou.missnet.data.result.AppResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -85,27 +86,43 @@ class SearchViewModel @Inject constructor(
                 results = emptyList(),
                 errorMessage = null
             )
-            try {
-                val results = repository.searchVideos(normalized, limit = pageSize, offset = 0)
-                localStore.addSearchHistory(normalized)
-                _uiState.value = _uiState.value.copy(
-                    results = results,
-                    history = localStore.getSearchHistory(),
-                    isLoading = false,
-                    isLoadingMore = false,
-                    active = false,
-                    endReached = results.size < pageSize,
-                    errorMessage = null
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    results = emptyList(),
-                    isLoading = false,
-                    isLoadingMore = false,
-                    active = false,
-                    endReached = true,
-                    errorMessage = e.message ?: "搜索失败，请检查网络后重试。"
-                )
+            when (val result = repository.searchVideosResult(normalized, limit = pageSize, offset = 0)) {
+                AppResult.Empty -> {
+                    localStore.addSearchHistory(normalized)
+                    _uiState.value = _uiState.value.copy(
+                        results = emptyList(),
+                        history = localStore.getSearchHistory(),
+                        isLoading = false,
+                        isLoadingMore = false,
+                        active = false,
+                        endReached = true,
+                        errorMessage = null
+                    )
+                }
+
+                is AppResult.Failure -> {
+                    _uiState.value = _uiState.value.copy(
+                        results = emptyList(),
+                        isLoading = false,
+                        isLoadingMore = false,
+                        active = false,
+                        endReached = false,
+                        errorMessage = result.message
+                    )
+                }
+
+                is AppResult.Success -> {
+                    localStore.addSearchHistory(normalized)
+                    _uiState.value = _uiState.value.copy(
+                        results = result.data,
+                        history = localStore.getSearchHistory(),
+                        isLoading = false,
+                        isLoadingMore = false,
+                        active = false,
+                        endReached = result.data.size < pageSize,
+                        errorMessage = null
+                    )
+                }
             }
         }
     }
@@ -117,19 +134,28 @@ class SearchViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = state.copy(isLoadingMore = true, errorMessage = null)
-            runCatching {
-                repository.searchVideos(query, limit = pageSize, offset = state.results.size)
-            }.onSuccess { more ->
-                _uiState.value = _uiState.value.copy(
-                    results = _uiState.value.results + more,
-                    isLoadingMore = false,
-                    endReached = more.size < pageSize
-                )
-            }.onFailure { error ->
-                _uiState.value = _uiState.value.copy(
-                    isLoadingMore = false,
-                    errorMessage = error.message ?: "加载更多失败，请稍后重试。"
-                )
+            when (val result = repository.searchVideosResult(query, limit = pageSize, offset = state.results.size)) {
+                AppResult.Empty -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoadingMore = false,
+                        endReached = true
+                    )
+                }
+
+                is AppResult.Failure -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoadingMore = false,
+                        errorMessage = result.message
+                    )
+                }
+
+                is AppResult.Success -> {
+                    _uiState.value = _uiState.value.copy(
+                        results = _uiState.value.results + result.data,
+                        isLoadingMore = false,
+                        endReached = result.data.size < pageSize
+                    )
+                }
             }
         }
     }

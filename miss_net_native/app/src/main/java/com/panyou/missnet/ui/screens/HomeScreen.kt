@@ -72,6 +72,7 @@ import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
+import com.panyou.missnet.ui.components.MissNetStatePane
 import com.panyou.missnet.ui.components.SectionHeader
 import com.panyou.missnet.ui.components.SmallBadge
 import com.panyou.missnet.ui.components.StatusBadge
@@ -94,19 +95,45 @@ fun HomeScreen(
     animatedVisibilityScope: AnimatedVisibilityScope? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val hasDiscoveryContent = uiState.heroVideos.isNotEmpty() ||
+        uiState.newVideos.isNotEmpty() ||
+        uiState.monthlyVideos.isNotEmpty() ||
+        uiState.weeklyVideos.isNotEmpty() ||
+        uiState.uncensoredVideos.isNotEmpty() ||
+        uiState.subtitleVideos.isNotEmpty() ||
+        uiState.vrVideos.isNotEmpty() ||
+        uiState.chiguaVideos.isNotEmpty()
+    val hasWorkspaceContent = uiState.continueWatching.isNotEmpty() ||
+        uiState.recentDownloads.isNotEmpty() ||
+        uiState.recentFavorites.isNotEmpty()
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         when {
             uiState.isLoading -> MissNetLoading()
             uiState.errorMessage != null &&
-                uiState.heroVideos.isEmpty() &&
-                uiState.newVideos.isEmpty() &&
-                uiState.continueWatching.isEmpty() &&
-                uiState.recentDownloads.isEmpty() -> {
+                !hasDiscoveryContent &&
+                !hasWorkspaceContent -> {
                 MissNetErrorState(
                     message = uiState.errorMessage ?: "首页加载失败",
                     onRetry = viewModel::retry
                 )
+            }
+            !hasDiscoveryContent && !hasWorkspaceContent -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(contentPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    MissNetStatePane(
+                        icon = Icons.AutoMirrored.Rounded.MenuBook,
+                        title = "首页暂时没有内容",
+                        subtitle = "还没有发现内容或个人记录。下拉刷新后再看一遍。",
+                        actionLabel = "重新加载",
+                        onAction = viewModel::retry,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+                }
             }
             else -> {
                 PullToRefreshBox(

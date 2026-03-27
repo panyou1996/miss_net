@@ -9,6 +9,7 @@ import com.panyou.missnet.data.media.DownloadStatusEntry
 import com.panyou.missnet.data.media.DownloadTracker
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.data.repository.VideoRepository
+import com.panyou.missnet.data.result.AppResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -92,41 +93,51 @@ class HomeViewModel @Inject constructor(
                 isRefreshing = hasContent,
                 errorMessage = null
             )
-            try {
-                val payload = repository.getHomePayload(sectionLimit = 10, weeklyLimit = 15, forceRefresh = forceRefresh)
-                val new = payload.newVideos
-                val monthly = payload.monthlyVideos
-                val weekly = payload.weeklyVideos
-                val uncensored = payload.uncensoredVideos
-                val subtitle = payload.subtitleVideos
-                val vr = payload.vrVideos
-                val chigua = payload.chiguaVideos
+            when (val result = repository.getHomePayloadResult(sectionLimit = 10, weeklyLimit = 15, forceRefresh = forceRefresh)) {
+                AppResult.Empty -> {
+                    _uiState.value = _uiState.value.copy(
+                        heroVideos = emptyList(),
+                        newVideos = emptyList(),
+                        monthlyVideos = emptyList(),
+                        weeklyVideos = emptyList(),
+                        uncensoredVideos = emptyList(),
+                        subtitleVideos = emptyList(),
+                        vrVideos = emptyList(),
+                        chiguaVideos = emptyList(),
+                        isLoading = false,
+                        isRefreshing = false,
+                        errorMessage = null
+                    )
+                }
 
-                val hero = weekly.take(3)
-                val weeklyList = weekly.drop(3)
-                val allSections = listOf(new, monthly, weekly, uncensored, subtitle, vr, chigua)
-                val isAllEmpty = allSections.all { section -> section.isEmpty() }
+                is AppResult.Failure -> {
+                    Log.e("HomeViewModel", "Failed to load dashboard", result.cause)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        errorMessage = result.message
+                    )
+                }
 
-                _uiState.value = _uiState.value.copy(
-                    heroVideos = hero,
-                    newVideos = new,
-                    monthlyVideos = monthly,
-                    weeklyVideos = weeklyList,
-                    uncensoredVideos = uncensored,
-                    subtitleVideos = subtitle,
-                    vrVideos = vr,
-                    chiguaVideos = chigua,
-                    isLoading = false,
-                    isRefreshing = false,
-                    errorMessage = if (isAllEmpty) "首页数据为空，可能是网络异常或服务暂时不可用。" else null
-                )
-            } catch (e: Exception) {
-                Log.e("HomeViewModel", "Failed to load dashboard", e)
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    isRefreshing = false,
-                    errorMessage = e.message ?: "首页加载失败，请稍后重试。"
-                )
+                is AppResult.Success -> {
+                    val payload = result.data
+                    val hero = payload.weeklyVideos.take(3)
+                    val weeklyList = payload.weeklyVideos.drop(3)
+
+                    _uiState.value = _uiState.value.copy(
+                        heroVideos = hero,
+                        newVideos = payload.newVideos,
+                        monthlyVideos = payload.monthlyVideos,
+                        weeklyVideos = weeklyList,
+                        uncensoredVideos = payload.uncensoredVideos,
+                        subtitleVideos = payload.subtitleVideos,
+                        vrVideos = payload.vrVideos,
+                        chiguaVideos = payload.chiguaVideos,
+                        isLoading = false,
+                        isRefreshing = false,
+                        errorMessage = null
+                    )
+                }
             }
         }
     }
