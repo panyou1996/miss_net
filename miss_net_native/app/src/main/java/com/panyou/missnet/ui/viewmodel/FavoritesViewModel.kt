@@ -24,7 +24,14 @@ class FavoritesViewModel @Inject constructor(
     val uiState: StateFlow<FavoritesUiState> = _uiState
 
     init {
-        loadFavorites()
+        viewModelScope.launch {
+            localStore.observeFavorites().collect { videos ->
+                _uiState.value = FavoritesUiState(
+                    isLoading = false,
+                    videos = videos
+                )
+            }
+        }
     }
 
     fun loadFavorites() {

@@ -93,7 +93,7 @@ fun SettingsScreen(
                     ListItem(
                         headlineContent = { Text("当前使用本机存储", fontWeight = FontWeight.SemiBold) },
                         supportingContent = {
-                            Text("收藏、偏好与播放进度当前仅保存在本机。云端同步将在后续版本接入。")
+                            Text("收藏、搜索历史与播放进度当前保存在本机数据库。云端同步将在后续版本接入。")
                         },
                         leadingContent = {
                             Box(

@@ -25,7 +25,10 @@ data class LibraryUiState(
     val history: List<Video> = emptyList(),
     val historyEntries: List<WatchProgressEntry> = emptyList(),
     val historyProgress: Map<String, Float> = emptyMap(),
-    val downloads: List<DownloadStatusEntry> = emptyList()
+    val downloads: List<DownloadStatusEntry> = emptyList(),
+    val activeTaskCount: Int = 0,
+    val failedTaskCount: Int = 0,
+    val completedTaskCount: Int = 0
 )
 
 @HiltViewModel
@@ -39,29 +42,64 @@ class LibraryViewModel @Inject constructor(
     val uiState: StateFlow<LibraryUiState> = _uiState
 
     init {
-        loadAll()
+        observeLocalState()
         viewModelScope.launch {
             DownloadTracker.downloads.collect { downloads ->
                 downloads
                     .filter { it.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED && it.exportState == ExportState.NOT_EXPORTED }
                     .forEach { DownloadCommands.export(appContext, it) }
-                _uiState.update { it.copy(downloads = downloads) }
+                _uiState.update {
+                    it.copy(
+                        downloads = downloads,
+                        activeTaskCount = downloads.count { item ->
+                            item.state == androidx.media3.exoplayer.offline.Download.STATE_QUEUED ||
+                                item.state == androidx.media3.exoplayer.offline.Download.STATE_DOWNLOADING ||
+                                item.state == androidx.media3.exoplayer.offline.Download.STATE_RESTARTING ||
+                                item.state == androidx.media3.exoplayer.offline.Download.STATE_STOPPED ||
+                                item.exportState == ExportState.EXPORTING ||
+                                item.exportState == ExportState.EXPORT_QUEUED
+                        },
+                        failedTaskCount = downloads.count { item ->
+                            item.state == androidx.media3.exoplayer.offline.Download.STATE_FAILED ||
+                                item.exportState == ExportState.EXPORT_FAILED
+                        },
+                        completedTaskCount = downloads.count { item ->
+                            item.state == androidx.media3.exoplayer.offline.Download.STATE_COMPLETED &&
+                                item.exportState != ExportState.EXPORT_FAILED
+                        }
+                    )
+                }
             }
         }
     }
 
     fun loadAll() {
+        _uiState.update { it.copy(isLoading = false) }
+    }
+
+    private fun observeLocalState() {
+        _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            val likes = localStore.getFavorites()
-            val historyEntries = localStore.getHistoryEntries()
-            _uiState.value = _uiState.value.copy(
-                isLoading = false,
-                likes = likes,
-                history = historyEntries.map { it.video },
-                historyEntries = historyEntries,
-                historyProgress = historyEntries.associate { it.video.id to it.progress }
-            )
+            localStore.observeFavorites().collect { likes ->
+                _uiState.update { state ->
+                    state.copy(
+                        isLoading = false,
+                        likes = likes
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            localStore.observeHistoryEntries().collect { historyEntries ->
+                _uiState.update { state ->
+                    state.copy(
+                        isLoading = false,
+                        history = historyEntries.map { it.video },
+                        historyEntries = historyEntries,
+                        historyProgress = historyEntries.associate { it.video.id to it.progress }
+                    )
+                }
+            }
         }
     }
 

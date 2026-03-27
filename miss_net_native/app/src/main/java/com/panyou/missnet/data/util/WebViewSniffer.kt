@@ -26,7 +26,7 @@ class WebViewSniffer(private val context: Context) {
                     super.onLoadResource(view, url)
                     if (url != null && (url.contains(".m3u8") || url.contains("playlist.m3u8"))) {
                         if (!continuation.isCompleted) {
-                            continuation.resume(url)
+                            continuation.resume(url.replace("\\/", "/"))
                             webView.stopLoading()
                             webView.destroy()
                         }
@@ -38,7 +38,7 @@ class WebViewSniffer(private val context: Context) {
                     val url = request?.url?.toString()
                     if (url != null && (url.contains(".m3u8"))) {
                          if (!continuation.isCompleted) {
-                            continuation.resume(url)
+                            continuation.resume(url.replace("\\/", "/"))
                             view?.post { 
                                 view.stopLoading()
                                 view.destroy() 
@@ -49,11 +49,11 @@ class WebViewSniffer(private val context: Context) {
                 }
             }
 
-            if (extraHeaders.isEmpty()) {
-                webView.loadUrl(url)
-            } else {
-                webView.loadUrl(url, extraHeaders)
+            val headers = buildMap {
+                put("Referer", "https://missav.ws/")
+                putAll(extraHeaders)
             }
+            webView.loadUrl(url, headers)
             
             // Timeout safety (15s)
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({

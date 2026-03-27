@@ -90,8 +90,8 @@ import java.util.Locale
 
 private enum class LibraryTab(val title: String) {
     Downloads("任务"),
-    History("继续看"),
-    Likes("收藏")
+    History("继续观看"),
+    Likes("收藏内容")
 }
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
@@ -108,12 +108,19 @@ fun LibraryScreen(
     val uiState by viewModel.uiState.collectAsState()
     var selectedTab by remember { mutableIntStateOf(LibraryTab.Downloads.ordinal) }
 
-    LaunchedEffect(Unit) {
-        viewModel.loadAll()
-    }
-
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
+            LibrarySnapshotCard(
+                failedTaskCount = uiState.failedTaskCount,
+                activeTaskCount = uiState.activeTaskCount,
+                historyCount = uiState.historyEntries.size,
+                favoritesCount = uiState.likes.size,
+                modifier = Modifier.padding(
+                    start = ContainerTokens.ScreenCompactHorizontalPadding,
+                    end = ContainerTokens.ScreenCompactHorizontalPadding,
+                    top = ContainerTokens.ScreenCompactVerticalPadding
+                )
+            )
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Color.Transparent,
@@ -303,20 +310,29 @@ private fun ContinueWatchingPage(
         return
     }
 
-    VideoGridPage(
-        title = "继续看",
-        emptyTitle = "暂无继续看内容",
-        emptySubtitle = "你看过但还没看完的内容会集中显示在这里。",
-        icon = Icons.Rounded.History,
-        isLoading = false,
-        videos = entries.sortedByDescending { it.updatedAt }.map { it.video },
-        historyProgress = emptyMap(),
-        onVideoClick = onVideoClick,
-        sharedTransitionScope = sharedTransitionScope,
-        animatedVisibilityScope = animatedVisibilityScope,
-        actionLabel = actionLabel,
-        onAction = onAction
-    )
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                start = ContainerTokens.ScreenCompactHorizontalPadding,
+                end = ContainerTokens.ScreenCompactHorizontalPadding,
+                bottom = ContainerTokens.ScreenContentPadding
+            ),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(entries.sortedByDescending { it.updatedAt }, key = { it.video.id }) { entry ->
+                ContinueWatchingCard(entry = entry, onClick = { onVideoClick(entry.video.id) })
+            }
+            item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
+        }
+    }
 }
 
 @Composable
@@ -502,8 +518,8 @@ private fun DownloadsPage(
     }
 
     val sortedDownloads = downloads.sortedByDescending { it.updatedAt }
-    val activeTasks = sortedDownloads.filter { it.state == Download.STATE_QUEUED || it.state == Download.STATE_DOWNLOADING || it.state == Download.STATE_RESTARTING || it.state == Download.STATE_STOPPED || it.exportState == ExportState.EXPORTING || it.exportState == ExportState.EXPORT_QUEUED }
     val failedTasks = sortedDownloads.filter { it.state == Download.STATE_FAILED || it.exportState == ExportState.EXPORT_FAILED }
+    val activeTasks = sortedDownloads.filter { it.state == Download.STATE_QUEUED || it.state == Download.STATE_DOWNLOADING || it.state == Download.STATE_RESTARTING || it.state == Download.STATE_STOPPED || it.exportState == ExportState.EXPORTING || it.exportState == ExportState.EXPORT_QUEUED }
     val completedTasks = sortedDownloads.filter { it.state == Download.STATE_COMPLETED && it !in activeTasks && it !in failedTasks }
 
     Surface(
@@ -531,9 +547,9 @@ private fun DownloadsPage(
                 )
             }
 
-            if (activeTasks.isNotEmpty()) {
-                item { DownloadSectionHeader(title = "进行中", subtitle = "优先关注下载、暂停和导出中的项目", count = activeTasks.size) }
-                items(activeTasks, key = { it.id }) { item ->
+            if (failedTasks.isNotEmpty()) {
+                item { DownloadSectionHeader(title = "需要处理", subtitle = "失败项应优先恢复，避免任务长期堆积", count = failedTasks.size) }
+                items(failedTasks, key = { "failed-${it.id}" }) { item ->
                     DownloadCard(
                         item = item,
                         onClick = { if (item.state == Download.STATE_COMPLETED) onVideoClick(item.id) },
@@ -546,9 +562,9 @@ private fun DownloadsPage(
                 }
             }
 
-            if (failedTasks.isNotEmpty()) {
-                item { DownloadSectionHeader(title = "需要处理", subtitle = "失败项应支持一键恢复", count = failedTasks.size) }
-                items(failedTasks, key = { "failed-${it.id}" }) { item ->
+            if (activeTasks.isNotEmpty()) {
+                item { DownloadSectionHeader(title = "进行中", subtitle = "优先关注下载、暂停和导出中的项目", count = activeTasks.size) }
+                items(activeTasks, key = { it.id }) { item ->
                     DownloadCard(
                         item = item,
                         onClick = { if (item.state == Download.STATE_COMPLETED) onVideoClick(item.id) },
@@ -576,6 +592,41 @@ private fun DownloadsPage(
                 }
             }
             item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LibrarySnapshotCard(
+    failedTaskCount: Int,
+    activeTaskCount: Int,
+    historyCount: Int,
+    favoritesCount: Int,
+    modifier: Modifier = Modifier
+) {
+    ElevatedCard(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    ) {
+        Column(
+            modifier = Modifier.padding(ContainerTokens.CardPadding),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "资源库概览",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OverviewChip(icon = Icons.Rounded.WarningAmber, label = "待处理 $failedTaskCount")
+                OverviewChip(icon = Icons.Default.Downloading, label = "进行中 $activeTaskCount")
+                OverviewChip(icon = Icons.Rounded.History, label = "继续看 $historyCount")
+                OverviewChip(icon = Icons.Rounded.Favorite, label = "收藏 $favoritesCount")
+            }
         }
     }
 }

@@ -28,11 +28,12 @@ class VideoResolver @Inject constructor(
             }
             val html = response.bodyAsText()
 
-            val m3u8Regex = Regex("""https?://[^\s"'<>]+?\.m3u8[^\s"'<>]*""")
+            val m3u8Regex = Regex("""https?[\\/:]+[^\s"'<>]+?\.m3u8[^\s"'<>]*""")
             val match = m3u8Regex.find(html)
             if (match != null) {
-                Log.d("VideoResolver", "Found m3u8 via HTTP: ${match.value}")
-                return match.value
+                val cleanUrl = match.value.replace("\\/", "/")
+                Log.d("VideoResolver", "Found m3u8 via HTTP: $cleanUrl")
+                return cleanUrl
             }
         } catch (e: Exception) {
             Log.e("VideoResolver", "HTTP Resolve failed, trying Sniffer", e)

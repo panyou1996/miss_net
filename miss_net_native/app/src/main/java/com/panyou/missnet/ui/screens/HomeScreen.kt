@@ -68,6 +68,7 @@ import com.panyou.missnet.data.media.DownloadStatusEntry
 import com.panyou.missnet.data.media.ExportState
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.ui.components.HeroCarouselItem
+import com.panyou.missnet.ui.components.BrowseSummaryCard
 import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
@@ -178,7 +179,11 @@ fun HomeScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             HomeSection(title = "最新发布", category = "new", videos = uiState.newVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
                             HomeSection(title = "本月热选", category = "monthly_hot", videos = uiState.monthlyVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
+                            HomeSection(title = "每周热榜", category = "weekly_hot", videos = uiState.weeklyVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
                             HomeSection(title = "无码资源", category = "uncensored", videos = uiState.uncensoredVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
+                            HomeSection(title = "字幕精选", category = "subtitled", videos = uiState.subtitleVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
+                            HomeSection(title = "VR 沉浸", category = "vr", videos = uiState.vrVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
+                            HomeSection(title = "吃瓜速览", category = "51cg", videos = uiState.chiguaVideos, onVideoClick = onVideoClick, onCategoryClick = onCategoryClick, sharedTransitionScope = sharedTransitionScope, animatedVisibilityScope = animatedVisibilityScope)
                         }
                     }
 
@@ -198,6 +203,18 @@ private fun TaskRecoverySection(
     onVideoClick: (String) -> Unit,
     onLibraryClick: () -> Unit
 ) {
+    val failedCount = recentDownloads.count {
+        it.state == Download.STATE_FAILED || it.exportState == ExportState.EXPORT_FAILED
+    }
+    val activeCount = recentDownloads.count {
+        it.state == Download.STATE_QUEUED ||
+            it.state == Download.STATE_DOWNLOADING ||
+            it.state == Download.STATE_RESTARTING ||
+            it.state == Download.STATE_STOPPED ||
+            it.exportState == ExportState.EXPORTING ||
+            it.exportState == ExportState.EXPORT_QUEUED
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -214,20 +231,37 @@ private fun TaskRecoverySection(
             modifier = Modifier.padding(ContainerTokens.ScreenContentPadding),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (continueWatching.isNotEmpty() || recentDownloads.isNotEmpty() || recentFavorites.isNotEmpty()) {
-                TaskSummaryStrip(
-                    continueCount = continueWatching.size,
-                    downloadCount = recentDownloads.size,
-                    favoriteCount = recentFavorites.size
-                )
-            }
+            BrowseSummaryCard(
+                title = "继续使用",
+                summary = "优先恢复播放、处理下载异常，再继续你的个人内容。",
+                helper = "首页只展示最需要你处理的项目，完整记录统一在资源库。",
+                footer = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        TaskSummaryStrip(
+                            continueCount = continueWatching.size,
+                            downloadCount = recentDownloads.size,
+                            favoriteCount = recentFavorites.size
+                        )
+                        QuickActionGrid(
+                            continueCount = continueWatching.size,
+                            activeCount = activeCount,
+                            failedCount = failedCount,
+                            favoriteCount = recentFavorites.size,
+                            onLibraryClick = onLibraryClick
+                        )
+                    }
+                }
+            )
 
-            if (continueWatching.isNotEmpty()) {
+            continueWatching.firstOrNull()?.let { first ->
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     SectionTitleWithMeta(title = "继续播放", meta = "${continueWatching.size} 项")
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        items(continueWatching, key = { it.video.id }) { entry ->
-                            ContinueWatchingCard(entry = entry, onClick = { onVideoClick(entry.video.id) })
+                    ContinueWatchingCard(entry = first, onClick = { onVideoClick(first.video.id) })
+                    if (continueWatching.size > 1) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            items(continueWatching.drop(1), key = { it.video.id }) { entry ->
+                                ContinueWatchingCard(entry = entry, onClick = { onVideoClick(entry.video.id) })
+                            }
                         }
                     }
                 }
@@ -335,7 +369,8 @@ private fun SectionTitleWithMeta(title: String, meta: String) {
 @Composable
 private fun QuickActionGrid(
     continueCount: Int,
-    downloadCount: Int,
+    activeCount: Int,
+    failedCount: Int,
     favoriteCount: Int,
     onLibraryClick: () -> Unit
 ) {
@@ -344,7 +379,8 @@ private fun QuickActionGrid(
         verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)
     ) {
         QuickActionChip(icon = Icons.Rounded.PlayCircle, label = "继续播放 $continueCount", onClick = onLibraryClick)
-        QuickActionChip(icon = Icons.Rounded.CloudDownload, label = "下载任务 $downloadCount", onClick = onLibraryClick)
+        QuickActionChip(icon = Icons.Rounded.WarningAmber, label = "待处理 $failedCount", onClick = onLibraryClick)
+        QuickActionChip(icon = Icons.Rounded.CloudDownload, label = "处理中 $activeCount", onClick = onLibraryClick)
         QuickActionChip(icon = Icons.Rounded.Favorite, label = "收藏 $favoriteCount", onClick = onLibraryClick)
         QuickActionChip(icon = Icons.AutoMirrored.Rounded.MenuBook, label = "打开资源库", onClick = onLibraryClick)
     }

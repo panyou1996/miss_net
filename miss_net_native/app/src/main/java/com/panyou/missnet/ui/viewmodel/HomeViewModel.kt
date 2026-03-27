@@ -43,19 +43,30 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = _uiState
 
     init {
-        refreshLocalData()
+        observeLocalData()
         observeDownloads()
         loadDashboard()
     }
 
     fun retry() {
-        refreshLocalData()
         loadDashboard()
     }
 
     fun refresh() {
-        refreshLocalData()
         loadDashboard(forceRefresh = true)
+    }
+
+    private fun observeLocalData() {
+        viewModelScope.launch {
+            localStore.observeHistoryEntries().collect { entries ->
+                _uiState.update { it.copy(continueWatching = entries.take(4)) }
+            }
+        }
+        viewModelScope.launch {
+            localStore.observeFavorites().collect { favorites ->
+                _uiState.update { it.copy(recentFavorites = favorites.take(4)) }
+            }
+        }
     }
 
     private fun observeDownloads() {
@@ -63,24 +74,10 @@ class HomeViewModel @Inject constructor(
             DownloadTracker.downloads.collect { downloads ->
                 _uiState.update {
                     it.copy(
-                        recentDownloads = downloads
-                            .sortedByDescending { item -> item.updatedAt }
-                            .take(4)
+                        recentDownloads = prioritizeDownloads(downloads).take(4)
                     )
                 }
             }
-        }
-    }
-
-    private fun refreshLocalData() {
-        _uiState.update {
-            it.copy(
-                continueWatching = localStore.getHistoryEntries().take(4),
-                recentFavorites = localStore.getFavorites().take(4),
-                recentDownloads = DownloadTracker.downloads.value
-                    .sortedByDescending { item -> item.updatedAt }
-                    .take(4)
-            )
         }
     }
 
@@ -123,7 +120,6 @@ class HomeViewModel @Inject constructor(
                     isRefreshing = false,
                     errorMessage = if (isAllEmpty) "首页数据为空，可能是网络异常或服务暂时不可用。" else null
                 )
-                refreshLocalData()
             } catch (e: Exception) {
                 Log.e("HomeViewModel", "Failed to load dashboard", e)
                 _uiState.value = _uiState.value.copy(
@@ -131,8 +127,25 @@ class HomeViewModel @Inject constructor(
                     isRefreshing = false,
                     errorMessage = e.message ?: "首页加载失败，请稍后重试。"
                 )
-                refreshLocalData()
             }
         }
+    }
+
+    private fun prioritizeDownloads(downloads: List<DownloadStatusEntry>): List<DownloadStatusEntry> {
+        return downloads.sortedWith(
+            compareBy<DownloadStatusEntry> { entry ->
+                when {
+                    entry.state == androidx.media3.exoplayer.offline.Download.STATE_FAILED ||
+                        entry.exportState == com.panyou.missnet.data.media.ExportState.EXPORT_FAILED -> 0
+                    entry.state == androidx.media3.exoplayer.offline.Download.STATE_QUEUED ||
+                        entry.state == androidx.media3.exoplayer.offline.Download.STATE_DOWNLOADING ||
+                        entry.state == androidx.media3.exoplayer.offline.Download.STATE_RESTARTING ||
+                        entry.state == androidx.media3.exoplayer.offline.Download.STATE_STOPPED ||
+                        entry.exportState == com.panyou.missnet.data.media.ExportState.EXPORTING ||
+                        entry.exportState == com.panyou.missnet.data.media.ExportState.EXPORT_QUEUED -> 1
+                    else -> 2
+                }
+            }.thenByDescending { it.updatedAt }
+        )
     }
 }

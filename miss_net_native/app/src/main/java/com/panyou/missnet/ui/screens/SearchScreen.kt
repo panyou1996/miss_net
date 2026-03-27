@@ -87,10 +87,6 @@ fun SearchScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.loadSearchHistory()
-    }
-
     LaunchedEffect(shouldLoadMore) {
         if (shouldLoadMore) {
             viewModel.loadMore()
@@ -154,6 +150,16 @@ fun SearchScreen(
                     )
             ) {
                 LazyColumn {
+                    if (uiState.history.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "最近搜索",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                            )
+                        }
+                    }
                     itemsIndexed(uiState.history) { index, historyItem ->
                         ListItem(
                             headlineContent = { Text(historyItem) },

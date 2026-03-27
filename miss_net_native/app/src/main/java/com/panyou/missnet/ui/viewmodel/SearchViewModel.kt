@@ -34,6 +34,14 @@ class SearchViewModel @Inject constructor(
     )
     val uiState: StateFlow<SearchUiState> = _uiState
 
+    init {
+        viewModelScope.launch {
+            localStore.observeSearchHistory().collect { history ->
+                _uiState.value = _uiState.value.copy(history = history)
+            }
+        }
+    }
+
     fun onQueryChange(newQuery: String) {
         _uiState.value = _uiState.value.copy(query = newQuery)
     }
