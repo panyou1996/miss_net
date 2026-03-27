@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.panyou.missnet.data.local.LocalVideoStateStore
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.data.repository.VideoRepository
+import com.panyou.missnet.data.result.AppResult
 import com.panyou.missnet.data.util.VideoResolver
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,25 +60,34 @@ class PlayerViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, downloadMessage = null)
             try {
                 Log.d("PlayerViewModel", "Fetching video metadata...")
-                val video = repository.getVideoById(videoId)
-                if (video != null) {
-                    Log.d("PlayerViewModel", "Metadata fetched. Resolving stream URL: ${video.sourceUrl}")
-                    val streamUrl = resolver.resolve(video.sourceUrl)
-                    val related = repository.getRecentVideos(5)
-                    val progressEntry = localStore.getProgress(video.id)
+                when (val result = repository.getVideoByIdResult(videoId)) {
+                    AppResult.Empty -> {
+                        Log.e("PlayerViewModel", "Video not found in DB")
+                        _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = "资源不存在或已不可用")
+                    }
 
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        video = video,
-                        streamUrl = streamUrl,
-                        relatedVideos = related.filterNot { it.id == video.id },
-                        isFavorite = localStore.isFavorite(video.id),
-                        lastPositionMs = progressEntry?.positionMs ?: 0L,
-                        lastDurationMs = progressEntry?.durationMs ?: 0L
-                    )
-                } else {
-                    Log.e("PlayerViewModel", "Video not found in DB")
-                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = "资源不存在或已不可用")
+                    is AppResult.Failure -> {
+                        Log.e("PlayerViewModel", "Video metadata request failed", result.cause)
+                        _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = result.message)
+                    }
+
+                    is AppResult.Success -> {
+                        val video = result.data
+                        Log.d("PlayerViewModel", "Metadata fetched. Resolving stream URL: ${video.sourceUrl}")
+                        val streamUrl = resolver.resolve(video.sourceUrl)
+                        val related = repository.getRecentVideos(5)
+                        val progressEntry = localStore.getProgress(video.id)
+
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            video = video,
+                            streamUrl = streamUrl,
+                            relatedVideos = related.filterNot { it.id == video.id },
+                            isFavorite = localStore.isFavorite(video.id),
+                            lastPositionMs = progressEntry?.positionMs ?: 0L,
+                            lastDurationMs = progressEntry?.durationMs ?: 0L
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("PlayerViewModel", "General error in loadVideoDetails", e)

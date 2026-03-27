@@ -6,29 +6,17 @@ import android.Manifest
 import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
-import android.content.ContextWrapper
-import android.content.Intent
-import android.content.ActivityNotFoundException
 import android.content.pm.ActivityInfo
 import android.os.Build
 import android.util.Log
-import android.view.ViewGroup
-import android.view.WindowManager
-import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -38,25 +26,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
@@ -75,22 +58,21 @@ import com.panyou.missnet.data.media.DownloadTracker
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.service.MissNetDownloadService
 import com.panyou.missnet.service.PlaybackService
-import com.panyou.missnet.ui.components.DurationBadge
-import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.components.SecondaryPageSurface
-import com.panyou.missnet.ui.components.StatusBadge
 import com.panyou.missnet.ui.theme.ActionTokens
 import com.panyou.missnet.ui.theme.ContainerTokens
-import com.panyou.missnet.ui.theme.MotionTokens
-import com.panyou.missnet.ui.theme.ThumbnailShape
+import com.panyou.missnet.ui.screens.player.PlayerControls
+import com.panyou.missnet.ui.screens.player.PlayerLoadingState
+import com.panyou.missnet.ui.screens.player.PlayerPlaybackSurface
+import com.panyou.missnet.ui.screens.player.PrimaryActionsRow
+import com.panyou.missnet.ui.screens.player.RecommendItem
+import com.panyou.missnet.ui.screens.player.RecommendSectionHeader
+import com.panyou.missnet.ui.screens.player.SecondaryActionsRow
+import com.panyou.missnet.ui.screens.player.VideoInfoSection
+import com.panyou.missnet.ui.screens.player.findActivity
+import com.panyou.missnet.ui.screens.player.shareVideo
 import com.panyou.missnet.ui.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
-
-fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
-}
 
 
 private data class PendingDownload(
@@ -108,7 +90,7 @@ private const val PLAYBACK_FAILED_MESSAGE = "播放失败，请重试。"
 private const val FAVORITE_ADDED_MESSAGE = "已加入收藏。"
 private const val FAVORITE_REMOVED_MESSAGE = "已取消收藏。"
 private const val RELATED_SWITCH_MESSAGE = "已切换到相关推荐。"
-private const val CONTINUE_PLAYBACK_MESSAGE = "已恢复到上次播放位置。"
+private const val SEEK_INTERVAL_MS = 10_000L
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -123,7 +105,7 @@ fun PlayerScreen(
 ) {
     val context = LocalContext.current
     val activity = remember { context.findActivity() as? ComponentActivity }
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -204,6 +186,20 @@ fun PlayerScreen(
         uiState.downloadMessage?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.consumeDownloadMessage()
+        }
+    }
+
+    fun seekBy(deltaMs: Long) {
+        val controlledPlayer = player ?: return
+        val targetPosition = (controlledPlayer.currentPosition + deltaMs).coerceAtLeast(0L)
+            .let { position ->
+                val maxDuration = controlledPlayer.duration.coerceAtLeast(0L)
+                if (maxDuration > 0L) position.coerceAtMost(maxDuration) else position
+            }
+        controlledPlayer.seekTo(targetPosition)
+        currentPos = targetPosition
+        if (duration > 0L) {
+            viewModel.updatePlaybackProgress(targetPosition, duration)
         }
     }
 
@@ -362,12 +358,11 @@ fun PlayerScreen(
     LaunchedEffect(isFullscreen) {
         val window = activity?.window ?: return@LaunchedEffect
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         if (isFullscreen) {
             insetsController.hide(WindowInsetsCompat.Type.systemBars())
-            window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         } else {
             insetsController.show(WindowInsetsCompat.Type.systemBars())
-            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         }
     }
 
@@ -416,7 +411,6 @@ fun PlayerScreen(
                     .fillMaxWidth()
                     .then(if (isFullscreen) Modifier.fillMaxHeight() else Modifier.aspectRatio(16f / 9f))
                     .background(Color.Black)
-                    .clickable(remember { MutableInteractionSource() }, null) { showControls = !showControls }
 
                 val finalModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
                     with(sharedTransitionScope) {
@@ -436,77 +430,70 @@ fun PlayerScreen(
                                 player?.playbackState == Player.STATE_IDLE ||
                                 (uiState.isLoading && uiState.streamUrl == null))
 
-                    if (showPosterArtwork) {
-                        MissNetCoverImage(
-                            coverUrl = uiState.video?.coverUrl,
-                            contentDescription = uiState.video?.title,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.28f))
-                        )
-                    }
-
-                    PlayerContainer(player)
-                    if (isBuffering || (uiState.isLoading && uiState.streamUrl == null)) {
-                        PlayerLoadingOverlay(
-                            title = if (uiState.streamUrl == null) "正在加载播放源" else "正在缓冲",
-                            subtitle = if (uiState.streamUrl == null) "即将进入播放" else "网络波动时会自动恢复",
-                            progress = if (duration > 0L && bufferedPos > 0L) {
-                                (bufferedPos.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
-                            } else {
-                                null
-                            },
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    }
-                    if (effectiveError != null) {
-                        PlayerErrorOverlay(
-                            message = effectiveError,
-                            onRetry = {
-                                playbackError = null
-                                isBuffering = true
-                                viewModel.retry()
-                                player?.let { controlledPlayer ->
-                                    controlledPlayer.prepare()
-                                    controlledPlayer.playWhenReady = true
-                                }
-                            },
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    }
-                    PlayerControls(
+                    PlayerPlaybackSurface(
+                        player = player,
+                        coverUrl = uiState.video?.coverUrl,
+                        title = uiState.video?.title,
+                        showPosterArtwork = showPosterArtwork,
+                        isBuffering = isBuffering,
+                        isLoadingStream = uiState.isLoading && uiState.streamUrl == null,
+                        bufferedProgress = if (duration > 0L && bufferedPos > 0L) {
+                            (bufferedPos.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+                        } else {
+                            null
+                        },
+                        errorMessage = effectiveError,
                         showControls = showControls,
-                        isFullscreen = isFullscreen,
-                        isPlaying = isPlaying,
-                        currentPos = currentPos,
-                        duration = duration,
-                        onTogglePlay = {
-                            if (isPlaying) player?.pause() else player?.play()
-                        },
-                        onSeekBack = { player?.seekBack() },
-                        onSeekForward = { player?.seekForward() },
-                        onSeekTo = {
-                            player?.seekTo(it)
-                            currentPos = it
-                            viewModel.updatePlaybackProgress(it, duration)
-                        },
-                        onToggleFullscreen = {
-                            val next = !isFullscreen
-                            isFullscreen = next
-                            activity?.requestedOrientation = if (next) ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                        },
-                        onBack = {
-                            if (isFullscreen) {
-                                isFullscreen = false
-                                activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                            } else {
-                                exitPlayer()
+                        onToggleControls = { showControls = !showControls },
+                        onSeekBack = { seekBy(-SEEK_INTERVAL_MS) },
+                        onSeekForward = { seekBy(SEEK_INTERVAL_MS) },
+                        onRetry = {
+                            playbackError = null
+                            isBuffering = true
+                            viewModel.retry()
+                            player?.let { controlledPlayer ->
+                                controlledPlayer.prepare()
+                                controlledPlayer.playWhenReady = true
                             }
                         },
-                        onSpeed = { showSpeedSheet = true }
+                        modifier = Modifier.fillMaxSize(),
+                        controls = {
+                            PlayerControls(
+                                showControls = showControls,
+                                isFullscreen = isFullscreen,
+                                isPlaying = isPlaying,
+                                currentPos = currentPos,
+                                duration = duration,
+                                onTogglePlay = {
+                                    if (isPlaying) player?.pause() else player?.play()
+                                },
+                                onSeekBack = { seekBy(-SEEK_INTERVAL_MS) },
+                                onSeekForward = { seekBy(SEEK_INTERVAL_MS) },
+                                onSeekTo = {
+                                    player?.seekTo(it)
+                                    currentPos = it
+                                    viewModel.updatePlaybackProgress(it, duration)
+                                },
+                                onToggleFullscreen = {
+                                    val next = !isFullscreen
+                                    isFullscreen = next
+                                    activity?.requestedOrientation = if (next) {
+                                        ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                                    } else {
+                                        ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                                    }
+                                },
+                                onBack = {
+                                    if (isFullscreen) {
+                                        isFullscreen = false
+                                        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                                    } else {
+                                        exitPlayer()
+                                    }
+                                },
+                                onSpeed = { showSpeedSheet = true }
+                            )
+                        }
                     )
                 }
 
@@ -653,877 +640,4 @@ fun PlayerScreen(
             }
         }
     }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PlayerStatusSection(
-    isPlaying: Boolean,
-    isBuffering: Boolean,
-    errorMessage: String?,
-    modifier: Modifier = Modifier
-) {
-    val (playbackLabel, playbackContainer, playbackContent) = when {
-        errorMessage != null -> Triple(
-            "需要处理",
-            MaterialTheme.colorScheme.errorContainer,
-            MaterialTheme.colorScheme.onErrorContainer
-        )
-        isBuffering -> Triple(
-            "加载中",
-            MaterialTheme.colorScheme.primaryContainer,
-            MaterialTheme.colorScheme.onPrimaryContainer
-        )
-        isPlaying -> Triple(
-            "播放中",
-            MaterialTheme.colorScheme.secondaryContainer,
-            MaterialTheme.colorScheme.onSecondaryContainer
-        )
-        else -> Triple(
-            "已暂停",
-            MaterialTheme.colorScheme.surfaceVariant,
-            MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f))
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "状态",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "播放",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                StatusBadge(
-                    text = playbackLabel,
-                    containerColor = playbackContainer,
-                    contentColor = playbackContent
-                )
-            }
-
-            Text(
-                text = "下载与导出状态统一在资源库 > 任务查看：",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                StatusBadge(
-                    text = "进行中",
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                StatusBadge(
-                    text = "需要处理",
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer
-                )
-                StatusBadge(
-                    text = "最近完成",
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-                )
-                StatusBadge(
-                    text = "已导出",
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                StatusBadge(
-                    text = "导出失败",
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer
-                )
-                StatusBadge(
-                    text = "不支持",
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecommendSectionHeader(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Text(
-            text = "相关推荐",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = "点击后切换当前播放内容",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun VideoInfoSection(
-    title: String,
-    primaryDate: String?,
-    lastPositionMs: Long,
-    tags: List<String>,
-    actors: List<String>,
-    onTagClick: (String) -> Unit,
-    onActorClick: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var expandedMeta by remember(title, primaryDate, tags, actors) { mutableStateOf(false) }
-    val safeActors = remember(actors) { actors.filter { it.isNotBlank() }.distinct() }
-    val safeTags = remember(tags) { tags.filter { it.isNotBlank() }.distinct() }
-    val collapsedActors = if (expandedMeta) safeActors else safeActors.take(2)
-    val collapsedTags = if (expandedMeta) safeTags else safeTags.take(4)
-    val remainingMetaCount = (safeActors.size - collapsedActors.size).coerceAtLeast(0) +
-        (safeTags.size - collapsedTags.size).coerceAtLeast(0)
-
-    Column(
-        modifier = modifier.animateContentSize(animationSpec = MotionTokens.standard()),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
-
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            InfoMetaChip(
-                icon = Icons.Default.CalendarToday,
-                text = "发布于 ${primaryDate ?: "最近"}"
-            )
-            if (lastPositionMs > 0L) {
-                InfoMetaChip(
-                    icon = Icons.Default.History,
-                    text = "上次看到 ${formatTime(lastPositionMs)}"
-                )
-            }
-        }
-
-        if (safeActors.isNotEmpty() || safeTags.isNotEmpty()) {
-            Text(
-                text = buildString {
-                    if (safeActors.isNotEmpty()) append("${safeActors.size} 位演员")
-                    if (safeTags.isNotEmpty()) {
-                        if (isNotEmpty()) append(" · ")
-                        append("${safeTags.size} 个标签")
-                    }
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        if (collapsedActors.isNotEmpty() || collapsedTags.isNotEmpty()) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                collapsedActors.forEach { actor ->
-                    AssistChip(
-                        onClick = { onActorClick(actor) },
-                        label = {
-                            Text(
-                                text = actor,
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        },
-                        modifier = Modifier.heightIn(min = 30.dp),
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            leadingIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    )
-                }
-
-                collapsedTags.forEach { tag ->
-                    AssistChip(
-                        onClick = { onTagClick(tag) },
-                        label = {
-                            Text(
-                                text = "#$tag",
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        },
-                        modifier = Modifier.heightIn(min = 30.dp)
-                    )
-                }
-
-                if (remainingMetaCount > 0) {
-                    AssistChip(
-                        onClick = { expandedMeta = !expandedMeta },
-                        label = {
-                            Text(
-                                text = if (expandedMeta) "收起" else "+$remainingMetaCount",
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        },
-                        modifier = Modifier.heightIn(min = 30.dp),
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun InfoMetaChip(
-    icon: ImageVector,
-    text: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun PlayerLoadingState(
-    title: String,
-    subtitle: String,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.Center
-    ) {
-        PlayerLoadingOverlay(
-            title = title,
-            subtitle = subtitle
-        )
-    }
-}
-
-@Composable
-private fun PlayerLoadingOverlay(
-    title: String,
-    subtitle: String,
-    progress: Float? = null,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.animateContentSize(animationSpec = MotionTokens.standard()),
-        shape = MaterialTheme.shapes.large,
-        color = Color.Black.copy(alpha = 0.56f)
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(36.dp),
-                color = MaterialTheme.colorScheme.primary,
-                strokeWidth = 3.dp
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.78f)
-            )
-            if (progress != null) {
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(CircleShape),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = Color.White.copy(alpha = 0.18f)
-                )
-                Text(
-                    text = "已缓存 ${(progress * 100).toInt()}%",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.74f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PrimaryActionsRow(
-    onDownload: () -> Unit,
-    onFavorite: () -> Unit,
-    isFavorite: Boolean,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)
-    ) {
-        Button(
-            onClick = onDownload,
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(
-                horizontal = ActionTokens.ButtonContentPaddingHorizontal,
-                vertical = 8.dp
-            )
-        ) {
-            Icon(
-                Icons.Default.CloudDownload,
-                contentDescription = null,
-                modifier = Modifier.size(ActionTokens.ButtonIconSize)
-            )
-            Spacer(modifier = Modifier.width(ActionTokens.ButtonContentGap))
-            Text("下载", style = MaterialTheme.typography.labelLarge)
-        }
-
-        FilledTonalButton(
-            onClick = onFavorite,
-            modifier = Modifier.weight(1f),
-            colors = if (isFavorite) {
-                ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            } else {
-                ButtonDefaults.filledTonalButtonColors()
-            },
-            contentPadding = PaddingValues(
-                horizontal = ActionTokens.ButtonContentPaddingHorizontal,
-                vertical = 8.dp
-            )
-        ) {
-            Icon(
-                imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = null,
-                modifier = Modifier.size(ActionTokens.ButtonIconSize)
-            )
-            Spacer(modifier = Modifier.width(ActionTokens.ButtonContentGap))
-            Text(if (isFavorite) "已收藏" else "收藏", style = MaterialTheme.typography.labelLarge)
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun SecondaryActionsRow(
-    onShare: () -> Unit,
-    onSpeed: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    FlowRow(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing),
-        verticalArrangement = Arrangement.spacedBy(ActionTokens.RowSpacing)
-    ) {
-        SecondaryActionChip(
-            icon = Icons.Default.Share,
-            label = "分享",
-            onClick = onShare
-        )
-        SecondaryActionChip(
-            icon = Icons.Default.Speed,
-            label = "速度",
-            onClick = onSpeed
-        )
-        // Note: Cast feature disabled - not implemented
-        // SecondaryActionChip(
-        //     icon = Icons.Default.Cast,
-        //     label = "投屏",
-        //     onClick = onCast
-        // )
-    }
-}
-
-@Composable
-private fun SecondaryActionChip(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-) {
-    AssistChip(
-        onClick = onClick,
-        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
-        leadingIcon = {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(ActionTokens.ChipIconSize)
-            )
-        },
-        modifier = Modifier.heightIn(min = 32.dp),
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            leadingIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    )
-}
-
-@Composable
-fun PlayerContainer(player: Player?) {
-    AndroidView(
-        factory = { ctx ->
-            PlayerView(ctx).apply {
-                this.player = player
-                useController = false
-                layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            }
-        },
-        update = { view -> view.player = player },
-        modifier = Modifier.fillMaxSize()
-    )
-}
-
-@Composable
-fun PlayerControls(
-    showControls: Boolean,
-    isFullscreen: Boolean,
-    isPlaying: Boolean,
-    currentPos: Long,
-    duration: Long,
-    onTogglePlay: () -> Unit,
-    onSeekBack: () -> Unit,
-    onSeekForward: () -> Unit,
-    onSeekTo: (Long) -> Unit,
-    onToggleFullscreen: () -> Unit,
-    onBack: () -> Unit,
-    onSpeed: () -> Unit
-) {
-    var dragValue by remember(duration) { mutableStateOf<Float?>(null) }
-    val displayedPosition = (dragValue?.toLong() ?: currentPos).coerceAtLeast(0L)
-
-    AnimatedVisibility(
-        visible = showControls,
-        enter = fadeIn(animationSpec = MotionTokens.standard(MotionTokens.DurationShort4)) +
-            scaleIn(initialScale = 0.98f, animationSpec = MotionTokens.standard(MotionTokens.DurationShort4)),
-        exit = fadeOut(animationSpec = MotionTokens.exit(MotionTokens.DurationShort3)) +
-            scaleOut(targetScale = 0.98f, animationSpec = MotionTokens.exit(MotionTokens.DurationShort3))
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
-                .padding(if (isFullscreen) 36.dp else 12.dp)
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                OverlayControlButton(
-                    onClick = onBack,
-                    icon = if (isFullscreen) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = if (isFullscreen) "退出全屏" else "返回"
-                )
-                Row {
-                    // Note: Cast button disabled - not implemented
-                    // OverlayControlButton(
-                    //     onClick = onCast,
-                    //     icon = Icons.Default.Cast,
-                    //     contentDescription = "投屏"
-                    // )
-                    OverlayControlButton(
-                        onClick = onSpeed,
-                        icon = Icons.Default.Speed,
-                        contentDescription = "倍速"
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier.align(Alignment.Center),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(if (isFullscreen) 40.dp else 28.dp)
-            ) {
-                OverlayControlButton(
-                    onClick = onSeekBack,
-                    icon = Icons.Default.Replay10,
-                    contentDescription = "后退10秒",
-                    iconSize = 28.dp,
-                    buttonSize = 52.dp
-                )
-                CenterPlayPauseButton(
-                    isPlaying = isPlaying,
-                    isFullscreen = isFullscreen,
-                    onClick = onTogglePlay
-                )
-                OverlayControlButton(
-                    onClick = onSeekForward,
-                    icon = Icons.Default.Forward10,
-                    contentDescription = "前进10秒",
-                    iconSize = 28.dp,
-                    buttonSize = 52.dp
-                )
-            }
-
-            Column(modifier = Modifier.align(Alignment.BottomCenter)) {
-                AnimatedVisibility(
-                    visible = dragValue != null,
-                    enter = fadeIn(animationSpec = MotionTokens.standard(MotionTokens.DurationShort3)) +
-                        slideInVertically(
-                            initialOffsetY = { it / 3 },
-                            animationSpec = MotionTokens.standard(MotionTokens.DurationShort3)
-                        ),
-                    exit = fadeOut(animationSpec = MotionTokens.exit(MotionTokens.DurationShort2)) +
-                        slideOutVertically(
-                            targetOffsetY = { it / 3 },
-                            animationSpec = MotionTokens.exit(MotionTokens.DurationShort2)
-                        )
-                ) {
-                    Surface(
-                        color = Color.Black.copy(alpha = 0.48f),
-                        shape = MaterialTheme.shapes.small,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    ) {
-                        Text(
-                            text = "定位到 ${formatTime(displayedPosition)}",
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White
-                        )
-                    }
-                }
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    // Current time with better visibility
-                    Text(
-                        text = formatTime(displayedPosition),
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    // MD3 Slider with primary color
-                    Slider(
-                        value = dragValue ?: currentPos.toFloat(),
-                        onValueChange = { dragValue = it },
-                        onValueChangeFinished = {
-                            dragValue?.let { onSeekTo(it.toLong()) }
-                            dragValue = null
-                        },
-                        valueRange = 0f..(duration.toFloat().coerceAtLeast(1f)),
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 12.dp),
-                        colors = SliderDefaults.colors(
-                            thumbColor = MaterialTheme.colorScheme.primary,
-                            activeTrackColor = MaterialTheme.colorScheme.primary,
-                            inactiveTrackColor = Color.White.copy(alpha = 0.3f),
-                            disabledThumbColor = Color.White.copy(alpha = 0.5f),
-                            disabledActiveTrackColor = Color.White.copy(alpha = 0.5f),
-                            disabledInactiveTrackColor = Color.White.copy(alpha = 0.2f)
-                        )
-                    )
-                    // Duration with better visibility
-                    Text(
-                        text = formatTime(duration),
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    OverlayControlButton(
-                        onClick = onToggleFullscreen,
-                        icon = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                        contentDescription = if (isFullscreen) "退出全屏" else "进入全屏",
-                        iconSize = 22.dp,
-                        buttonSize = 40.dp
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun OverlayControlButton(
-    onClick: () -> Unit,
-    icon: ImageVector,
-    contentDescription: String,
-    iconSize: Dp = 24.dp,
-    buttonSize: Dp = 44.dp
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = MotionTokens.standard(MotionTokens.DurationShort3),
-        label = "overlay-control-scale"
-    )
-    val backgroundAlpha by animateFloatAsState(
-        targetValue = if (isPressed) 0.52f else 0.36f,
-        animationSpec = MotionTokens.standard(MotionTokens.DurationShort3),
-        label = "overlay-control-bg"
-    )
-
-    Box(
-        modifier = Modifier
-            .size(buttonSize)
-            .scale(scale)
-            .clip(CircleShape)
-            .background(Color.Black.copy(alpha = backgroundAlpha))
-            .clickable(
-                interactionSource = interactionSource,
-                indication = LocalIndication.current,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = Color.White,
-            modifier = Modifier.size(iconSize)
-        )
-    }
-}
-
-@Composable
-private fun CenterPlayPauseButton(
-    isPlaying: Boolean,
-    isFullscreen: Boolean,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.94f else 1f,
-        animationSpec = MotionTokens.standard(MotionTokens.DurationShort3),
-        label = "play-pause-scale"
-    )
-
-    Box(
-        modifier = Modifier
-            .size(if (isFullscreen) 88.dp else 76.dp)
-            .scale(scale)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = LocalIndication.current,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Crossfade(
-            targetState = isPlaying,
-            animationSpec = MotionTokens.standard(MotionTokens.DurationShort4),
-            label = "play-pause-icon"
-        ) { playing ->
-            Icon(
-                imageVector = if (playing) Icons.Default.PauseCircle else Icons.Default.PlayCircle,
-                contentDescription = if (playing) "暂停" else "播放",
-                tint = Color.White,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-    }
-}
-
-@Composable
-fun RecommendItem(video: Video, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .animateContentSize(animationSpec = MotionTokens.standard()),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.24f)),
-        onClick = onClick
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(112.dp, 64.dp)
-                    .clip(ThumbnailShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                MissNetCoverImage(
-                    coverUrl = video.coverUrl,
-                    contentDescription = video.title,
-                    modifier = Modifier.fillMaxSize()
-                )
-                // 播放时长徽章
-                video.displayDurationOrNull?.let { dur ->
-                    DurationBadge(
-                        text = dur,
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(4.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = video.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = buildString {
-                        append(video.primaryActorOrNull ?: video.metadataStatusLabel)
-                        video.displayDate?.takeIf { it.isNotBlank() }?.let {
-                            append(" · ")
-                            append(it)
-                        }
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = video.tags.take(2).joinToString(" · ").ifBlank { video.metadataStatusLabel },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "切换",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun PlayerErrorOverlay(message: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier
-            .padding(24.dp)
-            .fillMaxWidth(0.88f),
-        shape = MaterialTheme.shapes.large,
-        color = Color.Black.copy(alpha = 0.82f)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(imageVector = Icons.Default.ErrorOutline, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(text = "播放失败", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = message, color = Color.White.copy(alpha = 0.88f), style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onRetry) {
-                Icon(Icons.Default.Refresh, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("重试")
-            }
-        }
-    }
-}
-
-private fun shareVideo(context: Context, title: String, url: String?): Boolean {
-    if (url.isNullOrBlank()) return false
-    val shareText = buildString {
-        if (title.isNotBlank()) appendLine(title)
-        append(url)
-    }
-    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(Intent.EXTRA_SUBJECT, title.ifBlank { "MissNet" })
-        putExtra(Intent.EXTRA_TEXT, shareText)
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    }
-    return try {
-        context.startActivity(Intent.createChooser(shareIntent, "分享视频"))
-        true
-    } catch (_: ActivityNotFoundException) {
-        false
-    }
-}
-
-private fun formatTime(ms: Long): String {
-    if (ms <= 0) return "00:00"
-    val totalSecs = ms / 1000
-    val hours = totalSecs / 3600
-    val mins = (totalSecs % 3600) / 60
-    val secs = totalSecs % 60
-    return if (hours > 0) "%02d:%02d:%02d".format(hours, mins, secs) else "%02d:%02d".format(mins, secs)
 }
