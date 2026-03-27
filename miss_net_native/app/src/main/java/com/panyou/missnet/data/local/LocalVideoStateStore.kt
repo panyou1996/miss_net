@@ -25,6 +25,12 @@ class LocalVideoStateStore @Inject constructor(
 
     fun isFavorite(videoId: String): Boolean = getFavorites().any { it.id == videoId }
 
+    fun isIncognitoModeEnabled(): Boolean = prefs.getBoolean(KEY_INCOGNITO_MODE, false)
+
+    fun setIncognitoMode(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_INCOGNITO_MODE, enabled).apply()
+    }
+
     fun toggleFavorite(video: Video): Boolean {
         val current = getFavorites().toMutableList()
         val index = current.indexOfFirst { it.id == video.id }
@@ -40,15 +46,20 @@ class LocalVideoStateStore @Inject constructor(
         return isFavorite
     }
 
-    fun getWatchHistory(): List<Video> =
-        readProgressEntries()
+    fun getWatchHistory(): List<Video> {
+        if (isIncognitoModeEnabled()) return emptyList()
+        return readProgressEntries()
             .sortedByDescending { it.updatedAt }
             .map { it.video }
+    }
 
-    fun getProgress(videoId: String): WatchProgressEntry? =
-        readProgressEntries().firstOrNull { it.video.id == videoId }
+    fun getProgress(videoId: String): WatchProgressEntry? {
+        if (isIncognitoModeEnabled()) return null
+        return readProgressEntries().firstOrNull { it.video.id == videoId }
+    }
 
     fun upsertWatchProgress(video: Video, positionMs: Long, durationMs: Long) {
+        if (isIncognitoModeEnabled()) return
         val safeDuration = durationMs.coerceAtLeast(0L)
         val safePosition = positionMs.coerceIn(0L, if (safeDuration > 0L) safeDuration else Long.MAX_VALUE)
         val entries = readProgressEntries().toMutableList()
@@ -74,12 +85,18 @@ class LocalVideoStateStore @Inject constructor(
         writeProgressEntries(normalized)
     }
 
-    fun getHistoryEntries(): List<WatchProgressEntry> =
-        readProgressEntries().sortedByDescending { it.updatedAt }
+    fun getHistoryEntries(): List<WatchProgressEntry> {
+        if (isIncognitoModeEnabled()) return emptyList()
+        return readProgressEntries().sortedByDescending { it.updatedAt }
+    }
 
-    fun getSearchHistory(): List<String> = readStringList(KEY_SEARCH_HISTORY)
+    fun getSearchHistory(): List<String> {
+        if (isIncognitoModeEnabled()) return emptyList()
+        return readStringList(KEY_SEARCH_HISTORY)
+    }
 
     fun addSearchHistory(query: String) {
+        if (isIncognitoModeEnabled()) return
         val normalized = query.trim()
         if (normalized.isBlank()) return
         val list = readStringList(KEY_SEARCH_HISTORY)
@@ -151,6 +168,7 @@ class LocalVideoStateStore @Inject constructor(
         private const val KEY_FAVORITES = "favorites"
         private const val KEY_HISTORY = "history"
         private const val KEY_SEARCH_HISTORY = "search_history"
+        private const val KEY_INCOGNITO_MODE = "incognito_mode"
         private const val MAX_FAVORITES = 200
         private const val MAX_HISTORY = 200
         private const val MAX_SEARCH_HISTORY = 20

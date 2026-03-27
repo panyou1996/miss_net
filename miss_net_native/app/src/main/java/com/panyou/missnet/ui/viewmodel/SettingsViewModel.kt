@@ -6,6 +6,7 @@ import android.os.Environment
 import android.os.StatFs
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.panyou.missnet.data.local.LocalVideoStateStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.SupabaseClient
@@ -22,7 +23,6 @@ data class SettingsUiState(
     val isDarkMode: Boolean = true,
     val isDynamicColor: Boolean = false,
     val isIncognito: Boolean = false,
-    val isAppLockEnabled: Boolean = false,
     val themeColorIndex: Int = 0,
     val usedStorageStr: String = "0.0 GB",
     val storageProgress: Float = 0f,
@@ -32,6 +32,7 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val supabase: SupabaseClient,
+    private val localStore: LocalVideoStateStore,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -51,8 +52,7 @@ class SettingsViewModel @Inject constructor(
             
             val isDark = prefs.getBoolean("is_dark_mode", true)
             val isDynamicColor = prefs.getBoolean("is_dynamic_color", false)
-            val isIncog = prefs.getBoolean("is_incognito", false)
-            val isLock = prefs.getBoolean("is_app_lock", false)
+            val isIncog = localStore.isIncognitoModeEnabled()
             val colorIndex = prefs.getInt("theme_color_index", 0)
 
             _uiState.value = _uiState.value.copy(
@@ -61,7 +61,6 @@ class SettingsViewModel @Inject constructor(
                 isDarkMode = isDark,
                 isDynamicColor = isDynamicColor,
                 isIncognito = isIncog,
-                isAppLockEnabled = isLock,
                 themeColorIndex = colorIndex,
                 usedStorageStr = storageInfo.first,
                 storageProgress = storageInfo.second
@@ -83,14 +82,8 @@ class SettingsViewModel @Inject constructor(
 
     fun toggleIncognito() {
         val newState = !_uiState.value.isIncognito
-        prefs.edit().putBoolean("is_incognito", newState).apply()
+        localStore.setIncognitoMode(newState)
         _uiState.value = _uiState.value.copy(isIncognito = newState)
-    }
-
-    fun toggleAppLock() {
-        val newState = !_uiState.value.isAppLockEnabled
-        prefs.edit().putBoolean("is_app_lock", newState).apply()
-        _uiState.value = _uiState.value.copy(isAppLockEnabled = newState)
     }
 
     fun setThemeColor(index: Int) {

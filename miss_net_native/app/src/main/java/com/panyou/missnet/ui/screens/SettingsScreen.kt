@@ -36,7 +36,6 @@ import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.DeleteSweep
-import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.Storage
@@ -214,16 +213,8 @@ fun SettingsScreen(
                     icon = Icons.Rounded.VisibilityOff,
                     title = "无痕模式",
                     checked = uiState.isIncognito,
-                    subtitle = "浏览记录不写入历史",
+                    subtitle = "搜索记录与播放进度暂停写入，并临时隐藏历史",
                     onCheckedChange = { viewModel.toggleIncognito() }
-                )
-                MissNetListDivider()
-                SettingsToggleItem(
-                    icon = Icons.Rounded.Fingerprint,
-                    title = "应用锁",
-                    checked = uiState.isAppLockEnabled,
-                    subtitle = "使用生物识别解锁",
-                    onCheckedChange = { viewModel.toggleAppLock() }
                 )
             }
 

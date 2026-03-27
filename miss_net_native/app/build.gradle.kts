@@ -109,4 +109,8 @@ dependencies {
     implementation("io.ktor:ktor-client-android:2.3.7")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("com.arthenica:ffmpeg-kit-full:6.0-2")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.13")
+    testImplementation("androidx.test:core-ktx:1.6.1")
 }
