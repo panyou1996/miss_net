@@ -16,7 +16,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
+import com.panyou.missnet.ui.components.MissNetStateCard
 import com.panyou.missnet.ui.components.MissNetStatePane
 import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.components.SmallBadge
@@ -35,6 +37,11 @@ fun TagsScreen(
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         if (uiState.isLoading) {
             MissNetLoading()
+        } else if (uiState.errorMessage != null && uiState.tags.isEmpty()) {
+            MissNetErrorState(
+                message = uiState.errorMessage ?: "标签入口加载失败",
+                onRetry = viewModel::refresh
+            )
         } else {
             PullToRefreshBox(
                 isRefreshing = uiState.isRefreshing,
@@ -56,44 +63,56 @@ fun TagsScreen(
                                 )
                             }
                         } else {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(
-                                    top = 8.dp,
-                                    bottom = 8.dp,
-                                    start = ContainerTokens.ScreenContentPadding,
-                                    end = ContainerTokens.ScreenContentPadding
-                                ),
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                itemsIndexed(uiState.tags) { index, tag ->
-                                    ListItem(
-                                        headlineContent = {
-                                            Text(
-                                                text = tag,
-                                                style = MaterialTheme.typography.bodyLarge,
-                                                fontWeight = FontWeight.Medium
-                                            )
-                                        },
-                                        leadingContent = {
-                                            SmallBadge(
-                                                text = "#${index + 1}",
-                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        },
-                                        trailingContent = {
-                                            Icon(
-                                                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        },
-                                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                                        modifier = Modifier.clickable { onTagClick(tag) }
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                uiState.errorMessage?.let { message ->
+                                    MissNetStateCard(
+                                        icon = Icons.Rounded.Star,
+                                        title = "标签入口刷新失败",
+                                        subtitle = message,
+                                        actionLabel = "重试",
+                                        onAction = viewModel::refresh,
+                                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
                                     )
                                 }
-                                item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(
+                                        top = 8.dp,
+                                        bottom = 8.dp,
+                                        start = ContainerTokens.ScreenContentPadding,
+                                        end = ContainerTokens.ScreenContentPadding
+                                    ),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    itemsIndexed(uiState.tags) { index, tag ->
+                                        ListItem(
+                                            headlineContent = {
+                                                Text(
+                                                    text = tag,
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                            },
+                                            leadingContent = {
+                                                SmallBadge(
+                                                    text = "#${index + 1}",
+                                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            },
+                                            trailingContent = {
+                                                Icon(
+                                                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            },
+                                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                            modifier = Modifier.clickable { onTagClick(tag) }
+                                        )
+                                    }
+                                    item { Spacer(modifier = Modifier.height(ContainerTokens.ScreenBottomPadding)) }
+                                }
                             }
                         }
                     }

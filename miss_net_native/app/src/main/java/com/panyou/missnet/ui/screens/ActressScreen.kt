@@ -21,7 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.panyou.missnet.data.model.ActorInfo
 import com.panyou.missnet.ui.components.MissNetCoverImage
+import com.panyou.missnet.ui.components.MissNetErrorState
 import com.panyou.missnet.ui.components.MissNetLoading
+import com.panyou.missnet.ui.components.MissNetStateCard
 import com.panyou.missnet.ui.components.MissNetStatePane
 import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.components.SmallBadge
@@ -43,6 +45,11 @@ fun ActressScreen(
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         if (uiState.isLoading) {
             MissNetLoading()
+        } else if (uiState.errorMessage != null && actresses.isEmpty()) {
+            MissNetErrorState(
+                message = uiState.errorMessage ?: "演员入口加载失败",
+                onRetry = viewModel::refresh
+            )
         } else {
             PullToRefreshBox(
                 isRefreshing = uiState.isRefreshing,
@@ -64,19 +71,31 @@ fun ActressScreen(
                                 )
                             }
                         } else {
-                            LazyVerticalGrid(
-                                columns = GridCells.Adaptive(minSize = 124.dp),
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
-                                horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
-                                verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing)
-                            ) {
-                                itemsIndexed(actresses) { index, actor ->
-                                    ActressItem(
-                                        actor = actor,
-                                        isFeatured = index < 12,
-                                        onClick = { onActressClick(actor.name) }
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                uiState.errorMessage?.let { message ->
+                                    MissNetStateCard(
+                                        icon = Icons.Rounded.People,
+                                        title = "演员入口刷新失败",
+                                        subtitle = message,
+                                        actionLabel = "重试",
+                                        onAction = viewModel::refresh,
+                                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
                                     )
+                                }
+                                LazyVerticalGrid(
+                                    columns = GridCells.Adaptive(minSize = 124.dp),
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
+                                    horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
+                                    verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing)
+                                ) {
+                                    itemsIndexed(actresses) { index, actor ->
+                                        ActressItem(
+                                            actor = actor,
+                                            isFeatured = index < 12,
+                                            onClick = { onActressClick(actor.name) }
+                                        )
+                                    }
                                 }
                             }
                         }

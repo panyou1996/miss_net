@@ -61,8 +61,18 @@ class VideoRepository @Inject constructor(
     }
 
     suspend fun getActorsWithCovers(limit: Int = 20, forceRefresh: Boolean = false): List<ActorInfo> {
+        return when (val result = getActorsWithCoversResult(limit, forceRefresh)) {
+            AppResult.Empty -> emptyList()
+            is AppResult.Failure -> emptyList()
+            is AppResult.Success -> result.data
+        }
+    }
+
+    suspend fun getActorsWithCoversResult(limit: Int = 20, forceRefresh: Boolean = false): AppResult<List<ActorInfo>> {
         if (!forceRefresh) {
-            actorCache?.takeIf { it.isFresh(homeCacheTtlMs) }?.value?.takeIf { it.isNotEmpty() }?.let { return it.take(limit) }
+            actorCache?.takeIf { it.isFresh(homeCacheTtlMs) }?.value?.takeIf { it.isNotEmpty() }?.let {
+                return AppResult.Success(it.take(limit))
+            }
         }
         return try {
             val primary = supabase.postgrest
@@ -86,15 +96,29 @@ class VideoRepository @Inject constructor(
                     .take(limit)
             }
             actorCache = TimedCache(merged)
-            merged
+            appResultOfList(merged)
         } catch (_: Exception) {
-            getActorCoverFallback(limit).also { actorCache = TimedCache(it) }
+            when (val fallback = getActorCoverFallbackResult(limit)) {
+                AppResult.Empty -> AppResult.Empty
+                is AppResult.Failure -> AppResult.Failure("演员入口加载失败，请稍后重试。", fallback.cause)
+                is AppResult.Success -> fallback.data.also { actorCache = TimedCache(it) }.let { AppResult.Success(it) }
+            }
         }
     }
 
     suspend fun getPopularTags(limit: Int = 30, forceRefresh: Boolean = false): List<String> {
+        return when (val result = getPopularTagsResult(limit, forceRefresh)) {
+            AppResult.Empty -> defaultBrowseTags().take(limit)
+            is AppResult.Failure -> defaultBrowseTags().take(limit)
+            is AppResult.Success -> if (result.data.isNotEmpty()) result.data else defaultBrowseTags().take(limit)
+        }
+    }
+
+    suspend fun getPopularTagsResult(limit: Int = 30, forceRefresh: Boolean = false): AppResult<List<String>> {
         if (!forceRefresh) {
-            tagCache?.takeIf { it.isFresh(homeCacheTtlMs) }?.value?.takeIf { it.isNotEmpty() }?.let { return it.take(limit) }
+            tagCache?.takeIf { it.isFresh(homeCacheTtlMs) }?.value?.takeIf { it.isNotEmpty() }?.let {
+                return AppResult.Success(it.take(limit))
+            }
         }
         return try {
             val primary = supabase.postgrest
@@ -102,23 +126,34 @@ class VideoRepository @Inject constructor(
                 .decodeList<TagAggregateRow>()
                 .mapNotNull { normalizeBrowseTag(it.tag) }
                 .distinct()
-            (primary + getPopularTagsFallback(limit * 10) + defaultBrowseTags())
-                .distinct()
-                .take(limit)
-                .also { tagCache = TimedCache(it) }
+            appResultOfList(
+                (primary + getPopularTagsFallback(limit * 10))
+                    .distinct()
+                    .take(limit)
+                    .also { tagCache = TimedCache(it) }
+            )
         } catch (_: Exception) {
             try {
                 val legacy = supabase.postgrest
                     .rpc("get_popular_tags", buildJsonObject { put("limit_count", limit) })
                     .decodeList<TagRpcResult>()
                     .mapNotNull { normalizeBrowseTag(it.tag) }
-                (legacy + getPopularTagsFallback(limit * 10) + defaultBrowseTags())
-                    .distinct()
-                    .take(limit)
-                    .also { tagCache = TimedCache(it) }
+                appResultOfList(
+                    (legacy + getPopularTagsFallback(limit * 10))
+                        .distinct()
+                        .take(limit)
+                        .also { tagCache = TimedCache(it) }
+                )
             } catch (_: Exception) {
-                (getPopularTagsFallback(limit * 10) + defaultBrowseTags()).distinct().take(limit)
-                    .also { tagCache = TimedCache(it) }
+                when (val fallback = getPopularTagsFallbackResult(limit * 10)) {
+                    AppResult.Empty -> AppResult.Empty
+                    is AppResult.Failure -> AppResult.Failure("标签入口加载失败，请稍后重试。", fallback.cause)
+                    is AppResult.Success -> {
+                        val tags = fallback.data.distinct().take(limit)
+                        tagCache = TimedCache(tags)
+                        appResultOfList(tags)
+                    }
+                }
             }
         }
     }
@@ -300,9 +335,16 @@ class VideoRepository @Inject constructor(
         }
     }
 
-    private suspend fun getActorCoverFallback(limit: Int): List<ActorInfo> {
-        val recentVideos = getRecentVideosDirectResult(limit = 800).orEmptyList()
-        return recentVideos
+    private suspend fun getActorCoverFallback(limit: Int): List<ActorInfo> = getActorCoverFallbackResult(limit).orEmptyList()
+
+    private suspend fun getActorCoverFallbackResult(limit: Int): AppResult<List<ActorInfo>> {
+        val recentVideos = when (val result = getRecentVideosDirectResult(limit = 800)) {
+            AppResult.Empty -> return AppResult.Empty
+            is AppResult.Failure -> return AppResult.Failure("演员入口加载失败，请稍后重试。", result.cause)
+            is AppResult.Success -> result.data
+        }
+        return appResultOfList(
+            recentVideos
             .filter { isUsableCoverUrl(it.coverUrl) && it.actors.isNotEmpty() }
             .flatMap { video ->
                 video.actors
@@ -332,10 +374,21 @@ class VideoRepository @Inject constructor(
                     .thenBy { it.name }
             )
             .take(limit)
+        )
     }
 
     private suspend fun getPopularTagsFallback(limit: Int): List<String> {
-        return getRecentVideosDirectResult(limit = 800).orEmptyList()
+        return getPopularTagsFallbackResult(limit).orEmptyList()
+    }
+
+    private suspend fun getPopularTagsFallbackResult(limit: Int): AppResult<List<String>> {
+        val videos = when (val result = getRecentVideosDirectResult(limit = 800)) {
+            AppResult.Empty -> return AppResult.Empty
+            is AppResult.Failure -> return AppResult.Failure("标签入口加载失败，请稍后重试。", result.cause)
+            is AppResult.Success -> result.data
+        }
+        return appResultOfList(
+            videos
             .flatMap { video -> video.tags + video.categoriesForBrowseFallback() }
             .mapNotNull(::normalizeBrowseTag)
             .groupingBy { it }
@@ -344,6 +397,7 @@ class VideoRepository @Inject constructor(
             .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
             .map { it.key }
             .take(limit)
+        )
     }
 
     private suspend fun searchVideosFallbackResult(query: String, limit: Int, offset: Int): AppResult<List<Video>> {

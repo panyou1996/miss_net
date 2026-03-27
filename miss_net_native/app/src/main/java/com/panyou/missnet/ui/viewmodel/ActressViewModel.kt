@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.panyou.missnet.data.model.ActorInfo
 import com.panyou.missnet.data.repository.VideoRepository
+import com.panyou.missnet.data.result.AppResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +14,8 @@ import javax.inject.Inject
 data class ActressUiState(
     val actresses: List<ActorInfo> = emptyList(),
     val isLoading: Boolean = true,
-    val isRefreshing: Boolean = false
+    val isRefreshing: Boolean = false,
+    val errorMessage: String? = null
 )
 
 @HiltViewModel
@@ -35,9 +37,28 @@ class ActressViewModel @Inject constructor(
     private fun loadActresses(forceRefresh: Boolean = false) {
         viewModelScope.launch {
             val hasContent = _uiState.value.actresses.isNotEmpty()
-            _uiState.value = _uiState.value.copy(isLoading = !hasContent, isRefreshing = hasContent)
-            val list = repository.getActorsWithCovers(limit = 100, forceRefresh = forceRefresh)
-            _uiState.value = ActressUiState(actresses = list, isLoading = false, isRefreshing = false)
+            _uiState.value = _uiState.value.copy(isLoading = !hasContent, isRefreshing = hasContent, errorMessage = null)
+            when (val result = repository.getActorsWithCoversResult(limit = 100, forceRefresh = forceRefresh)) {
+                AppResult.Empty -> {
+                    _uiState.value = ActressUiState(actresses = emptyList(), isLoading = false, isRefreshing = false)
+                }
+
+                is AppResult.Failure -> {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        errorMessage = result.message
+                    )
+                }
+
+                is AppResult.Success -> {
+                    _uiState.value = ActressUiState(
+                        actresses = result.data,
+                        isLoading = false,
+                        isRefreshing = false
+                    )
+                }
+            }
         }
     }
 }

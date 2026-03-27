@@ -55,12 +55,7 @@ fun MissNetTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // Use Edge-to-Edge: Transparent Status Bar
-            window.statusBarColor = android.graphics.Color.TRANSPARENT
-            window.navigationBarColor = android.graphics.Color.TRANSPARENT
-            
             val windowInsetsController = WindowCompat.getInsetsController(window, view)
-            // Light status bar means dark icons
             windowInsetsController.isAppearanceLightStatusBars = !darkTheme
             windowInsetsController.isAppearanceLightNavigationBars = !darkTheme
         }
