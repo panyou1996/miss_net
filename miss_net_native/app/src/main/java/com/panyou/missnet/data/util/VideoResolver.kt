@@ -2,6 +2,7 @@ package com.panyou.missnet.data.util
 
 import android.content.Context
 import android.util.Log
+import com.panyou.missnet.data.media.SourceRequestHeaders
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -16,12 +17,14 @@ class VideoResolver @Inject constructor(
     suspend fun resolve(sourceUrl: String): String {
         Log.d("VideoResolver", "Resolving: $sourceUrl")
         if (sourceUrl.contains(".m3u8")) return sourceUrl
+        val requestHeaders = SourceRequestHeaders.forUrl(sourceUrl)
 
         // 1. High-speed HTTP + Regex
         try {
             val response = httpClient.get(sourceUrl) {
-                header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                header("Referer", "https://missav.ws/")
+                requestHeaders.forEach { (key, value) ->
+                    header(key, value)
+                }
             }
             val html = response.bodyAsText()
 
@@ -32,16 +35,16 @@ class VideoResolver @Inject constructor(
                 return match.value
             }
         } catch (e: Exception) {
-            Log.e("VideoResolver", "HTTP Resolve failed, trying Sniffer")
+            Log.e("VideoResolver", "HTTP Resolve failed, trying Sniffer", e)
         }
 
         // 2. Heavy-duty WebView Sniffer (Bypass Cloudflare)
-        val sniffedUrl = WebViewSniffer(context).sniffM3u8(sourceUrl)
+        val sniffedUrl = WebViewSniffer(context).sniffM3u8(sourceUrl, requestHeaders)
         if (sniffedUrl != null) {
             Log.d("VideoResolver", "Sniffer success: $sniffedUrl")
             return sniffedUrl
         }
 
-        return sourceUrl
+        throw IllegalStateException("播放源解析失败，未能通过受保护源站提取视频地址")
     }
 }

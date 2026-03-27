@@ -5,19 +5,20 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.panyou.missnet.data.media.SourceRequestHeaders
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
 class WebViewSniffer(private val context: Context) {
 
-    suspend fun sniffM3u8(url: String): String? = suspendCancellableCoroutine { continuation ->
+    suspend fun sniffM3u8(url: String, extraHeaders: Map<String, String> = emptyMap()): String? = suspendCancellableCoroutine { continuation ->
         // Must run on Main Thread
         android.os.Handler(android.os.Looper.getMainLooper()).post {
             val webView = WebView(context)
             webView.settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
-                userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                userAgentString = SourceRequestHeaders.browserUserAgent
             }
 
             webView.webViewClient = object : WebViewClient() {
@@ -48,7 +49,11 @@ class WebViewSniffer(private val context: Context) {
                 }
             }
 
-            webView.loadUrl(url)
+            if (extraHeaders.isEmpty()) {
+                webView.loadUrl(url)
+            } else {
+                webView.loadUrl(url, extraHeaders)
+            }
             
             // Timeout safety (15s)
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({

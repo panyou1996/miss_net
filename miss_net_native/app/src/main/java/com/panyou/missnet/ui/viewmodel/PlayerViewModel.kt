@@ -62,12 +62,7 @@ class PlayerViewModel @Inject constructor(
                 val video = repository.getVideoById(videoId)
                 if (video != null) {
                     Log.d("PlayerViewModel", "Metadata fetched. Resolving stream URL: ${video.sourceUrl}")
-                    val streamUrl = try {
-                        resolver.resolve(video.sourceUrl)
-                    } catch (e: Exception) {
-                        Log.e("PlayerViewModel", "Resolver crash", e)
-                        video.sourceUrl
-                    }
+                    val streamUrl = resolver.resolve(video.sourceUrl)
                     val related = repository.getRecentVideos(5)
                     val progressEntry = localStore.getProgress(video.id)
 

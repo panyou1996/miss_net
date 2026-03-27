@@ -27,8 +27,6 @@ object PublicVideoExporter {
     private const val ROOT_DIR = "MissNet"
     private const val MOVIES_PRIMARY_DIR = "Movies"
     private const val VIDEO_MIME_FALLBACK = "video/mp4"
-    private const val DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    private const val DEFAULT_REFERER = "https://missav.ws/"
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val exportJobs = ConcurrentHashMap<String, Job>()
@@ -260,6 +258,8 @@ object PublicVideoExporter {
         title: String,
         entry: DownloadStatusEntry?
     ) {
+        val referer = SourceRequestHeaders.refererFor(playlistUri)
+        val origin = SourceRequestHeaders.originFor(playlistUri)
         val command = buildString {
             append("-y ")
             append("-protocol_whitelist ")
@@ -267,10 +267,10 @@ object PublicVideoExporter {
             append(' ')
             append("-allowed_extensions ALL ")
             append("-user_agent ")
-            append(ffmpegQuote(DEFAULT_USER_AGENT))
+            append(ffmpegQuote(SourceRequestHeaders.browserUserAgent))
             append(' ')
             append("-headers ")
-            append(ffmpegQuote("Referer: $DEFAULT_REFERER\r\nOrigin: $DEFAULT_REFERER\r\n"))
+            append(ffmpegQuote("Referer: $referer\r\nOrigin: $origin\r\n"))
             append(' ')
             append("-i ")
             append(ffmpegQuote(playlistUri))

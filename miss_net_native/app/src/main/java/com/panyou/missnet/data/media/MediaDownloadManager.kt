@@ -3,12 +3,11 @@
 package com.panyou.missnet.data.media
 
 import android.content.Context
-import androidx.annotation.OptIn
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.DatabaseProvider
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.NoOpCacheEvictor
@@ -80,15 +79,16 @@ object MediaDownloadManager {
     }
 
     fun getHttpDataSourceFactory(): DataSource.Factory {
-        return DefaultHttpDataSource.Factory()
-            .setUserAgent("MissNet/1.0")
+        val upstreamFactory = DefaultHttpDataSource.Factory()
+            .setUserAgent(SourceRequestHeaders.browserUserAgent)
             .setAllowCrossProtocolRedirects(true)
-            .setDefaultRequestProperties(
-                mapOf(
-                    "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                    "Referer" to "https://missav.ws/"
-                )
+            .setDefaultRequestProperties(SourceRequestHeaders.forUrl(null, includeUserAgent = false))
+
+        return ResolvingDataSource.Factory(upstreamFactory) { dataSpec ->
+            dataSpec.withAdditionalHeaders(
+                SourceRequestHeaders.forUrl(dataSpec.uri.toString(), includeUserAgent = false)
             )
+        }
     }
 
     fun getReadOnlyDataSourceFactory(context: Context): DataSource.Factory {
