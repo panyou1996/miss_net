@@ -4,6 +4,8 @@ package com.panyou.missnet.ui.screens.player
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -34,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -69,6 +72,13 @@ fun PlayerPlaybackSurface(
 ) {
     var seekFeedback by remember { mutableStateOf<DoubleTapSeekAction?>(null) }
 
+    // U-6: Fade-out cover image when video starts playing
+    val coverAlpha by animateFloatAsState(
+        targetValue = if (showPosterArtwork) 1f else 0f,
+        animationSpec = tween(durationMillis = 350),
+        label = "cover-fade"
+    )
+
     LaunchedEffect(seekFeedback) {
         if (seekFeedback != null) {
             delay(650)
@@ -77,17 +87,21 @@ fun PlayerPlaybackSurface(
     }
 
     Box(modifier = modifier.background(mediaScrim(alpha = 1f))) {
-        if (showPosterArtwork) {
-            MissNetCoverImage(
-                coverUrl = coverUrl,
-                contentDescription = title,
-                modifier = Modifier.fillMaxSize()
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(mediaScrim(alpha = 0.28f))
-            )
+        if (coverAlpha > 0f) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                MissNetCoverImage(
+                    coverUrl = coverUrl,
+                    contentDescription = title,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = coverAlpha }
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(mediaScrim(alpha = 0.28f * coverAlpha))
+                )
+            }
         }
 
         PlayerContainer(player)

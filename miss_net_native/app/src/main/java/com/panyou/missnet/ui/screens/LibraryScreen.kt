@@ -22,6 +22,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyGridState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -61,6 +65,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.flow.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -108,6 +113,33 @@ fun LibraryScreen(
     val uiState by viewModel.uiState.collectAsState()
     var selectedTab by remember { mutableIntStateOf(LibraryTab.Downloads.ordinal) }
 
+    // U-7: Per-tab scroll position memory
+    val downloadListState = rememberLazyListState()
+    val historyListState = rememberLazyListState()
+    val likesGridState = rememberLazyGridState()
+    val scrollPositions = remember { mutableMapOf<Int, Int>() }
+
+    // Save scroll position when leaving a tab
+    LaunchedEffect(selectedTab, downloadListState.firstVisibleItemIndex) {
+        scrollPositions[LibraryTab.Downloads.ordinal] = downloadListState.firstVisibleItemIndex
+    }
+    LaunchedEffect(selectedTab, historyListState.firstVisibleItemIndex) {
+        scrollPositions[LibraryTab.History.ordinal] = historyListState.firstVisibleItemIndex
+    }
+    LaunchedEffect(selectedTab, likesGridState.firstVisibleItemIndex) {
+        scrollPositions[LibraryTab.Likes.ordinal] = likesGridState.firstVisibleItemIndex
+    }
+
+    // Restore scroll position when entering a tab
+    LaunchedEffect(selectedTab) {
+        val saved = scrollPositions[selectedTab] ?: 0
+        when (selectedTab) {
+            LibraryTab.Downloads.ordinal -> downloadListState.scrollToItem(saved)
+            LibraryTab.History.ordinal -> historyListState.scrollToItem(saved)
+            LibraryTab.Likes.ordinal -> likesGridState.scrollToItem(saved)
+        }
+    }
+
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
             LibrarySnapshotCard(
@@ -153,6 +185,7 @@ fun LibraryScreen(
                     when (currentTab) {
                         LibraryTab.Downloads -> DownloadsPage(
                             downloads = uiState.downloads,
+                            lazyListState = downloadListState,
                             onVideoClick = onVideoClick,
                             actionLabel = "去首页发现内容",
                             onAction = onHomeClick,
@@ -164,6 +197,7 @@ fun LibraryScreen(
                         )
                         LibraryTab.History -> ContinueWatchingPage(
                             entries = uiState.historyEntries,
+                            lazyListState = historyListState,
                             isLoading = uiState.isLoading,
                             onVideoClick = onVideoClick,
                             sharedTransitionScope = sharedTransitionScope,
@@ -178,6 +212,7 @@ fun LibraryScreen(
                             icon = Icons.Rounded.Favorite,
                             isLoading = uiState.isLoading,
                             videos = uiState.likes,
+                            gridState = likesGridState,
                             historyProgress = emptyMap(),
                             onVideoClick = onVideoClick,
                             sharedTransitionScope = sharedTransitionScope,
@@ -201,6 +236,7 @@ private fun VideoGridPage(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     isLoading: Boolean,
     videos: List<Video>,
+    gridState: LazyGridState,
     historyProgress: Map<String, Float>,
     onVideoClick: (String) -> Unit,
     sharedTransitionScope: SharedTransitionScope?,
@@ -249,6 +285,7 @@ private fun VideoGridPage(
     ) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 160.dp),
+            state = gridState,
             contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
             horizontalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
             verticalArrangement = Arrangement.spacedBy(ContainerTokens.GridItemSpacing),
@@ -276,6 +313,7 @@ private fun VideoGridPage(
 @Composable
 private fun ContinueWatchingPage(
     entries: List<WatchProgressEntry>,
+    lazyListState: LazyListState,
     isLoading: Boolean,
     onVideoClick: (String) -> Unit,
     sharedTransitionScope: SharedTransitionScope?,
@@ -324,6 +362,7 @@ private fun ContinueWatchingPage(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
+            state = lazyListState,
             contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -486,6 +525,7 @@ private fun LibraryEmptyStateCard(
 @Composable
 private fun DownloadsPage(
     downloads: List<DownloadStatusEntry>,
+    lazyListState: LazyListState,
     onVideoClick: (String) -> Unit,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
@@ -536,6 +576,7 @@ private fun DownloadsPage(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
+            state = lazyListState,
             contentPadding = PaddingValues(ContainerTokens.ScreenContentPadding),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
