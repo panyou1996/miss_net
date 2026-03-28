@@ -17,11 +17,9 @@ jobs:
   build-debug-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-
     defaults:
       run:
         working-directory: miss_net_native
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,27 +30,39 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
+
       - name: Generate new debug signing key
         run: |
+          # Generate a fresh debug keystore for this build — guarantees new signature
+          # so users won't get "signature conflict" with old installed APKs.
           mkdir -p app
           keytool -genkeypair \
             -keystore debug.keystore \
             -alias missnet-debug \
-            -keyalg RSA -keysize 2048 -validity 10000 \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
             -storepass MissNet2026 \
             -keypass MissNet2026 \
-            -dname "CN=miss_net, OU=dev, O=miss_net, L=SH, ST=SH, C=CN" -noprompt
+            -dname "CN=miss_net, OU=dev, O=miss_net, L=SH, ST=SH, C=CN" \
+            -noprompt
+
+          # Write signing config for Gradle
+          # NOTE: Path is relative to the app/ module directory (where build.gradle.kts runs),
+          # so "debug.keystore" resolves to miss_net_native/app/debug.keystore
           cat > app/signing.properties << 'EOF'
-          keystore=app/debug.keystore
+          keystore=debug.keystore
           keystore_password=MissNet2026
           key_alias=missnet-debug
           key_password=MissNet2026
           EOF
-          
+
+          echo "Keystore generated: $(ls -lh app/debug.keystore)"
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Assemble Debug APK
+      - name: Assemble Debug APK (signed with new key)
         run: ./gradlew :app:assembleDebug
 
       - name: Lint Debug
