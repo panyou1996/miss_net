@@ -8,6 +8,7 @@ plugins {
 }
 
 import java.util.Properties
+import com.android.build.gradle.api.SigningConfig
 
 android {
     namespace = "com.panyou.missnet"
@@ -15,7 +16,7 @@ android {
 
     // Read signing config from CI-generated signing.properties (only present on CI)
     val ciSigningConfig: SigningConfig? = file("signing.properties").takeIf { it.exists() }?.let { propsFile ->
-        val props = java.util.Properties()
+        val props = Properties()
         @Suppress("UNCHECKED_CAST")
         propsFile.inputStream().use { stream -> props.load(stream) }
         signingConfigs.create("ciSigning") {
