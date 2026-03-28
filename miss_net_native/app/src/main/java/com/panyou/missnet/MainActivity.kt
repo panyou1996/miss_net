@@ -115,11 +115,9 @@ fun MainScreen(settingsViewModel: SettingsViewModel) {
     
     SharedTransitionLayout {
         NavHost(
-            navController = navController,
-            startDestination = Screen.Home.route,
+            navController = navController, 
+            startDestination = Screen.Home.route, 
             modifier = Modifier.fillMaxSize(),
-            saveState = true,      // U-3: Persist nav state across process death
-            restoreState = true,    // U-3: Restore nav state on recreation
             enterTransition = {
                 val fromRoot = initialState.destination.route in listOf(Screen.Home.route, Screen.Actress.route, Screen.Tags.route, Screen.Library.route)
                 val toRoot = targetState.destination.route in listOf(Screen.Home.route, Screen.Actress.route, Screen.Tags.route, Screen.Library.route)
