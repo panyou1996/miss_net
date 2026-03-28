@@ -1,5 +1,7 @@
 package com.panyou.missnet.data.repository
 
+import android.util.Log
+import androidx.collection.LruCache
 import com.panyou.missnet.data.model.ActorInfo
 import com.panyou.missnet.data.model.Video
 import com.panyou.missnet.data.result.AppResult
@@ -16,6 +18,10 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import javax.inject.Inject
 
+private const val TAG = "VideoRepository"
+private const val VIDEO_CACHE_SIZE = 1500
+private val SECTION_TAGS = setOf("monthly_hot", "weekly_hot", "uncensored", "subtitled", "vr", "51cg")
+
 class VideoRepository @Inject constructor(
     private val supabase: SupabaseClient
 ) {
@@ -23,7 +29,10 @@ class VideoRepository @Inject constructor(
     private var homeCache: TimedCache<HomePayload>? = null
     private var actorCache: TimedCache<List<ActorInfo>>? = null
     private var tagCache: TimedCache<List<String>>? = null
-    private val videoCache = LinkedHashMap<String, Video>()
+    // S-5: Replace LinkedHashMap with Android LruCache for true LRU semantics
+    private val videoCache: LruCache<String, Video> = object : LruCache<String, Video>(VIDEO_CACHE_SIZE) {
+        override fun sizeOf(key: String, video: Video): Int = 1  // 1 unit per entry
+    }
 
     suspend fun getRecentVideos(limit: Int = 20, category: String = "new", offset: Int = 0): List<Video> {
         return getRecentVideosDirectResult(limit, category, offset).orEmptyList()
@@ -55,7 +64,8 @@ class VideoRepository @Inject constructor(
                 .rpc("get_popular_actors", buildJsonObject { put("limit_count", limit) })
                 .decodeList<ActorRpcResult>()
                 .map { it.actor }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "getPopularActors failed", e)
             emptyList()
         }
     }
@@ -97,7 +107,8 @@ class VideoRepository @Inject constructor(
             }
             actorCache = TimedCache(merged)
             appResultOfList(merged)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "getActorsWithCoversResult RPC failed, falling back", e)
             when (val fallback = getActorCoverFallbackResult(limit)) {
                 AppResult.Empty -> AppResult.Empty
                 is AppResult.Failure -> AppResult.Failure("演员入口加载失败，请稍后重试。", fallback.cause)
@@ -132,7 +143,8 @@ class VideoRepository @Inject constructor(
                     .take(limit)
                     .also { tagCache = TimedCache(it) }
             )
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "getPopularTagsResult primary RPC failed, trying legacy", e)
             try {
                 val legacy = supabase.postgrest
                     .rpc("get_popular_tags", buildJsonObject { put("limit_count", limit) })
@@ -144,7 +156,8 @@ class VideoRepository @Inject constructor(
                         .take(limit)
                         .also { tagCache = TimedCache(it) }
                 )
-            } catch (_: Exception) {
+            } catch (e2: Exception) {
+                Log.e(TAG, "getPopularTagsResult legacy RPC also failed, falling back to default tags", e2)
                 when (val fallback = getPopularTagsFallbackResult(limit * 10)) {
                     AppResult.Empty -> AppResult.Empty
                     is AppResult.Failure -> AppResult.Failure("标签入口加载失败，请稍后重试。", fallback.cause)
@@ -183,7 +196,8 @@ class VideoRepository @Inject constructor(
                         .decodeList<Video>()
                 )
             )
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "getVideosByCategoryResult RPC failed for category=$category", e)
             when (val fallback = getRecentVideosDirectResult(limit, category, offset)) {
                 AppResult.Empty -> AppResult.Empty
                 is AppResult.Failure -> AppResult.Failure("分类加载失败，请重试。", fallback.cause)
@@ -205,7 +219,8 @@ class VideoRepository @Inject constructor(
                         .decodeList<Video>()
                 )
             )
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "getVideosByActorResult RPC failed for actor=$actor, trying fallback", e)
             try {
                 appResultOfList(
                     rememberVideos(
@@ -249,31 +264,29 @@ class VideoRepository @Inject constructor(
                 homeCache = TimedCache(it)
             }.toAppResult()
         } catch (rpcError: Exception) {
-            val newVideos = getRecentVideosDirectResult(sectionLimit, "new")
-            val monthlyVideos = getRecentVideosDirectResult(sectionLimit, "monthly_hot")
-            val weeklyVideos = getRecentVideosDirectResult(weeklyLimit, "weekly_hot")
-            val uncensoredVideos = getRecentVideosDirectResult(sectionLimit, "uncensored")
-            val subtitleVideos = getRecentVideosDirectResult(sectionLimit, "subtitled")
-            val vrVideos = getRecentVideosDirectResult(sectionLimit, "vr")
-            val chiguaVideos = getRecentVideosDirectResult(sectionLimit, "51cg")
-
-            val sectionResults = listOf(newVideos, monthlyVideos, weeklyVideos, uncensoredVideos, subtitleVideos, vrVideos, chiguaVideos)
-            if (sectionResults.all { it is AppResult.Failure }) {
-                AppResult.Failure("首页加载失败，请稍后重试。", rpcError)
-            } else {
-                HomePayload(
-                    newVideos = newVideos.orEmptyList(),
-                    monthlyVideos = monthlyVideos.orEmptyList(),
-                    weeklyVideos = weeklyVideos.orEmptyList(),
-                    uncensoredVideos = uncensoredVideos.orEmptyList(),
-                    subtitleVideos = subtitleVideos.orEmptyList(),
-                    vrVideos = vrVideos.orEmptyList(),
-                    chiguaVideos = chiguaVideos.orEmptyList(),
-                ).also {
-                    cacheHomePayload(it)
-                    homeCache = TimedCache(it)
-                }.toAppResult()
+            Log.e(TAG, "getHomePayloadResult RPC failed, falling back to single-query grouping", rpcError)
+            // S-3 fix: single query, in-memory grouping — no more 7×800 redundant fetches
+            val allVideos = when (val r = getRecentVideosDirectResult(limit = 800)) {
+                is AppResult.Success -> r.data
+                else -> return AppResult.Failure("首页加载失败，请稍后重试。", rpcError)
             }
+            if (allVideos.isEmpty()) return AppResult.Empty
+
+            val grouped = allVideos.groupBy { video ->
+                video.tags.firstOrNull { it in SECTION_TAGS } ?: "new"
+            }
+            HomePayload(
+                newVideos = grouped["new"].orEmpty().take(sectionLimit),
+                monthlyVideos = grouped["monthly_hot"].orEmpty().take(sectionLimit),
+                weeklyVideos = grouped["weekly_hot"].orEmpty().take(weeklyLimit),
+                uncensoredVideos = grouped["uncensored"].orEmpty().take(sectionLimit),
+                subtitleVideos = grouped["subtitled"].orEmpty().take(sectionLimit),
+                vrVideos = grouped["vr"].orEmpty().take(sectionLimit),
+                chiguaVideos = grouped["51cg"].orEmpty().take(sectionLimit),
+            ).also {
+                cacheHomePayload(it)
+                homeCache = TimedCache(it)
+            }.toAppResult()
         }
     }
 
@@ -301,7 +314,8 @@ class VideoRepository @Inject constructor(
                         .decodeList<Video>()
                 )
             )
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e(TAG, "searchVideosResult RPC failed for query=$query", e)
             searchVideosFallbackResult(query, limit, offset)
         }
     }
@@ -441,11 +455,7 @@ class VideoRepository @Inject constructor(
 
     private fun rememberVideo(video: Video) {
         if (video.id.isBlank()) return
-        videoCache[video.id] = video
-        if (videoCache.size > 1500) {
-            val firstKey = videoCache.entries.firstOrNull()?.key ?: return
-            videoCache.remove(firstKey)
-        }
+        videoCache.put(video.id, video)
     }
 }
 
