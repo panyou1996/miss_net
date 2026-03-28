@@ -7,15 +7,17 @@ plugins {
     id("com.google.dagger.hilt.android")
 }
 
+import java.util.Properties
+
 android {
     namespace = "com.panyou.missnet"
     compileSdk = 35
 
     // Read signing config from CI-generated signing.properties (only present on CI)
-    val ciSigningConfig = file("signing.properties").let { propsFile ->
-        if (!propsFile.exists()) return@let null
+    val ciSigningConfig: SigningConfig? = file("signing.properties").takeIf { it.exists() }?.let { propsFile ->
         val props = java.util.Properties()
-        propsFile.inputStream().use { props.load(it) }
+        @Suppress("UNCHECKED_CAST")
+        propsFile.inputStream().use { stream -> props.load(stream) }
         signingConfigs.create("ciSigning") {
             storeFile = file(props["keystore"] as String)
             storePassword = props["keystore_password"] as String
