@@ -7,8 +7,7 @@ plugins {
     id("com.google.dagger.hilt.android")
 }
 
-import java.util.Properties
-import com.android.build.gradle.api.SigningConfig
+import java.util.*
 
 android {
     namespace = "com.panyou.missnet"
