@@ -697,7 +697,7 @@ private fun CompactHeroSection(
             contentPadding = PaddingValues(horizontal = ContainerTokens.ScreenContentPadding),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(videos) { video ->
+            items(videos, key = { it.id }) { video ->
                 Box(modifier = Modifier.height(188.dp).width(312.dp)) {
                     HeroCarouselItem(
                         video = video,
@@ -729,7 +729,7 @@ fun HomeSection(
                 contentPadding = PaddingValues(horizontal = ContainerTokens.ScreenContentPadding),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(videos) { video ->
+                items(videos, key = { it.id }) { video ->
                     VerticalVideoCard(
                         video = video,
                         onClick = { onVideoClick(video.id) },
