@@ -36,7 +36,7 @@ jobs:
         run: |
           mkdir -p app
           keytool -genkeypair \
-            -keystore app/debug.keystore \
+            -keystore debug.keystore \
             -alias missnet-debug \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass MissNet2026 \
