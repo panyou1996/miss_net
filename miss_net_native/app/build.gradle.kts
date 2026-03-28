@@ -121,8 +121,8 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
 
-    // Image Loading (Coil)
-    implementation("io.coil-kt:coil-compose:2.5.0")
+    // Image Loading (Coil) — 2.6.0+ required for Kotlin 2.0.0 compatibility
+    implementation("io.coil-kt:coil-compose:2.7.0")
 
     // Biometric
     implementation("androidx.biometric:biometric-ktx:1.2.0-alpha05")
