@@ -46,3 +46,7 @@ build/
 miss_net/build/
 
 .worktrees/
+
+# Signing (generated in CI, never commit)
+app/debug.keystore
+app/signing.properties

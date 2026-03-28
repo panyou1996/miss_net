@@ -11,6 +11,19 @@ android {
     namespace = "com.panyou.missnet"
     compileSdk = 35
 
+    // Read signing config from CI-generated signing.properties (only present on CI)
+    val ciSigningConfig = file("signing.properties").let { propsFile ->
+        if (!propsFile.exists()) return@let null
+        val props = java.util.Properties()
+        propsFile.inputStream().use { props.load(it) }
+        signingConfigs.create("ciSigning") {
+            storeFile = file(props["keystore"] as String)
+            storePassword = props["keystore_password"] as String
+            keyAlias = props["key_alias"] as String
+            keyPassword = props["key_password"] as String
+        }
+    }
+
     defaultConfig {
         applicationId = "com.panyou.missnet"
         minSdk = 26
@@ -34,6 +47,8 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Use CI-generated signing key when signing.properties is present
+            signingConfig = ciSigningConfig
         }
 
         release {
