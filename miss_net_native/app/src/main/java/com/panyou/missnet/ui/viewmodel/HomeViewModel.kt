@@ -142,6 +142,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     private fun prioritizeDownloads(downloads: List<DownloadStatusEntry>): List<DownloadStatusEntry> {
         return downloads.sortedWith(
             compareBy<DownloadStatusEntry> { entry ->
