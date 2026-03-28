@@ -86,7 +86,7 @@ fun PlayerPlaybackSurface(
         }
     }
 
-    Box(modifier = modifier.background(mediaScrim(alpha = 1f))) {
+    Box(modifier = modifier) {
         if (coverAlpha > 0f) {
             Box(modifier = Modifier.fillMaxSize()) {
                 MissNetCoverImage(
