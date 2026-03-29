@@ -364,7 +364,7 @@ def resolve_run_configuration():
 
     if SCRAPER_RUN_MODE == "index":
         if not selected_tags:
-            selected_tags = {"new", "weekly_hot", "monthly_hot", "subtitled"}
+            selected_tags = {"new", "weekly_hot", "monthly_hot", "subtitled", "51cg"}
         missav_pages = max(MISSAV_MAX_PAGES, 20)
         cg_pages = 0 if SKIP_51CG else min(CG_MAX_PAGES, 1)
         early_stop_streak = max(EARLY_STOP_STREAK, 6)
@@ -432,6 +432,14 @@ def merge_video_record(video: dict, existing: dict | None) -> dict:
     )
 
     return merged
+
+
+def build_51cg_canonical_source_url(page_url: str, player_index: int) -> str:
+    base = str(page_url or "").split("#", 1)[0].strip()
+    if not base:
+        return base
+    index = max(int(player_index or 1), 1)
+    return f"{base}#video-{index}"
 
 
 def apply_cover_patch(existing: dict, cover_url: str | None) -> dict:
@@ -1157,7 +1165,7 @@ async def process_51cg_batch(videos, detail_pages, supabase, semaphore, source_t
                         if details.get('videos'):
                             for i, video_info in enumerate(details['videos']):
                                 new_vid = vid.copy()
-                                new_vid['source_url'] = video_info['url']
+                                new_vid['source_url'] = build_51cg_canonical_source_url(vid['source_url'], i + 1)
                                 if video_info['title_suffix']:
                                     new_vid['title'] = f"{vid['title']} {video_info['title_suffix']}"
                                 

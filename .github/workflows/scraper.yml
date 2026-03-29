@@ -30,7 +30,7 @@ on:
       skip_51cg:
         description: 'Skip 51CG sources during manual runs'
         required: true
-        default: true
+        default: false
         type: boolean
       concurrent_detail_pages:
         description: 'Concurrent detail pages'
@@ -112,7 +112,7 @@ jobs:
         DETAIL_FETCH_POLICY: ${{ github.event_name == 'workflow_dispatch' && (inputs.detail_fetch_policy || 'smart') || (vars.DAILY_DETAIL_FETCH_POLICY || 'none') }}
         DISCOVER_MISSAV_SOURCES: ${{ github.event_name == 'workflow_dispatch' && (inputs.discover_missav_sources && 'true' || 'false') || (vars.DAILY_DISCOVER_MISSAV_SOURCES || 'true') }}
         DISCOVERED_SOURCE_LIMIT: ${{ github.event_name == 'workflow_dispatch' && (inputs.discovered_source_limit || '60') || (vars.DAILY_DISCOVERED_SOURCE_LIMIT || '120') }}
-        SKIP_51CG: ${{ github.event_name == 'workflow_dispatch' && (inputs.skip_51cg && 'true' || 'false') || (vars.DAILY_SKIP_51CG || 'true') }}
+        SKIP_51CG: ${{ github.event_name == 'workflow_dispatch' && (inputs.skip_51cg && 'true' || 'false') || (vars.DAILY_SKIP_51CG || 'false') }}
         EARLY_STOP_STREAK: ${{ github.event_name == 'workflow_dispatch' && (inputs.early_stop_streak || '2') || (vars.DAILY_EARLY_STOP_STREAK || '8') }}
         EARLY_STOP_MIN_PAGE: ${{ github.event_name == 'workflow_dispatch' && (inputs.early_stop_min_page || '3') || (vars.DAILY_EARLY_STOP_MIN_PAGE || '10') }}
         SUPABASE_UPSERT_CHUNK_SIZE: ${{ vars.SUPABASE_UPSERT_CHUNK_SIZE || '150' }}
