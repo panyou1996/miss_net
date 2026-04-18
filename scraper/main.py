@@ -186,6 +186,7 @@ DETAIL_FETCH_POLICY = os.environ.get("DETAIL_FETCH_POLICY", "").strip().lower()
 DISCOVER_MISSAV_SOURCES = env_bool("DISCOVER_MISSAV_SOURCES", False)
 DISCOVERED_SOURCE_LIMIT = env_positive_int("DISCOVERED_SOURCE_LIMIT", 60)
 NULL_COVER_QUEUE_JSON = os.environ.get("NULL_COVER_QUEUE_JSON", "").strip()
+NULL_COVER_QUEUE_JSON_FILE = os.environ.get("NULL_COVER_QUEUE_JSON_FILE", "").strip()
 METADATA_QUEUE_JSON = os.environ.get("METADATA_QUEUE_JSON", "").strip()
 CATEGORY_HUB_URLS = [
     "https://missav.ws/genres",
@@ -464,6 +465,16 @@ def apply_metadata_patch(existing: dict, details: dict | None) -> dict:
 
 
 def parse_null_cover_queue(raw: str | None):
+    # Check if we should read from file instead of environment variable
+    if not raw and NULL_COVER_QUEUE_JSON_FILE:
+        try:
+            with open(NULL_COVER_QUEUE_JSON_FILE, 'r', encoding='utf-8') as f:
+                raw = f.read()
+            print(f"[Config] Loaded NULL_COVER_QUEUE_JSON from file: {NULL_COVER_QUEUE_JSON_FILE}")
+        except Exception as e:
+            print(f"[Config] Failed to read NULL_COVER_QUEUE_JSON from file {NULL_COVER_QUEUE_JSON_FILE}: {e}")
+            return []
+    
     if not raw:
         return []
     try:
