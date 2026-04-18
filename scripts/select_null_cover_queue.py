@@ -77,7 +77,8 @@ def main():
     parser.add_argument('--project-ref', default=os.environ.get('SUPABASE_PROJECT_REF', 'gapmmwdbxzcglvvdhhiu'))
     parser.add_argument('--source-site', choices=['all', 'missav', '51cg'], default='missav')
     parser.add_argument('--limit', type=int, default=50)
-    parser.add_argument('--output', choices=['json', 'env'], default='json')
+    parser.add_argument('--output', choices=['json', 'env', 'file'], default='json')
+    parser.add_argument('--output-file', default='/tmp/null_cover_queue.json')
     args = parser.parse_args()
 
     token = os.environ.get('SUPABASE_ACCESS_TOKEN')
@@ -88,7 +89,13 @@ def main():
     rows = run_sql(args.project_ref, token, build_query(args.limit, args.source_site))
     selected = select_queue_rows(rows, args.limit)
 
-    if args.output == 'env':
+    if args.output == 'file':
+        # Write JSON to file to avoid "Argument list too long" error
+        with open(args.output_file, 'w', encoding='utf-8') as f:
+            json.dump(selected, f, ensure_ascii=False, indent=2)
+        # Also output count and source_site to env format for backward compatibility
+        print(render_env_output(selected, args.source_site))
+    elif args.output == 'env':
         print(render_env_output(selected, args.source_site))
     else:
         print(json.dumps({'source_site': args.source_site, 'count': len(selected), 'rows': selected}, ensure_ascii=False, indent=2))
