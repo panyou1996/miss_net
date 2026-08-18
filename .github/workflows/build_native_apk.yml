@@ -57,11 +57,17 @@ jobs:
       - name: Assemble Debug APK
         run: ./gradlew :app:assembleDebug
 
+      - name: Prepare APK Distribution
+        run: |
+          mkdir -p ../dist
+          cp app/build/outputs/apk/debug/*.apk ../dist/missnet-latest.apk
+          ls -lh ../dist/missnet-latest.apk
+
       - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: missnet-native-debug-apk-${{ github.run_number }}
-          path: miss_net_native/app/build/outputs/apk/debug/app-debug.apk
+          path: dist/missnet-latest.apk
           if-no-files-found: error
           retention-days: 14
 
@@ -69,13 +75,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: latest-nightly
+          tag_name: latest
           name: MissNet Native (Latest Build)
-          body: |
-            ### MissNet Native Latest Build
-            - Commit: `${{ github.sha }}`
-            - 核心特性：精简紧凑播放器浮层、手势亮度/音量/长按2.0X倍速、局域网大屏投屏支持、分类双列宫格/列表切换与复合筛选、51CG多视频合并与多P选集。
-          files: miss_net_native/app/build/outputs/apk/debug/app-debug.apk
+          draft: false
+          prerelease: false
+          make_latest: true
+          files: dist/missnet-latest.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
