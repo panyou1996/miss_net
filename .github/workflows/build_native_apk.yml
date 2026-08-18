@@ -53,7 +53,12 @@ jobs:
         run: chmod +x gradlew
 
       - name: Assemble Debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: |
+          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee /tmp/build.log || {
+            echo "::error::BUILD FAILED SUMMARY"
+            tail -n 60 /tmp/build.log
+            exit 1
+          }
 
       - name: Lint Debug
         run: ./gradlew :app:lintDebug
