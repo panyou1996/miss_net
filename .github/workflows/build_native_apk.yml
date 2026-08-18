@@ -57,54 +57,10 @@ jobs:
       - name: Assemble Debug APK
         run: ./gradlew :app:assembleDebug
 
-      - name: Prepare APK Distribution
-        run: |
-          mkdir -p ../dist
-          cp app/build/outputs/apk/debug/*.apk ../dist/missnet-latest.apk
-          ls -lh ../dist/missnet-latest.apk
-
       - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: missnet-native-debug-apk-${{ github.run_number }}
-          path: dist/missnet-latest.apk
+          path: miss_net_native/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
-
-      - name: Publish Direct Release APK
-        uses: softprops/action-gh-release@v2
-        continue-on-error: true
-        if: github.ref == 'refs/heads/main'
-        with:
-          tag_name: latest
-          name: MissNet Native (Latest Build)
-          draft: false
-          prerelease: false
-          make_latest: true
-          files: dist/missnet-latest.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Lint Debug
-        continue-on-error: true
-        run: ./gradlew :app:lintDebug
-
-      - name: Upload lint report artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: missnet-native-lint-report-${{ github.run_number }}
-          path: miss_net_native/app/build/reports/lint-results-debug.html
-          if-no-files-found: warn
-          retention-days: 14
-
-      - name: Upload build reports on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: missnet-native-failure-logs-${{ github.run_number }}
-          path: |
-            miss_net_native/app/build/reports/
-            miss_net_native/app/build/outputs/
-          if-no-files-found: warn
-          retention-days: 7
