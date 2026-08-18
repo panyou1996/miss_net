@@ -73,6 +73,7 @@ jobs:
 
       - name: Publish Direct Release APK
         uses: softprops/action-gh-release@v2
+        continue-on-error: true
         if: github.ref == 'refs/heads/main'
         with:
           tag_name: latest
