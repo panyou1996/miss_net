@@ -166,31 +166,33 @@ fun PlayerPlaybackSurface(
                     )
                 }
                 .pointerInput(Unit) {
-                    detectDragGestures { change, dragAmount ->
-                        change.consume()
-                        val isLeftSide = change.position.x < size.width / 2f
-                        if (isLeftSide && activity != null) {
-                            // Left side: Brightness
-                            val currentAttr = activity.window.attributes
-                            val currentBrightness = if (currentAttr.screenBrightness < 0f) 0.5f else currentAttr.screenBrightness
-                            val newBrightness = (currentBrightness - (dragAmount.y / size.height.toFloat()) * 1.5f).coerceIn(0.05f, 1.0f)
-                            currentAttr.screenBrightness = newBrightness
-                            activity.window.attributes = currentAttr
-                            gestureIcon = Icons.Default.BrightnessMedium
-                            gestureFeedback = "亮度 ${(newBrightness * 100).toInt()}%"
-                        } else if (audioManager != null) {
-                            // Right side: Volume
-                            val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-                            val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-                            val step = if (dragAmount.y < 0) 1 else -1
-                            if (abs(dragAmount.y) > 8) {
-                                val newVol = (currentVol + step).coerceIn(0, maxVol)
-                                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVol, 0)
-                                gestureIcon = Icons.Default.VolumeUp
-                                gestureFeedback = "音量 ${(newVol * 100 / maxVol.coerceAtLeast(1))}%"
+                    detectDragGestures(
+                        onDrag = { change, dragAmount ->
+                            change.consume()
+                            val isLeftSide = change.position.x < size.width / 2f
+                            if (isLeftSide && activity != null) {
+                                // Left side: Brightness
+                                val currentAttr = activity.window.attributes
+                                val currentBrightness = if (currentAttr.screenBrightness < 0f) 0.5f else currentAttr.screenBrightness
+                                val newBrightness = (currentBrightness - (dragAmount.y / size.height.toFloat()) * 1.5f).coerceIn(0.05f, 1.0f)
+                                currentAttr.screenBrightness = newBrightness
+                                activity.window.attributes = currentAttr
+                                gestureIcon = Icons.Default.BrightnessMedium
+                                gestureFeedback = "亮度 ${(newBrightness * 100).toInt()}%"
+                            } else if (audioManager != null) {
+                                // Right side: Volume
+                                val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                                val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                                val step = if (dragAmount.y < 0) 1 else -1
+                                if (abs(dragAmount.y) > 8) {
+                                    val newVol = (currentVol + step).coerceIn(0, maxVol)
+                                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVol, 0)
+                                    gestureIcon = Icons.Default.VolumeUp
+                                    gestureFeedback = "音量 ${(newVol * 100 / maxVol.coerceAtLeast(1))}%"
+                                }
                             }
                         }
-                    }
+                    )
                 }
         )
 
