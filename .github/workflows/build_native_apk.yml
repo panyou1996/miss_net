@@ -68,6 +68,20 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Publish Direct Release APK
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        continue-on-error: true
+        with:
+          tag_name: latest
+          name: MissNet Native (Latest Build)
+          draft: false
+          prerelease: false
+          make_latest: true
+          files: dist/MissNet-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Push build log on failure
         if: failure()
         run: |
