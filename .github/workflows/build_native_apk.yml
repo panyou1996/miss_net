@@ -56,23 +56,24 @@ jobs:
       - name: Assemble Debug APK
         working-directory: miss_net_native
         run: |
-          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee /tmp/gradle.log
-          mkdir -p /tmp/dist
-          find app/build/outputs/apk/ -name "*.apk" -exec cp {} /tmp/dist/MissNet-debug.apk \;
+          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee ../build.log
+          mkdir -p ../dist
+          cp app/build/outputs/apk/debug/*.apk ../dist/MissNet-debug.apk
 
       - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: MissNet-Debug-APK-${{ github.run_number }}
-          path: /tmp/dist/MissNet-debug.apk
+          path: dist/MissNet-debug.apk
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gradle-build-log-${{ github.run_number }}
-          path: /tmp/gradle.log
-          if-no-files-found: warn
-          retention-days: 7
+      - name: Push build log on failure
+        if: failure()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B ci-debug-log
+          git add -f build.log
+          git commit -m "ci: build failure log"
+          git push -f origin ci-debug-log
