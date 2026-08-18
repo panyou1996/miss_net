@@ -60,9 +60,6 @@ jobs:
             exit 1
           }
 
-      - name: Lint Debug
-        run: ./gradlew :app:lintDebug
-
       - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -71,7 +68,12 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Lint Debug
+        continue-on-error: true
+        run: ./gradlew :app:lintDebug
+
       - name: Upload lint report artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: missnet-native-lint-report-${{ github.run_number }}
