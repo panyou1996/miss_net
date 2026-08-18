@@ -20,10 +20,6 @@ jobs:
     permissions:
       contents: write
 
-    defaults:
-      run:
-        working-directory: miss_net_native
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,7 +30,9 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
+
       - name: Generate new debug signing key
+        working-directory: miss_net_native
         run: |
           mkdir -p app
           keytool -genkeypair \
@@ -50,28 +48,23 @@ jobs:
           key_alias=missnet-debug
           key_password=MissNet2026
           EOF
-          
+
       - name: Grant execute permission for gradlew
+        working-directory: miss_net_native
         run: chmod +x gradlew
 
       - name: Assemble Debug APK
+        working-directory: miss_net_native
         run: |
+          ./gradlew :app:assembleDebug
           mkdir -p ../dist
-          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee ../dist/build_full.log
+          cp app/build/outputs/apk/debug/*.apk ../dist/MissNet-debug.apk
+          ls -lh ../dist/MissNet-debug.apk
 
       - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: missnet-native-debug-apk-${{ github.run_number }}
-          path: miss_net_native/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Upload build log on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-failure-log-${{ github.run_number }}
-          path: dist/build_full.log
+          name: MissNet-Debug-APK-${{ github.run_number }}
+          path: dist/MissNet-debug.apk
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 14
