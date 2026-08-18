@@ -44,7 +44,7 @@ fun shareVideo(context: Context, title: String, url: String?): Boolean {
     return try {
         context.startActivity(Intent.createChooser(shareIntent, "分享视频"))
         true
-    } catch (_: ActivityNotFoundException) {
+    } catch (e: ActivityNotFoundException) {
         false
     }
 }
@@ -59,7 +59,7 @@ fun castOrOpenExternalPlayer(context: Context, title: String, url: String?): Boo
     return try {
         context.startActivity(Intent.createChooser(intent, "投屏 / 使用外部播放器播放"))
         true
-    } catch (_: ActivityNotFoundException) {
+    } catch (e: ActivityNotFoundException) {
         false
     }
 }

@@ -844,7 +844,7 @@ private fun DownloadCard(
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
                             context.startActivity(intent)
-                        } catch (_: ActivityNotFoundException) {
+                        } catch (e: ActivityNotFoundException) {
                             Toast.makeText(context, "系统中没有可打开该导出文件的应用，请到文件管理器查看", Toast.LENGTH_SHORT).show()
                         }
                     }
