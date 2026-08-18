@@ -53,18 +53,13 @@ jobs:
         run: chmod +x gradlew
 
       - name: Assemble Debug APK
-        run: |
-          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee /tmp/build.log || {
-            echo "::error::BUILD FAILED SUMMARY"
-            tail -n 60 /tmp/build.log
-            exit 1
-          }
+        run: ./gradlew :app:assembleDebug
 
       - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: missnet-native-debug-apk-${{ github.run_number }}
-          path: '**/build/outputs/apk/debug/*.apk'
+          path: miss_net_native/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
 
