@@ -66,6 +66,15 @@ import com.panyou.missnet.ui.theme.ThumbnailShape
 import com.panyou.missnet.ui.util.bouncyClick
 import com.panyou.missnet.ui.viewmodel.CategoryDetailViewModel
 
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.ViewList
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.panyou.missnet.ui.components.VideoCard
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun CategoryDetailScreen(
@@ -81,9 +90,22 @@ fun CategoryDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val pageTitle = remember(category, actor) { resolveCategoryPageTitle(category, actor) }
+    val haptic = LocalHapticFeedback.current
+
+    var isCompactGrid by remember { mutableStateOf(false) }
+    var selectedFilter by remember { mutableStateOf("all") }
 
     LaunchedEffect(category, actor) {
         viewModel.init(category, actor)
+    }
+
+    val filteredVideos = remember(uiState.videos, selectedFilter) {
+        when (selectedFilter) {
+            "sub" -> uiState.videos.filter { it.title.contains("中文字幕") || it.title.contains("中文") || it.tags.any { t -> t.contains("sub") || t.contains("中字") } }
+            "uncensored" -> uiState.videos.filter { it.tags.any { t -> t.contains("uncensored") || t.contains("无码") || t.contains("破解") } || it.title.contains("无码") || it.title.contains("破解") }
+            "51cg" -> uiState.videos.filter { it.id.startsWith("51cg") || it.tags.any { t -> t.contains("51cg") || t.contains("吃瓜") } }
+            else -> uiState.videos
+        }
     }
 
     val shouldLoadMore = remember {
@@ -132,7 +154,6 @@ fun CategoryDetailScreen(
         else -> {
             Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 Column(modifier = Modifier.fillMaxSize().padding(contentPadding)) {
-                    // Note: Sort/Filter UI requires backend support for: sort (newest/hottest), filter (subtitle/uncensored/high-res)
                     SecondaryPageSurface {
                         LazyColumn(
                             state = listState,
@@ -141,20 +162,68 @@ fun CategoryDetailScreen(
                             modifier = Modifier.fillMaxSize()
                         ) {
                             item {
-                                Column(
-                                    modifier = Modifier.padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding),
-                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = pageTitle,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        text = "${uiState.videos.size} 项",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = pageTitle,
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            text = "${filteredVideos.size} 项",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            isCompactGrid = !isCompactGrid
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isCompactGrid) Icons.Default.ViewList else Icons.Default.GridView,
+                                            contentDescription = if (isCompactGrid) "切换为列表模式" else "切换为双列宫格模式",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Filter Chips Row
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf(
+                                        "all" to "全部",
+                                        "sub" to "中文字幕",
+                                        "uncensored" to "无码破解",
+                                        "51cg" to "51吃瓜"
+                                    ).forEach { (key, label) ->
+                                        val isSelected = selectedFilter == key
+                                        FilterChip(
+                                            selected = isSelected,
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                selectedFilter = key
+                                            },
+                                            label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
+                                        )
+                                    }
                                 }
                             }
 
@@ -189,13 +258,49 @@ fun CategoryDetailScreen(
                                 }
                             }
 
-                            items(uiState.videos, key = { video -> video.id }) { video ->
-                                CategoryVideoItem(
-                                    video = video,
-                                    onClick = { onVideoClick(video.id) },
-                                    sharedTransitionScope = sharedTransitionScope,
-                                    animatedVisibilityScope = animatedVisibilityScope
-                                )
+                            if (isCompactGrid) {
+                                val chunkedVideos = filteredVideos.chunked(2)
+                                items(chunkedVideos) { rowVideos ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = ContainerTokens.ScreenCompactHorizontalPadding),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        rowVideos.forEach { video ->
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                VideoCard(
+                                                    videoId = video.id,
+                                                    title = video.title,
+                                                    coverUrl = video.coverUrl,
+                                                    duration = video.displayDurationOrNull,
+                                                    videoCount = video.videoCount,
+                                                    onClick = {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                        onVideoClick(video.id)
+                                                    },
+                                                    sharedTransitionScope = sharedTransitionScope,
+                                                    animatedVisibilityScope = animatedVisibilityScope
+                                                )
+                                            }
+                                        }
+                                        if (rowVideos.size == 1) {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
+                            } else {
+                                items(filteredVideos, key = { video -> video.id }) { video ->
+                                    CategoryVideoItem(
+                                        video = video,
+                                        onClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            onVideoClick(video.id)
+                                        },
+                                        sharedTransitionScope = sharedTransitionScope,
+                                        animatedVisibilityScope = animatedVisibilityScope
+                                    )
+                                }
                             }
 
                             if (uiState.isMoreLoading) {

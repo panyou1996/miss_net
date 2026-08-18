@@ -72,6 +72,7 @@ import com.panyou.missnet.ui.screens.player.SecondaryActionsRow
 import com.panyou.missnet.ui.screens.player.VideoInfoSection
 import com.panyou.missnet.ui.screens.player.findActivity
 import com.panyou.missnet.ui.screens.player.shareVideo
+import com.panyou.missnet.ui.screens.player.castOrOpenExternalPlayer
 import com.panyou.missnet.ui.theme.videoSharedTransitionKey
 import com.panyou.missnet.ui.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
@@ -581,7 +582,17 @@ fun PlayerScreen(
                                             viewModel.showDownloadMessage(SHARE_UNAVAILABLE_MESSAGE)
                                         }
                                     },
-                                    onSpeed = { showSpeedSheet = true }
+                                    onSpeed = { showSpeedSheet = true },
+                                    onCast = {
+                                        val success = castOrOpenExternalPlayer(
+                                            context = context,
+                                            title = uiState.video?.title.orEmpty(),
+                                            url = uiState.streamUrl ?: uiState.video?.sourceUrl
+                                        )
+                                        if (!success) {
+                                            viewModel.showDownloadMessage("未找到可用的投屏接收器或外部播放器")
+                                        }
+                                    }
                                 )
                             }
 

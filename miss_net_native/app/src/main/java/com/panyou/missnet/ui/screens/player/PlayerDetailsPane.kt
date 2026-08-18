@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -350,6 +351,7 @@ fun PrimaryActionsRow(
 fun SecondaryActionsRow(
     onShare: () -> Unit,
     onSpeed: () -> Unit,
+    onCast: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     FlowRow(
@@ -366,6 +368,11 @@ fun SecondaryActionsRow(
             icon = Icons.Default.Speed,
             label = "速度",
             onClick = onSpeed
+        )
+        SecondaryActionChip(
+            icon = Icons.Default.Tv,
+            label = "投屏",
+            onClick = onCast
         )
     }
 }

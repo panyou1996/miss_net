@@ -7,6 +7,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.net.Uri
 
 fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
@@ -42,6 +43,21 @@ fun shareVideo(context: Context, title: String, url: String?): Boolean {
     }
     return try {
         context.startActivity(Intent.createChooser(shareIntent, "分享视频"))
+        true
+    } catch (_: ActivityNotFoundException) {
+        false
+    }
+}
+
+fun castOrOpenExternalPlayer(context: Context, title: String, url: String?): Boolean {
+    if (url.isNullOrBlank()) return false
+    val intent = Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(Uri.parse(url), if (url.contains(".m3u8")) "application/x-mpegURL" else "video/*")
+        putExtra(Intent.EXTRA_TITLE, title)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    return try {
+        context.startActivity(Intent.createChooser(intent, "投屏 / 使用外部播放器播放"))
         true
     } catch (_: ActivityNotFoundException) {
         false
