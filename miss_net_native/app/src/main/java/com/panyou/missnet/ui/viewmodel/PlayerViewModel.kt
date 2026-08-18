@@ -74,7 +74,11 @@ class PlayerViewModel @Inject constructor(
                     is AppResult.Success -> {
                         val video = result.data
                         Log.d("PlayerViewModel", "Metadata fetched. Resolving stream URL: ${video.sourceUrl}")
-                        val streamUrl = resolver.resolve(video.sourceUrl)
+                        val streamUrl = if (video.duration?.contains(".m3u8") == true) {
+                            video.duration
+                        } else {
+                            resolver.resolve(video.sourceUrl)
+                        }
                         val related = repository.getRecentVideos(5)
                         val progressEntry = localStore.getProgress(video.id)
 

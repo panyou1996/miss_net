@@ -7,6 +7,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
+import com.panyou.missnet.data.media.SourceRequestHeaders
 
 @Composable
 fun MissNetCoverImage(
@@ -20,10 +21,13 @@ fun MissNetCoverImage(
     val context = LocalContext.current
     val request = remember(coverUrl, context) {
         coverUrl
-            ?.takeIf { it.isNotBlank() }
-            ?.let {
+            ?.takeIf { it.isNotBlank() && !it.startsWith("data:image") }
+            ?.let { url ->
+                val referer = if (url.contains("51cg") || url.contains("pic.")) "https://51cg1.com/" else "https://missav.ws/"
                 ImageRequest.Builder(context)
-                    .data(it)
+                    .data(url)
+                    .addHeader("Referer", referer)
+                    .addHeader("User-Agent", SourceRequestHeaders.browserUserAgent)
                     .crossfade(true)
                     .build()
             }
