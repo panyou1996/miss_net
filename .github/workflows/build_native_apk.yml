@@ -17,6 +17,8 @@ jobs:
   build-debug-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: write
 
     defaults:
       run:
@@ -62,6 +64,20 @@ jobs:
           path: miss_net_native/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish Direct Release APK
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: latest-nightly
+          name: MissNet Native (Latest Build)
+          body: |
+            ### MissNet Native Latest Build
+            - Commit: `${{ github.sha }}`
+            - 核心特性：精简紧凑播放器浮层、手势亮度/音量/长按2.0X倍速、局域网大屏投屏支持、分类双列宫格/列表切换与复合筛选、51CG多视频合并与多P选集。
+          files: miss_net_native/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Lint Debug
         continue-on-error: true
