@@ -126,14 +126,16 @@ fun SearchScreen(
                         },
                         trailingIcon = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (uiState.history.isNotEmpty() && uiState.active) {
-                                    IconButton(onClick = viewModel::clearSearchHistory) {
-                                        Icon(Icons.Default.DeleteOutline, contentDescription = "清空历史")
-                                    }
-                                }
                                 if (uiState.query.isNotEmpty()) {
                                     IconButton(onClick = { viewModel.onQueryChange("") }) {
                                         Icon(Icons.Default.Close, contentDescription = "清空")
+                                    }
+                                    IconButton(onClick = { viewModel.search(uiState.query) }) {
+                                        Icon(Icons.Default.Search, contentDescription = "确认搜索")
+                                    }
+                                } else if (uiState.history.isNotEmpty() && uiState.active) {
+                                    IconButton(onClick = viewModel::clearSearchHistory) {
+                                        Icon(Icons.Default.DeleteOutline, contentDescription = "清空历史")
                                     }
                                 }
                             }

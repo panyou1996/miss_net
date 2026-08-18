@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.panyou.missnet.data.model.Video
+import com.panyou.missnet.ui.components.DurationBadge
 import com.panyou.missnet.ui.components.HeroCarouselItem
 import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.components.MissNetErrorState
@@ -259,6 +260,14 @@ fun CategoryVideoItem(
                     contentDescription = video.title,
                     modifier = Modifier.fillMaxSize()
                 )
+                if (video.videoCount > 1) {
+                    DurationBadge(
+                        text = "${video.videoCount}P",
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(4.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))

@@ -42,9 +42,6 @@ class SearchViewModel @Inject constructor(
     )
     val uiState: StateFlow<SearchUiState> = _uiState
 
-    // U-1: Debounced auto-search — cancels previous timer on each keystroke
-    private var debounceJob: Job? = null
-
     init {
         viewModelScope.launch {
             localStore.observeSearchHistory().collect { history ->
@@ -55,16 +52,6 @@ class SearchViewModel @Inject constructor(
 
     fun onQueryChange(newQuery: String) {
         _uiState.value = _uiState.value.copy(query = newQuery)
-
-        // Cancel any pending auto-search
-        debounceJob?.cancel()
-
-        if (newQuery.length >= MIN_QUERY_LENGTH) {
-            debounceJob = viewModelScope.launch {
-                delay(SEARCH_DEBOUNCE_MS)
-                performSearch(newQuery.trim())
-            }
-        }
     }
 
     fun onActiveChange(isActive: Boolean) {
@@ -92,13 +79,10 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    // Called when user explicitly presses Enter / search button — bypasses debounce
+    // Called when user explicitly presses Enter / search button
     fun search(query: String) {
         val normalized = query.trim()
         if (normalized.isBlank()) return
-
-        // Cancel any pending debounce so it doesn't fire after explicit search
-        debounceJob?.cancel()
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
@@ -148,55 +132,6 @@ class SearchViewModel @Inject constructor(
                         errorMessage = null
                     )
                 }
-            }
-        }
-    }
-
-    private suspend fun performSearch(normalized: String) {
-        _uiState.value = _uiState.value.copy(
-            isLoading = true,
-            isLoadingMore = false,
-            active = false,
-            endReached = false,
-            errorMessage = null
-        )
-        when (val result = repository.searchVideosResult(normalized, limit = pageSize, offset = 0)) {
-            AppResult.Empty -> {
-                localStore.addSearchHistory(normalized)
-                _uiState.value = _uiState.value.copy(
-                    results = emptyList(),
-                    history = localStore.getSearchHistory(),
-                    isLoading = false,
-                    isLoadingMore = false,
-                    active = false,
-                    endReached = true,
-                    errorMessage = null
-                )
-            }
-
-            is AppResult.Failure -> {
-                Log.e(TAG, "performSearch (debounce) failed for query=$normalized", result.cause)
-                _uiState.value = _uiState.value.copy(
-                    results = emptyList(),
-                    isLoading = false,
-                    isLoadingMore = false,
-                    active = false,
-                    endReached = false,
-                    errorMessage = result.message
-                )
-            }
-
-            is AppResult.Success -> {
-                localStore.addSearchHistory(normalized)
-                _uiState.value = _uiState.value.copy(
-                    results = result.data,
-                    history = localStore.getSearchHistory(),
-                    isLoading = false,
-                    isLoadingMore = false,
-                    active = false,
-                    endReached = result.data.size < pageSize,
-                    errorMessage = null
-                )
             }
         }
     }
