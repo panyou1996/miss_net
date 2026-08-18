@@ -73,3 +73,14 @@ jobs:
           path: miss_net_native/app/build/reports/lint-results-debug.html
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Upload build reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: missnet-native-failure-logs-${{ github.run_number }}
+          path: |
+            miss_net_native/app/build/reports/
+            miss_net_native/app/build/outputs/
+          if-no-files-found: warn
+          retention-days: 7
