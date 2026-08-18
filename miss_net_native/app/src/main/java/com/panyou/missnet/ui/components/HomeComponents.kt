@@ -98,6 +98,14 @@ fun VerticalVideoCard(
                 contentDescription = video.title,
                 modifier = Modifier.fillMaxSize()
             )
+            if (video.videoCount > 1) {
+                DurationBadge(
+                    text = "${video.videoCount}P",
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(6.dp)
+                )
+            }
         }
         
         Spacer(modifier = Modifier.height(8.dp))

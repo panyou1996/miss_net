@@ -232,6 +232,7 @@ fun SearchScreen(
                                         title = video.title,
                                         coverUrl = video.coverUrl,
                                         duration = video.displayDurationOrNull,
+                                        videoCount = video.videoCount,
                                         onClick = { onVideoClick(video.id) },
                                         sharedTransitionScope = sharedTransitionScope,
                                         animatedVisibilityScope = animatedVisibilityScope

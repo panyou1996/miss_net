@@ -38,6 +38,7 @@ fun VideoCard(
     title: String,
     coverUrl: String?,
     duration: String? = null,
+    videoCount: Int = 1,
     progress: Float? = null,
     showFavoriteBadge: Boolean = false,
     onClick: () -> Unit,
@@ -100,6 +101,15 @@ fun VideoCard(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     lineHeight = 18.sp
+                )
+            }
+
+            if (videoCount > 1) {
+                DurationBadge(
+                    text = "${videoCount}P",
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
                 )
             }
 

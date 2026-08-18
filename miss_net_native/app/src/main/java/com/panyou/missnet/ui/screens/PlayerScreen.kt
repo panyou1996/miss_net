@@ -61,6 +61,7 @@ import com.panyou.missnet.service.PlaybackService
 import com.panyou.missnet.ui.components.SecondaryPageSurface
 import com.panyou.missnet.ui.theme.ActionTokens
 import com.panyou.missnet.ui.theme.ContainerTokens
+import com.panyou.missnet.ui.screens.player.EpisodeSelectorSection
 import com.panyou.missnet.ui.screens.player.PlayerControls
 import com.panyou.missnet.ui.screens.player.PlayerLoadingState
 import com.panyou.missnet.ui.screens.player.PlayerPlaybackSurface
@@ -582,6 +583,21 @@ fun PlayerScreen(
                                     },
                                     onSpeed = { showSpeedSheet = true }
                                 )
+                            }
+
+                            val currentVideo = uiState.video
+                            if (currentVideo != null && (currentVideo.videoCount > 1 || currentVideo.videos.isNotEmpty())) {
+                                item {
+                                    EpisodeSelectorSection(
+                                        currentVideoId = currentVideo.id,
+                                        videoCount = currentVideo.videoCount,
+                                        episodes = currentVideo.videos,
+                                        onEpisodeSelect = { epId ->
+                                            stopPlaybackSession()
+                                            viewModel.setVideo(epId)
+                                        }
+                                    )
+                                }
                             }
 
                             if (uiState.relatedVideos.isNotEmpty()) {

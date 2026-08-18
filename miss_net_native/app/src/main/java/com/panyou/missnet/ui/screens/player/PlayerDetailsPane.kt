@@ -53,11 +53,74 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.panyou.missnet.data.model.Video
+import com.panyou.missnet.data.model.VideoEpisode
 import com.panyou.missnet.ui.components.DurationBadge
 import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.theme.ActionTokens
 import com.panyou.missnet.ui.theme.MotionTokens
 import com.panyou.missnet.ui.theme.ThumbnailShape
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun EpisodeSelectorSection(
+    currentVideoId: String,
+    videoCount: Int,
+    episodes: List<VideoEpisode>,
+    onEpisodeSelect: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (videoCount <= 1 && episodes.size <= 1) return
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "选集 (${episodes.size.coerceAtLeast(videoCount)})",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val list = if (episodes.isNotEmpty()) {
+                episodes
+            } else {
+                (1..videoCount).map { idx ->
+                    val epId = if (idx == 1) currentVideoId else "${currentVideoId}_$idx"
+                    VideoEpisode(index = idx, id = epId, title = "第 $idx 集")
+                }
+            }
+            list.forEach { ep ->
+                val isSelected = ep.id == currentVideoId || (ep.index == 1 && !currentVideoId.contains(Regex("""_\d+$""")))
+                AssistChip(
+                    onClick = { onEpisodeSelect(ep.id) },
+                    label = {
+                        Text(
+                            text = ep.title.ifBlank { "第 ${ep.index} 集" },
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    colors = if (isSelected) {
+                        AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    } else {
+                        AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun RecommendSectionHeader(modifier: Modifier = Modifier) {

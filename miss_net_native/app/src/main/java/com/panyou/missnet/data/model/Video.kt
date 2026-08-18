@@ -14,8 +14,9 @@ data class Video(
     @SerialName("source_release_date") val sourceReleaseDate: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     val actors: List<String> = emptyList(), 
-    val tags: List<String> = emptyList()
-,
+    val tags: List<String> = emptyList(),
+    @SerialName("video_count") val videoCount: Int = 1,
+    val videos: List<VideoEpisode> = emptyList(),
     @SerialName("inventory_status") val inventoryStatus: String? = null,
     @SerialName("detail_status") val detailStatus: String? = null
 ) {
@@ -41,6 +42,15 @@ data class Video(
             }
         }
 }
+
+@Serializable
+data class VideoEpisode(
+    val index: Int = 1,
+    val id: String = "",
+    val title: String = "",
+    @SerialName("playback_url") val playbackUrl: String? = null,
+    @SerialName("is_ready") val isReady: Boolean = false
+)
 
 @Serializable
 data class ActorInfo(

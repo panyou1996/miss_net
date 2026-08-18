@@ -1,4 +1,9 @@
-playwright
-supabase
-python-dotenv
-playwright-stealth
+fastapi==0.136.1
+uvicorn==0.47.0
+beautifulsoup4==4.14.3
+playwright==1.60.0
+playwright-stealth==2.0.3
+pydantic>=2.0.0
+httpx>=0.28.0
+requests>=2.32.0
+curl_cffi>=0.15.0
