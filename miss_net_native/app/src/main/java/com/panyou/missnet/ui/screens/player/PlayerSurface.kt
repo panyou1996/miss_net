@@ -2,6 +2,10 @@
 
 package com.panyou.missnet.ui.screens.player
 
+import android.content.Context
+import android.media.AudioManager
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
@@ -9,10 +13,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,8 +26,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrightnessMedium
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
@@ -38,7 +47,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -49,17 +60,7 @@ import com.panyou.missnet.ui.components.MissNetCoverImage
 import com.panyou.missnet.ui.theme.MotionTokens
 import com.panyou.missnet.ui.theme.mediaScrim
 import kotlinx.coroutines.delay
-import android.view.ViewGroup
-import android.widget.FrameLayout
-
-import android.content.Context
-import android.media.AudioManager
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.material.icons.filled.BrightnessMedium
-import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
+import kotlin.math.abs
 
 @Composable
 fun PlayerPlaybackSurface(
@@ -172,7 +173,7 @@ fun PlayerPlaybackSurface(
                             // Left side: Brightness
                             val currentAttr = activity.window.attributes
                             val currentBrightness = if (currentAttr.screenBrightness < 0f) 0.5f else currentAttr.screenBrightness
-                            val newBrightness = (currentBrightness - (dragAmount.y / size.height) * 1.5f).coerceIn(0.05f, 1.0f)
+                            val newBrightness = (currentBrightness - (dragAmount.y / size.height.toFloat()) * 1.5f).coerceIn(0.05f, 1.0f)
                             currentAttr.screenBrightness = newBrightness
                             activity.window.attributes = currentAttr
                             gestureIcon = Icons.Default.BrightnessMedium
@@ -182,7 +183,7 @@ fun PlayerPlaybackSurface(
                             val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                             val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
                             val step = if (dragAmount.y < 0) 1 else -1
-                            if (kotlin.math.abs(dragAmount.y) > 8) {
+                            if (abs(dragAmount.y) > 8) {
                                 val newVol = (currentVol + step).coerceIn(0, maxVol)
                                 audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVol, 0)
                                 gestureIcon = Icons.Default.VolumeUp

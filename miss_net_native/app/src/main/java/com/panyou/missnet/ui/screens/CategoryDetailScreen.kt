@@ -214,7 +214,7 @@ fun CategoryDetailScreen(
                                         FilterChip(
                                             selected = isSelected,
                                             onClick = {
-                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                 selectedFilter = key
                                             },
                                             label = { Text(label, style = MaterialTheme.typography.labelMedium) },
@@ -276,7 +276,7 @@ fun CategoryDetailScreen(
                                                     duration = video.displayDurationOrNull,
                                                     videoCount = video.videoCount,
                                                     onClick = {
-                                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                                         onVideoClick(video.id)
                                                     },
                                                     sharedTransitionScope = sharedTransitionScope,
@@ -294,7 +294,7 @@ fun CategoryDetailScreen(
                                     CategoryVideoItem(
                                         video = video,
                                         onClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             onVideoClick(video.id)
                                         },
                                         sharedTransitionScope = sharedTransitionScope,
