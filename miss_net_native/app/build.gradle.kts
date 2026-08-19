@@ -13,36 +13,19 @@ android {
     namespace = "com.panyou.missnet"
     compileSdk = 35
 
-    // ── Auto-generate debug keystore if missing ─────────────────────────────────
-    // This is the only way to ensure a correct keystore path without depending
-    // on the CI workflow to generate one at a known location.
-    val keystoreFile = file("app-debug.keystore")
-    val keystoreDir = keystoreFile.parentFile!!
-
-    if (!keystoreFile.exists()) {
-        keystoreDir.mkdirs()
-        // Generate using keytool via Gradle exec (avoids JVM classpath issues in Kotlin DSL)
-        exec {
-            commandLine(
-                "keytool", "-genkeypair",
-                "-keystore", keystoreFile.path,
-                "-alias", "missnet-debug",
-                "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000",
-                "-storepass", "MissNet2026",
-                "-keypass", "MissNet2026",
-                "-dname", "CN=miss_net,OU=dev,O=miss_net,L=SH,ST=SH,C=CN",
-                "-noprompt"
-            )
-            workingDir(keystoreDir)
+    signingConfigs {
+        create("release") {
+            storeFile = file("missnet_app.keystore")
+            storePassword = "MissNet2026"
+            keyAlias = "missnet"
+            keyPassword = "MissNet2026"
         }
-        println("[signing] Generated new debug keystore at ${keystoreFile.path}")
-    }
-
-    signingConfigs.create("ci") {
-        storeFile = keystoreFile
-        storePassword = "MissNet2026"
-        keyAlias = "missnet-debug"
-        keyPassword = "MissNet2026"
+        create("ci") {
+            storeFile = file("missnet_app.keystore")
+            storePassword = "MissNet2026"
+            keyAlias = "missnet"
+            keyPassword = "MissNet2026"
+        }
     }
 
     defaultConfig {
@@ -65,12 +48,13 @@ android {
         debug {
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = signingConfigs.getByName("ci")
+            signingConfig = signingConfigs.getByName("release")
         }
 
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

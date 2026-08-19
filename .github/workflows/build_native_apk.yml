@@ -31,24 +31,6 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - name: Generate new debug signing key
-        working-directory: miss_net_native
-        run: |
-          mkdir -p app
-          keytool -genkeypair \
-            -keystore debug.keystore \
-            -alias missnet-debug \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass MissNet2026 \
-            -keypass MissNet2026 \
-            -dname "CN=miss_net, OU=dev, O=miss_net, L=SH, ST=SH, C=CN" -noprompt
-          cat > app/signing.properties << 'EOF'
-          keystore=app/debug.keystore
-          keystore_password=MissNet2026
-          key_alias=missnet-debug
-          key_password=MissNet2026
-          EOF
-
       - name: Grant execute permission for gradlew
         working-directory: miss_net_native
         run: chmod +x gradlew
